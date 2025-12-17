@@ -1,0 +1,155 @@
+.caja-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f6f3 0%, #ece7e0 100%);
+  padding: 40px 20px;
+}
+
+.caja-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.caja-header h1 {
+  color: #430a33;
+  font-size: 42px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.caja-header p {
+  color: #666;
+  font-size: 18px;
+}
+
+.caja-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.caja-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #430a33;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 12px 16px;
+  border: 2px solid #ece7e0;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #430a33;
+  box-shadow: 0 0 0 3px rgba(67, 10, 51, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.mensaje {
+  padding: 20px 15px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  animation: fadeIn 0.3s ease;
+  margin: 10px 0;
+}
+
+.mensaje.success {
+  background: #28a745;
+  color: white;
+  border: 3px solid #1e7e34;
+  font-size: 20px;
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  animation: successPulse 0.6s ease;
+  letter-spacing: 0.5px;
+}
+
+@keyframes successPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.mensaje.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-registrar {
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  color: white;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.btn-registrar:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(67, 10, 51, 0.3);
+}
+
+.btn-registrar:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-registrar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .caja-header h1 {
+    font-size: 32px;
+  }
+
+  .caja-form-container {
+    padding: 30px 20px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+}

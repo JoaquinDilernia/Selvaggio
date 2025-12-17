@@ -1,0 +1,1393 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.landing-container {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Animaciones al scroll */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.animate-on-scroll.animated {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(15px);
+  z-index: 1000;
+  padding: 12px 0;
+  box-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+}
+
+.navbar.scrolled {
+  padding: 8px 0;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+}
+
+.navbar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 140px;
+  width: auto;
+  max-width: 400px;
+  object-fit: contain;
+  transition: transform 0.3s ease, height 0.3s ease;
+  filter: brightness(1.1);
+}
+
+.navbar.scrolled .nav-logo {
+  height: 100px;
+}
+
+.nav-logo:hover {
+  transform: scale(1.08);
+}
+
+/* Menu hamburguesa */
+.menu-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 1001;
+}
+
+.menu-toggle span {
+  width: 28px;
+  height: 3px;
+  background: #ece7e0;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.nav-links {
+  display: flex;
+  gap: 35px;
+}
+
+.nav-links a {
+  color: #ece7e0;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #ac987f;
+  transition: width 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #ac987f;
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* Botón flotante WhatsApp */
+.whatsapp-float {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 65px;
+  height: 65px;
+  background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  z-index: 999;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(37, 211, 102, 0.6);
+}
+
+.whatsapp-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(37, 211, 102, 0.7);
+  }
+}
+
+/* Hero Section con parallax */
+.hero {
+  height: 100vh;
+  background: linear-gradient(135deg, rgba(67, 10, 51, 0.6) 0%, rgba(7, 56, 43, 0.6) 100%),
+              url('/Hero.jpeg') center/cover;
+  background-attachment: fixed;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 80px;
+  filter: brightness(1.15);
+}
+
+.hero.parallax {
+  background-attachment: fixed;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.hero-content {
+  position: relative;
+  text-align: center;
+  color: #ece7e0;
+  max-width: 900px;
+  padding: 40px;
+  opacity: 1;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0.3;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-title {
+  font-family: 'Brandbook', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  letter-spacing: -1px;
+  text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  margin-bottom: 30px;
+  color: #ac987f;
+  font-weight: 300;
+}
+
+.hero-features {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.hero-feature {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 50px;
+}
+
+.hero-badge {
+  display: inline-block;
+  margin-bottom: 15px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 16px 40px;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #ece7e0;
+  color: #430a33;
+  box-shadow: 0 4px 20px rgba(236, 231, 224, 0.3);
+}
+
+.btn-primary:hover {
+  background: #ac987f;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 25px rgba(236, 231, 224, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #ece7e0;
+  border: 2px solid #ece7e0;
+}
+
+.btn-secondary:hover {
+  background: #ece7e0;
+  color: #430a33;
+  transform: translateY(-3px);
+}
+
+/* Presentación */
+.presentacion-section {
+  background: white;
+  padding: 80px 40px;
+}
+
+.presentacion-content {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.text-intro {
+  font-size: 22px;
+  line-height: 1.8;
+  color: #430a33;
+  font-weight: 400;
+}
+
+/* Disclaimer Bar */
+.disclaimer-bar {
+  background: #430a33;
+  padding: 25px 40px;
+  border-top: 3px solid #ac987f;
+  border-bottom: 3px solid #ac987f;
+}
+
+.disclaimer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.disclaimer-icon {
+  font-size: 32px;
+}
+
+.disclaimer-content p {
+  color: #ece7e0;
+  font-size: 16px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.disclaimer-content strong {
+  color: #ac987f;
+  font-size: 18px;
+}
+
+/* Cómo Funciona */
+.como-funciona-section {
+  background: #f8f6f3;
+  padding: 100px 40px;
+}
+
+.pasos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.paso-card {
+  background: white;
+  padding: 40px 30px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.paso-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 30px rgba(67, 10, 51, 0.15);
+}
+
+.paso-icon {
+  font-size: 50px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.paso-numero {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  color: #ece7e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 auto 20px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 2px 10px rgba(67, 10, 51, 0.3);
+}
+
+.paso-card h3 {
+  color: #430a33;
+  font-size: 24px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.paso-card p {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* Concepto Section */
+.concepto-section {
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.concepto-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.concepto-content h2 {
+  color: #ece7e0;
+  font-size: 42px;
+  margin-bottom: 25px;
+  font-weight: 700;
+}
+
+.concepto-content p {
+  color: #ac987f;
+  font-size: 20px;
+  line-height: 1.8;
+}
+
+/* La Cava Section */
+.cava-section {
+  background: white;
+  padding: 100px 40px;
+}
+
+.cava-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title-left {
+  text-align: left;
+  font-size: 42px;
+  color: #430a33;
+  margin-bottom: 25px;
+  font-weight: 700;
+}
+
+.cava-text .text-large {
+  font-size: 20px;
+  line-height: 1.8;
+  color: #430a33;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.cava-text p {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.btn-reservar-cava {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  color: #ece7e0;
+  text-decoration: none;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  display: inline-block;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(67, 10, 51, 0.3);
+}
+
+.btn-reservar-cava:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 25px rgba(67, 10, 51, 0.4);
+}
+
+/* Vinos Section */
+.vinos-section {
+  background: #f8f6f3;
+  padding: 100px 40px;
+}
+
+.vinos-intro {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 50px;
+  font-size: 18px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.vinos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto 50px;
+}
+
+.vino-categoria {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vino-categoria:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.categoria-title {
+  font-size: 28px;
+  color: #430a33;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #ac987f;
+  font-weight: 700;
+}
+
+.vinos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vino-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #ece7e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.vino-item:last-child {
+  border-bottom: none;
+}
+
+.vino-info {
+  flex: 1;
+}
+
+.vino-item h4 {
+  color: #430a33;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.vino-descripcion {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.vino-precio {
+  color: #07382b;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.vinos-nota {
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  padding: 25px 40px;
+  border-radius: 15px;
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.vinos-nota p {
+  color: #ece7e0;
+  font-size: 16px;
+  margin: 0;
+}
+
+.vinos-nota strong {
+  color: #ac987f;
+}
+
+.vinos-placeholder {
+  background: white;
+  padding: 80px 40px;
+  border-radius: 20px;
+  text-align: center;
+  border: 2px dashed #ac987f;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.vinos-placeholder p {
+  font-size: 20px;
+  color: #430a33;
+  margin-bottom: 15px;
+}
+
+.vinos-note {
+  font-size: 16px !important;
+  color: #999 !important;
+  font-style: italic;
+}
+
+/* Prensa Section */
+.prensa-section {
+  background: white;
+  padding: 100px 40px;
+}
+
+.prensa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.prensa-item {
+  background: #f8f6f3;
+  padding: 40px 30px;
+  border-radius: 15px;
+  border-left: 5px solid #430a33;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.prensa-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.prensa-item h4 {
+  color: #430a33;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.prensa-item p {
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.prensa-date {
+  color: #ac987f;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prensa-placeholder {
+  background: #f8f6f3;
+  padding: 80px 40px;
+  border-radius: 20px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.prensa-placeholder p {
+  font-size: 20px;
+  color: #666;
+}
+
+/* Info Bar - Actualizado para disclaimer */
+.info-bar {
+  display: none;
+}
+
+/* Contacto / Feedback Section - Renombrado */
+.feedback-section {
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.feedback-content h2 {
+  color: #ece7e0;
+  font-size: 42px;
+  margin-bottom: 15px;
+}
+
+.feedback-content p {
+  color: #ac987f;
+  font-size: 20px;
+  margin-bottom: 35px;
+}
+
+/* Contacto buttons en ubicación */
+.contacto-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+  flex-wrap: wrap;
+}
+
+/* Galería Grid */
+.galeria-section {
+  background: #f8f6f3;
+  padding: 100px 40px;
+}
+
+.galeria-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.galeria-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 15px;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.galeria-item:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.galeria-item img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.galeria-item:hover img {
+  transform: scale(1.05);
+}
+
+.galeria-item .placeholder-image {
+  height: 300px;
+}
+
+.placeholder-image,
+.experiencia-image .placeholder-image,
+.cava-image .placeholder-image {
+  width: 100%;
+  height: 400px;
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ece7e0;
+  font-size: 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.cava-photo,
+.galeria-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.cava-image {
+  width: 100%;
+  height: 400px;
+}
+
+/* Sections genéricas */
+.section-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 48px;
+  color: #430a33;
+  text-align: center;
+  margin-bottom: 60px;
+  font-weight: 700;
+}
+
+/* Ubicación Grid */
+.ubicacion-section {
+  background: white;
+  padding: 100px 40px;
+}
+
+.ubicacion-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+
+.ubicacion-info h3 {
+  color: #430a33;
+  font-size: 24px;
+  margin-bottom: 15px;
+  margin-top: 30px;
+}
+
+.ubicacion-info h3:first-child {
+  margin-top: 0;
+}
+
+.ubicacion-info p {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.direccion-text {
+  font-size: 18px !important;
+  color: #430a33 !important;
+  font-weight: 500;
+}
+
+.ubicacion-cta {
+  display: flex;
+  gap: 15px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.btn-whatsapp,
+.btn-instagram,
+.btn-google-reviews {
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: white;
+}
+
+.btn-whatsapp:hover {
+  background: #20ba5a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
+}
+
+.btn-instagram {
+  background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+  color: white;
+}
+
+.btn-instagram:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(188, 24, 136, 0.3);
+}
+
+.btn-google-reviews {
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  color: white;
+}
+
+.btn-google-reviews:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+}
+
+.ubicacion-mapa {
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.ubicacion-mapa iframe {
+  width: 100%;
+  height: 450px;
+  border: none;
+  display: block;
+}
+
+.ubicacion-mapa .placeholder-image {
+  height: 450px;
+}
+
+.ubicacion-mapa .placeholder-image.mapa {
+  background: #f0f0f0;
+  color: #666;
+  border: 2px solid #ddd;
+}
+
+/* Formulario de Contacto */
+.contacto-form-container {
+  max-width: 800px;
+  margin: 60px auto 0;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+  color: #430a33;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.form-subtitle {
+  color: #666;
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.contact-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 14px 18px;
+  border: 2px solid #ece7e0;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  outline: none;
+  border-color: #430a33;
+  box-shadow: 0 0 0 3px rgba(67, 10, 51, 0.1);
+}
+
+.contact-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-mensaje {
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease;
+}
+
+.form-mensaje.success {
+  background: #d4edda;
+  color: #155724;
+  border: 2px solid #c3e6cb;
+}
+
+.form-mensaje.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+.btn-enviar-contacto {
+  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
+  color: white;
+  padding: 16px 32px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-enviar-contacto:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(67, 10, 51, 0.3);
+}
+
+.btn-enviar-contacto:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner para botones de carga */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Contacto Section - removida, ahora es feedback */
+.contacto-section {
+  display: none;
+}
+
+.btn-feedback {
+  padding: 18px 45px;
+  background: #ece7e0;
+  color: #430a33;
+  text-decoration: none;
+  border-radius: 50px;
+  font-size: 20px;
+  font-weight: 600;
+  display: inline-block;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(236, 231, 224, 0.3);
+}
+
+.btn-feedback:hover {
+  background: #ac987f;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 25px rgba(236, 231, 224, 0.4);
+}
+
+/* Footer */
+.footer {
+  background: #000000;
+  padding: 50px 40px 30px;
+  color: #ece7e0;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-logo {
+  height: 70px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  margin-bottom: 30px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: #ac987f;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #ece7e0;
+}
+
+.footer-copy {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar-content {
+    padding: 0 20px;
+  }
+
+  /* Menu hamburguesa mobile */
+  .menu-toggle {
+    display: flex;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    height: 100vh;
+    width: 70%;
+    max-width: 300px;
+    background: rgba(67, 10, 51, 0.98);
+    backdrop-filter: blur(10px);
+    flex-direction: column;
+    padding: 100px 30px 30px;
+    gap: 25px;
+    transition: right 0.3s ease;
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .nav-links.active {
+    right: 0;
+  }
+
+  .nav-links a {
+    font-size: 18px;
+    padding: 10px 0;
+  }
+
+  .hero {
+    height: 100vh;
+    background-attachment: scroll;
+    margin-top: 70px;
+    background-size: cover;
+    background-position: center center;
+  }
+
+  .hero-content {
+    padding: 20px;
+    max-width: 100%;
+  }
+
+  .hero-badge {
+    font-size: 11px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+    line-height: 1.2;
+    margin-bottom: 15px;
+  }
+
+  .hero-subtitle {
+    font-size: 16px;
+    margin-bottom: 25px;
+  }
+
+  .hero-features {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .hero-feature {
+    font-size: 13px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+
+  .whatsapp-float {
+    width: 55px;
+    height: 55px;
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .whatsapp-icon {
+    font-size: 28px;
+  }
+
+  .disclaimer-bar {
+    padding: 20px;
+  }
+
+  .disclaimer-content {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .pasos-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .paso-icon {
+    font-size: 40px;
+  }
+
+  .cava-grid,
+  .ubicacion-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .cava-image,
+  .ubicacion-image {
+    order: -1;
+  }
+
+  .section-title,
+  .section-title-left {
+    font-size: 32px;
+    text-align: center;
+  }
+
+  .text-large {
+    font-size: 16px;
+  }
+
+  .galeria-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .prensa-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .vinos-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .contacto-form-container {
+    padding: 30px 20px;
+  }
+
+  .presentacion-section,
+  .como-funciona-section,
+  .cava-section,
+  .vinos-section,
+  .galeria-section,
+  .prensa-section,
+  .ubicacion-section {
+    padding: 60px 20px;
+  }
+
+  .concepto-section,
+  .feedback-section {
+    padding: 60px 20px;
+  }
+
+  .concepto-content h2,
+  .feedback-content h2 {
+    font-size: 28px;
+  }
+
+  .text-intro,
+  .concepto-content p {
+    font-size: 16px;
+  }
+
+  .nav-logo {
+    height: 60px;
+  }
+
+  .navbar.scrolled .nav-logo {
+    height: 50px;
+  }
+
+  /* Mejorar legibilidad en móvil */
+  .hero-overlay {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    min-height: 100vh;
+  }
+
+  .hero-content {
+    padding: 15px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+    line-height: 1.3;
+  }
+
+  .hero-subtitle {
+    font-size: 14px;
+  }
+
+  .hero-feature {
+    font-size: 12px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .galeria-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contacto-buttons {
+    flex-direction: column;
+  }
+
+  .btn-whatsapp,
+  .btn-instagram {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .whatsapp-float {
+    width: 50px;
+    height: 50px;
+  }
+
+  .whatsapp-icon {
+    font-size: 24px;
+  }
+
+  .nav-logo {
+    height: 50px;
+  }
+
+  .navbar.scrolled .nav-logo {
+    height: 45px;
+  }
+
+  .section-title,
+  .section-title-left {
+    font-size: 26px;
+  }
+
+  .paso-card h3 {
+    font-size: 20px;
+  }
+
+  .paso-card p {
+    font-size: 14px;
+  }
+}

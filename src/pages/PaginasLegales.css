@@ -1,0 +1,381 @@
+.pagina-legal {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 80px 20px 40px;
+}
+
+.legal-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  padding: 50px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.legal-container h1 {
+  color: #430a33;
+  font-size: 36px;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.fecha-actualizacion {
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 40px;
+  font-style: italic;
+}
+
+.legal-container section {
+  margin-bottom: 35px;
+}
+
+.legal-container h2 {
+  color: #430a33;
+  font-size: 24px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.legal-container h3 {
+  color: #666;
+  font-size: 18px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.legal-container p {
+  color: #444;
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+
+.legal-container ul {
+  margin-left: 25px;
+  margin-bottom: 15px;
+}
+
+.legal-container li {
+  color: #444;
+  font-size: 16px;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.legal-container li strong {
+  color: #430a33;
+}
+
+.legal-footer {
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 2px solid #f0f0f0;
+  text-align: center;
+}
+
+.btn-volver {
+  display: inline-block;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-volver:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(67, 10, 51, 0.3);
+}
+
+/* Página 404 */
+.page-404 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-container {
+  max-width: 600px;
+  text-align: center;
+  background: white;
+  padding: 60px 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.error-code {
+  font-size: 120px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.error-container h1 {
+  color: #430a33;
+  font-size: 32px;
+  margin-bottom: 15px;
+}
+
+.error-container > p {
+  color: #666;
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.error-suggestions {
+  text-align: left;
+  background: #f9f9f9;
+  padding: 25px;
+  border-radius: 12px;
+  margin-top: 40px;
+}
+
+.error-suggestions h3 {
+  color: #430a33;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.error-suggestions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-suggestions li {
+  margin-bottom: 10px;
+}
+
+.error-suggestions a {
+  color: #430a33;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.error-suggestions a:hover {
+  color: #ac987f;
+}
+
+/* Página Gracias */
+.pagina-gracias {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gracias-container {
+  max-width: 600px;
+  text-align: center;
+  background: white;
+  padding: 60px 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.gracias-icon {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 30px;
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  color: white;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.gracias-container h1 {
+  color: #430a33;
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.gracias-mensaje {
+  color: #666;
+  font-size: 18px;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.gracias-info {
+  background: #f9f9f9;
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.gracias-info h3 {
+  color: #430a33;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.contacto-opciones {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.contacto-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.3s;
+  flex: 1;
+  max-width: 200px;
+}
+
+.contacto-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.contacto-icon {
+  font-size: 32px;
+}
+
+.contacto-item div {
+  text-align: left;
+}
+
+.contacto-item strong {
+  color: #430a33;
+  font-size: 16px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.contacto-item p {
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+}
+
+.gracias-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.auto-redirect {
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Botones */
+.btn-primary,
+.btn-secondary {
+  display: inline-block;
+  padding: 14px 32px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(67, 10, 51, 0.3);
+}
+
+.btn-secondary {
+  background: white;
+  color: #430a33;
+  border: 2px solid #430a33;
+}
+
+.btn-secondary:hover {
+  background: #430a33;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .legal-container {
+    padding: 30px 25px;
+  }
+
+  .legal-container h1 {
+    font-size: 28px;
+  }
+
+  .legal-container h2 {
+    font-size: 20px;
+  }
+
+  .error-container,
+  .gracias-container {
+    padding: 40px 25px;
+  }
+
+  .error-code {
+    font-size: 80px;
+  }
+
+  .error-container h1,
+  .gracias-container h1 {
+    font-size: 26px;
+  }
+
+  .error-actions,
+  .gracias-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+
+  .contacto-opciones {
+    flex-direction: column;
+  }
+
+  .contacto-item {
+    max-width: none;
+  }
+}
+

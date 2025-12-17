@@ -1,0 +1,12 @@
+# robots.txt para Selvaggio
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-contenidos
+Disallow: /caja
+Disallow: /cocina
+Disallow: /cargar-datos
+Disallow: /limpiar-duplicados
+
+# Sitemap
+Sitemap: https://selvaggio.com.ar/sitemap.xml

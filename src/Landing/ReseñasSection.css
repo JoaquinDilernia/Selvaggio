@@ -1,0 +1,145 @@
+/* Reseñas Section */
+.reseñas-section {
+  padding: 80px 20px;
+  background: #1a1a1a;
+}
+
+.reseñas-intro {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #999;
+  margin: -10px auto 50px;
+  max-width: 600px;
+}
+
+.reseñas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.reseña-card {
+  background: #0f0f0f;
+  border: 1px solid rgba(172, 152, 127, 0.2);
+  border-radius: 12px;
+  padding: 30px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.reseña-card:hover {
+  transform: translateY(-5px);
+  border-color: #ac987f;
+  box-shadow: 0 10px 30px rgba(172, 152, 127, 0.15);
+}
+
+.reseña-card.destacada {
+  border-color: #ac987f;
+  background: linear-gradient(135deg, rgba(172, 152, 127, 0.05) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.badge-destacada {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%);
+  color: #000;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.reseña-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.estrellas {
+  display: flex;
+  gap: 3px;
+  font-size: 1.2rem;
+}
+
+.estrella {
+  transition: all 0.2s ease;
+}
+
+.estrella.llena {
+  color: #ac987f;
+  text-shadow: 0 0 8px rgba(172, 152, 127, 0.5);
+}
+
+.estrella.vacia {
+  color: rgba(172, 152, 127, 0.3);
+}
+
+.reseña-fecha {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.reseña-comentario {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #d4d4d4;
+  margin: 0 0 25px 0;
+  font-style: italic;
+  min-height: 80px;
+}
+
+.reseña-autor {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(172, 152, 127, 0.1);
+}
+
+.autor-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.autor-nombre {
+  font-size: 1rem;
+  color: #ece7e0;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+  .reseñas-section {
+    padding: 60px 15px;
+  }
+
+  .reseñas-grid {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .reseña-card {
+    padding: 25px;
+  }
+
+  .reseña-comentario {
+    min-height: auto;
+    font-size: 0.95rem;
+  }
+}
+

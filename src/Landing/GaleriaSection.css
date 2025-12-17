@@ -1,0 +1,126 @@
+/* Galería Section */
+.galeria-section {
+  padding: 80px 20px;
+  background: #0f0f0f;
+}
+
+.galeria-intro {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #999;
+  margin: -10px auto 40px;
+  max-width: 600px;
+}
+
+.galeria-filtros {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 50px;
+}
+
+.filtro-btn {
+  padding: 10px 24px;
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(172, 152, 127, 0.3);
+  border-radius: 50px;
+  color: #d4d4d4;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.filtro-btn:hover {
+  border-color: #d4af37;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.filtro-btn.active {
+  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+  color: #000;
+  border-color: #d4af37;
+  font-weight: 600;
+}
+
+.galeria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.galeria-item {
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(172, 152, 127, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.galeria-item:hover {
+  transform: translateY(-5px);
+  border-color: #d4af37;
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+}
+
+.galeria-image {
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: #0f0f0f;
+}
+
+.galeria-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.galeria-item:hover .galeria-image img {
+  transform: scale(1.08);
+}
+
+.galeria-info {
+  padding: 20px;
+}
+
+.galeria-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #ece7e0;
+  font-weight: 500;
+}
+
+.galeria-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #999;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .galeria-section {
+    padding: 60px 15px;
+  }
+
+  .galeria-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .galeria-image {
+    height: 220px;
+  }
+
+  .filtro-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+  }
+}

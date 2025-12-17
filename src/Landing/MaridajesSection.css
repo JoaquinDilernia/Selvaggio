@@ -1,0 +1,185 @@
+/* Maridajes Section */
+.maridajes-section {
+  padding: 100px 40px;
+  background: #1a1a1a;
+  border-top: 1px solid rgba(172, 152, 127, 0.2);
+}
+
+.maridajes-intro {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 60px;
+  font-size: 18px;
+  color: #999;
+  line-height: 1.6;
+}
+
+.maridajes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.maridaje-card {
+  background: rgba(26, 26, 26, 0.6);
+  border: 1px solid rgba(172, 152, 127, 0.2);
+  border-radius: 16px;
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+
+.maridaje-card:hover {
+  border-color: #d4af37;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.15);
+}
+
+.maridaje-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.maridaje-producto {
+  font-size: 22px;
+  font-weight: 500;
+  color: #ece7e0;
+  margin: 0;
+  font-family: Georgia, serif;
+  flex: 1;
+}
+
+.maridaje-tipo {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  font-size: 12px;
+  color: #d4af37;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.maridaje-pairing {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: rgba(45, 10, 31, 0.3);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.pairing-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.pairing-info {
+  flex: 1;
+}
+
+.pairing-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  color: #d4af37;
+  font-weight: 600;
+}
+
+.varietal {
+  display: inline-block;
+  font-size: 13px;
+  color: #ac987f;
+  font-style: italic;
+}
+
+.maridaje-descripcion {
+  color: #999;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Tip Maridaje Banner */
+.maridaje-tip {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(45, 10, 31, 0.2) 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.3);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 30px 40px;
+}
+
+.tip-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(26, 26, 26, 0.4);
+  padding: 25px 35px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.tip-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.4));
+  flex-shrink: 0;
+}
+
+.tip-text {
+  color: #d4d4d4;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
+.tip-text strong {
+  color: #d4af37;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .maridajes-section {
+    padding: 60px 20px;
+  }
+
+  .maridajes-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .maridaje-card {
+    padding: 25px;
+  }
+
+  .maridaje-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tip-content {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px 25px;
+  }
+
+  .tip-icon {
+    font-size: 28px;
+  }
+
+  .tip-text {
+    font-size: 15px;
+  }
+}
