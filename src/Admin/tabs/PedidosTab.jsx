@@ -37,12 +37,30 @@ function PedidosTab() {
 
   const calcularTiempoPreparacion = (creado, listo) => {
     if (!creado || !listo) return null;
-    // Convertir timestamps de Firebase a Date
-    const fechaCreado = creado.toDate ? creado.toDate() : new Date(creado);
-    const fechaListo = listo.toDate ? listo.toDate() : new Date(listo);
-    const diffMs = fechaListo - fechaCreado;
-    const diffMins = Math.floor(diffMs / 60000);
-    return diffMins;
+    
+    try {
+      // Convertir timestamps de Firebase a Date
+      const fechaCreado = creado.toDate ? creado.toDate() : new Date(creado);
+      const fechaListo = listo.toDate ? listo.toDate() : new Date(listo);
+      
+      // Validar que las fechas sean válidas
+      if (isNaN(fechaCreado.getTime()) || isNaN(fechaListo.getTime())) {
+        return null;
+      }
+      
+      const diffMs = fechaListo - fechaCreado;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      // Si el tiempo es negativo o mayor a 24 horas (1440 min), retornar null
+      if (diffMins < 0 || diffMins > 1440) {
+        return null;
+      }
+      
+      return diffMins;
+    } catch (error) {
+      console.error('Error calculando tiempo:', error);
+      return null;
+    }
   };
 
   const filtrados = pedidos.filter(p => {

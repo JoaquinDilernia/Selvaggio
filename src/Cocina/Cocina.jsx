@@ -64,18 +64,26 @@ function Cocina() {
   const calcularTiempoEspera = (timestamp, pedido) => {
     if (!timestamp) return '-';
     
-    // Si el pedido está completado, calcular tiempo hasta que fue marcado listo
-    const tiempoFinal = pedido.estado === 'completado' && pedido.pedido_listo 
-      ? pedido.pedido_listo.toDate() 
-      : new Date();
-    
-    const creado = timestamp.toDate();
-    const diffMs = tiempoFinal - creado;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Recién ingresado';
-    if (diffMins === 1) return '1 minuto';
-    return `${diffMins} minutos`;
+    try {
+      // Si el pedido está completado, calcular tiempo hasta que fue marcado listo
+      const tiempoFinal = pedido.estado === 'completado' && pedido.pedido_listo 
+        ? pedido.pedido_listo.toDate() 
+        : new Date();
+      
+      const creado = timestamp.toDate();
+      const diffMs = tiempoFinal - creado;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      // Validar que el tiempo sea razonable
+      if (diffMins < 0 || diffMins > 1440) return '-';
+      
+      if (diffMins < 1) return 'Recién ingresado';
+      if (diffMins === 1) return '1 minuto';
+      return `${diffMins} minutos`;
+    } catch (error) {
+      console.error('Error calculando tiempo:', error);
+      return '-';
+    }
   };
 
   const marcarListo = async (pedido) => {
