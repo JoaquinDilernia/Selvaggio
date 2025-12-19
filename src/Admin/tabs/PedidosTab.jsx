@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import './TabsShared.css';
 
@@ -100,6 +100,40 @@ function PedidosTab() {
     link.click();
   };
 
+  const eliminarPedido = async (pedido) => {
+    if (!confirm(`¿Eliminar el pedido #${pedido.numeroPedido} de ${pedido.nombre}?`)) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'selvaggio_pedidos', pedido.id));
+      await cargarPedidos();
+    } catch (error) {
+      console.error('Error al eliminar pedido:', error);
+      alert('Error al eliminar el pedido');
+    }
+  };
+
+  const eliminarTodosCompletados = async () => {
+    if (!confirm('⚠️ ¿Eliminar TODOS los pedidos completados? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const completados = pedidos.filter(p => p.estado === 'completado');
+      
+      for (const pedido of completados) {
+        await deleteDoc(doc(db, 'selvaggio_pedidos', pedido.id));
+      }
+
+      alert(`${completados.length} pedidos eliminados exitosamente`);
+      await cargarPedidos();
+    } catch (error) {
+      console.error('Error al eliminar pedidos:', error);
+      alert('Error al eliminar pedidos');
+    }
+  };
+
   return (
     <div className="tab-inner">
       <div className="tab-header">
@@ -141,6 +175,9 @@ function PedidosTab() {
           <option value="pendientes">Pendientes</option>
         </select>
         <button onClick={exportarCSV} className="btn-action">📥 Exportar CSV</button>
+        {pedidos.filter(p => p.estado === 'completado').length > 0 && (
+          <button onClick={eliminarTodosCompletados} className="btn-action btn-danger">🗑️ Limpiar Completados</button>
+        )}
         <button onClick={cargarPedidos} className="btn-action">🔄</button>
       </div>
 
@@ -159,6 +196,7 @@ function PedidosTab() {
                 <th>Listo</th>
                 <th>Tiempo</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -175,6 +213,15 @@ function PedidosTab() {
                       <span className={`badge ${p.estado}`}>
                         {p.estado === 'pendiente' ? '⏳ Pendiente' : '✓ Completado'}
                       </span>
+                    </td>
+                    <td>
+                      <button 
+                        onClick={() => eliminarPedido(p)} 
+                        className="btn-action btn-danger-sm"
+                        title="Eliminar pedido"
+                      >
+                        🗑️
+                      </button>
                     </td>
                   </tr>
                 );

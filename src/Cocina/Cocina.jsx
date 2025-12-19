@@ -208,16 +208,6 @@ function Cocina() {
           onChange={(e) => setBusqueda(e.target.value)}
           className="busqueda-input"
         />
-
-        {pedidosPendientes.filter(p => p.estado === 'completado').length > 0 && (
-          <button 
-            onClick={eliminarTodosCompletados}
-            className="btn-eliminar-todos"
-            title="Eliminar todos los pedidos completados"
-          >
-            🗑️ Limpiar Completados
-          </button>
-        )}
       </div>
 
       <div className="pedidos-container">
@@ -282,22 +272,13 @@ function Cocina() {
                         </span>
                       )}
                     </div>
-                    <div className="botones-completado">
-                      <button 
-                        onClick={() => enviarWhatsApp(pedido)}
-                        className="btn-whatsapp-repetir"
-                        title="Reenviar notificación por WhatsApp"
-                      >
-                        📱 Enviar WhatsApp
-                      </button>
-                      <button 
-                        onClick={() => eliminarPedido(pedido)}
-                        className="btn-eliminar-pedido"
-                        title="Eliminar este pedido"
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => enviarWhatsApp(pedido)}
+                      className="btn-whatsapp-repetir"
+                      title="Reenviar notificación por WhatsApp"
+                    >
+                      📱 Enviar WhatsApp
+                    </button>
                   </div>
                 )}
               </div>

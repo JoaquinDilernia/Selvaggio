@@ -118,6 +118,30 @@
   transform: translateY(-2px);
 }
 
+.btn-action.btn-danger {
+  background: #dc3545;
+}
+
+.btn-action.btn-danger:hover {
+  background: #c82333;
+}
+
+.btn-action.btn-danger-sm {
+  padding: 8px 12px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-action.btn-danger-sm:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
 /* Items Grid */
 .items-grid {
   display: grid;
