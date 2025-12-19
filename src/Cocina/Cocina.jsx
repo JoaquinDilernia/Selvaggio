@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './Cocina.css';
 
@@ -127,6 +127,43 @@ function Cocina() {
     }
   };
 
+  const eliminarPedido = async (pedido) => {
+    if (!confirm(`¿Eliminar el pedido #${pedido.numeroPedido} de ${pedido.nombre}?`)) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'selvaggio_pedidos', pedido.id));
+      setMensaje({ tipo: 'success', texto: `Pedido #${pedido.numeroPedido} eliminado` });
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 2000);
+      await cargarPedidos();
+    } catch (error) {
+      console.error('Error al eliminar pedido:', error);
+      setMensaje({ tipo: 'error', texto: 'Error al eliminar el pedido' });
+    }
+  };
+
+  const eliminarTodosCompletados = async () => {
+    if (!confirm('⚠️ ¿Eliminar TODOS los pedidos completados? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const completados = pedidosPendientes.filter(p => p.estado === 'completado');
+      
+      for (const pedido of completados) {
+        await deleteDoc(doc(db, 'selvaggio_pedidos', pedido.id));
+      }
+
+      setMensaje({ tipo: 'success', texto: `${completados.length} pedidos eliminados` });
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+      await cargarPedidos();
+    } catch (error) {
+      console.error('Error al eliminar pedidos:', error);
+      setMensaje({ tipo: 'error', texto: 'Error al eliminar pedidos' });
+    }
+  };
+
   const pedidosFiltrados = pedidosPendientes.filter(pedido => {
     if (!busqueda) return true;
     const termino = busqueda.toLowerCase();
@@ -171,6 +208,16 @@ function Cocina() {
           onChange={(e) => setBusqueda(e.target.value)}
           className="busqueda-input"
         />
+
+        {pedidosPendientes.filter(p => p.estado === 'completado').length > 0 && (
+          <button 
+            onClick={eliminarTodosCompletados}
+            className="btn-eliminar-todos"
+            title="Eliminar todos los pedidos completados"
+          >
+            🗑️ Limpiar Completados
+          </button>
+        )}
       </div>
 
       <div className="pedidos-container">
@@ -235,13 +282,22 @@ function Cocina() {
                         </span>
                       )}
                     </div>
-                    <button 
-                      onClick={() => enviarWhatsApp(pedido)}
-                      className="btn-whatsapp-repetir"
-                      title="Reenviar notificación por WhatsApp"
-                    >
-                      📱 Enviar WhatsApp
-                    </button>
+                    <div className="botones-completado">
+                      <button 
+                        onClick={() => enviarWhatsApp(pedido)}
+                        className="btn-whatsapp-repetir"
+                        title="Reenviar notificación por WhatsApp"
+                      >
+                        📱 Enviar WhatsApp
+                      </button>
+                      <button 
+                        onClick={() => eliminarPedido(pedido)}
+                        className="btn-eliminar-pedido"
+                        title="Eliminar este pedido"
+                      >
+                        🗑️ Eliminar
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -292,21 +292,23 @@
   font-weight: 600;
 }
 
-.btn-whatsapp-repetir {
+.botones-completado {
+  display: flex;
+  gap: 10px;
   width: 100%;
+}
+
+.btn-whatsapp-repetir {
+  flex: 1;
   background: #25D366;
   color: white;
   padding: 14px;
   border: none;
   border-radius: 10px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
 .btn-whatsapp-repetir:hover {
@@ -316,6 +318,52 @@
 }
 
 .btn-whatsapp-repetir:active {
+  transform: translateY(0);
+}
+
+.btn-eliminar-pedido {
+  flex: 0.4;
+  background: #dc3545;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-eliminar-pedido:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.btn-eliminar-pedido:active {
+  transform: translateY(0);
+}
+
+.btn-eliminar-todos {
+  background: #dc3545;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-eliminar-todos:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.btn-eliminar-todos:active {
   transform: translateY(0);
 }
 
