@@ -86,6 +86,23 @@ function Cocina() {
     }
   };
 
+  const enviarWhatsApp = (pedido) => {
+    try {
+      const mensaje = `Hola ${pedido.nombre}! Tu pedido #${pedido.numeroPedido} está listo para retirar. Te esperamos! 🍷 - Selvaggio`;
+      const telefono = pedido.telefono.replace(/\D/g, ''); // Eliminar caracteres no numéricos
+      const whatsappUrl = `https://wa.me/549${telefono}?text=${encodeURIComponent(mensaje)}`;
+      
+      // Abrir WhatsApp
+      window.open(whatsappUrl, '_blank');
+      
+      setMensaje({ tipo: 'success', texto: `WhatsApp abierto para ${pedido.nombre}` });
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 2000);
+    } catch (error) {
+      console.error('Error al abrir WhatsApp:', error);
+      setMensaje({ tipo: 'error', texto: 'Error al abrir WhatsApp' });
+    }
+  };
+
   const marcarListo = async (pedido) => {
     try {
       // Actualizar estado en Firebase
@@ -95,13 +112,8 @@ function Cocina() {
         pedido_listo: Timestamp.now()
       });
 
-      // Preparar mensaje de WhatsApp
-      const mensaje = `Hola ${pedido.nombre}! Tu pedido #${pedido.numeroPedido} está listo para retirar. Te esperamos! 🍷 - Selvaggio`;
-      const telefono = pedido.telefono.replace(/\D/g, ''); // Eliminar caracteres no numéricos
-      const whatsappUrl = `https://wa.me/549${telefono}?text=${encodeURIComponent(mensaje)}`;
-      
-      // Abrir WhatsApp
-      window.open(whatsappUrl, '_blank');
+      // Enviar WhatsApp
+      enviarWhatsApp(pedido);
       
       // Recargar pedidos
       await cargarPedidos();
@@ -215,12 +227,21 @@ function Cocina() {
                   </button>
                 ) : (
                   <div className="pedido-completado">
-                    <span className="badge-completado">✓ Completado</span>
-                    {pedido.pedido_listo && (
-                      <span className="hora-completado">
-                        {formatearHora(pedido.pedido_listo)}
-                      </span>
-                    )}
+                    <div className="estado-completado">
+                      <span className="badge-completado">✓ Completado</span>
+                      {pedido.pedido_listo && (
+                        <span className="hora-completado">
+                          {formatearHora(pedido.pedido_listo)}
+                        </span>
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => enviarWhatsApp(pedido)}
+                      className="btn-whatsapp-repetir"
+                      title="Reenviar notificación por WhatsApp"
+                    >
+                      📱 Enviar WhatsApp
+                    </button>
                   </div>
                 )}
               </div>
