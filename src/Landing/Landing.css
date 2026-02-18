@@ -1118,6 +1118,29 @@ html {
   font-size: 14px;
 }
 
+.footer-dev {
+  color: #ac987f;
+  font-size: 15px;
+  margin-top: 12px;
+  opacity: 1;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.footer-dev a {
+  color: #d4c4a8;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+}
+
+.footer-dev a:hover {
+  color: #ece7e0;
+  border-bottom: 1px solid #ac987f;
+  transform: translateY(-1px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .navbar-content {

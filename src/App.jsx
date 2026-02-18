@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import { ToastProvider } from './components/Toast'
 import Landing from './Landing/Landing'
+import LandingDemo from './LandingDemo/LandingDemo'
 import AdminNew from './Admin/AdminNew'
 import AdminContenidos from './Admin/AdminContenidos'
 import ImportarProductosExcel from './Admin/ImportarProductosExcel'
@@ -9,6 +10,8 @@ import Cocina from './Cocina/Cocina'
 import CargarDatosPrueba from './CargarDatosPrueba'
 import LimpiarDuplicados from './LimpiarDuplicados'
 import OrganizadorFotos from './OrganizadorFotos'
+import ReservaCava from './Reservas/ReservaCava'
+import ReservaMesas from './Reservas/ReservaMesas'
 import Page404 from './pages/Page404'
 import Terminos from './pages/Terminos'
 import Privacidad from './pages/Privacidad'
@@ -23,6 +26,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/demo" element={<LandingDemo />} />
           <Route path="/admin" element={<AdminNew />} />
           <Route path="/admin-contenidos" element={<AdminContenidos />} />
           <Route path="/importar-productos" element={<ImportarProductosExcel />} />
@@ -31,6 +35,8 @@ function App() {
           <Route path="/cargar-datos" element={<CargarDatosPrueba />} />
           <Route path="/limpiar-duplicados" element={<LimpiarDuplicados />} />
           <Route path="/organizar-fotos" element={<OrganizadorFotos />} />
+          <Route path="/reserva-cava" element={<ReservaCava />} />
+          <Route path="/reserva-mesas" element={<ReservaMesas />} />
           <Route path="/terminos" element={<Terminos />} />
           <Route path="/privacidad" element={<Privacidad />} />
           <Route path="/gracias" element={<Gracias />} />

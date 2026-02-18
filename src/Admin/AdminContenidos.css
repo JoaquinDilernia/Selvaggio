@@ -5,6 +5,20 @@
   padding: 0;
 }
 
+/* Estilos globales para inputs y textareas */
+.admin-contenidos input,
+.admin-contenidos textarea,
+.admin-contenidos select {
+  background: white !important;
+  color: #333 !important;
+}
+
+.admin-contenidos input::placeholder,
+.admin-contenidos textarea::placeholder {
+  color: #999 !important;
+  opacity: 1;
+}
+
 .admin-contenidos-header {
   background: linear-gradient(135deg, #430a33 0%, #2d0a1f 100%);
   color: white;

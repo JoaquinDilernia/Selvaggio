@@ -3,6 +3,24 @@
   background: linear-gradient(135deg, #f8f6f3 0%, #ece7e0 100%);
 }
 
+/* Estilos globales para inputs en todos los tabs */
+.admin-new-container input,
+.admin-new-container textarea,
+.admin-new-container select {
+  background: white !important;
+  color: #333 !important;
+}
+
+.admin-new-container input::placeholder,
+.admin-new-container textarea::placeholder {
+  color: #999 !important;
+}
+
+.admin-new-container select option {
+  background: white;
+  color: #333;
+}
+
 .admin-new-header {
   background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
   padding: 30px 40px;

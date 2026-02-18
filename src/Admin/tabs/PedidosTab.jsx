@@ -82,13 +82,14 @@ function PedidosTab() {
   };
 
   const exportarCSV = () => {
-    const headers = ['Pedido', 'Nombre', 'Teléfono', 'Creado', 'Listo', 'Tiempo (min)', 'Estado'];
+    const headers = ['Pedido', 'Nombre', 'Teléfono', 'Fecha', 'Creado', 'Listo', 'Tiempo (min)', 'Estado'];
     const filas = pedidos.map(p => [
       p.numeroPedido,
       p.nombre,
       p.telefono,
-      p.pedido_creado ? p.pedido_creado.toLocaleString() : '',
-      p.pedido_listo ? p.pedido_listo.toLocaleString() : '',
+      p.pedido_creado ? p.pedido_creado.toLocaleDateString() : '',
+      p.pedido_creado ? p.pedido_creado.toLocaleTimeString() : '',
+      p.pedido_listo ? p.pedido_listo.toLocaleTimeString() : '',
       calcularTiempoPreparacion(p.pedido_creado, p.pedido_listo) || '',
       p.estado
     ]);
@@ -192,6 +193,7 @@ function PedidosTab() {
               <tr>
                 <th>N° Pedido</th>
                 <th>Nombre</th>
+                <th>Fecha</th>
                 <th>Creado</th>
                 <th>Listo</th>
                 <th>Tiempo</th>
@@ -206,6 +208,7 @@ function PedidosTab() {
                   <tr key={p.id}>
                     <td><strong>#{p.numeroPedido}</strong></td>
                     <td>{p.nombre}</td>
+                    <td>{p.pedido_creado ? p.pedido_creado.toLocaleDateString() : '-'}</td>
                     <td>{p.pedido_creado ? p.pedido_creado.toLocaleTimeString() : '-'}</td>
                     <td>{p.pedido_listo ? p.pedido_listo.toLocaleTimeString() : '-'}</td>
                     <td>{tiempo ? `${tiempo} min` : '-'}</td>

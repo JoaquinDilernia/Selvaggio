@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { useState, useEffect, useRef } from 'react';
+import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './Cocina.css';
 
@@ -9,10 +9,103 @@ function Cocina() {
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [filtroEstado, setFiltroEstado] = useState('pendiente'); // pendiente, completado, todos
   const [busqueda, setBusqueda] = useState('');
+  const audioRef = useRef(null);
+  const pedidosAnterioresRef = useRef(new Set());
 
+  // Efecto para configurar el listener en tiempo real
   useEffect(() => {
-    cargarPedidos();
+    let unsubscribe;
+
+    const setupRealtimeListener = () => {
+      let q;
+      if (filtroEstado === 'todos') {
+        q = query(collection(db, 'selvaggio_pedidos'));
+      } else {
+        q = query(
+          collection(db, 'selvaggio_pedidos'),
+          where('estado', '==', filtroEstado)
+        );
+      }
+
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const pedidos = [];
+        const nuevosIds = new Set();
+
+        snapshot.forEach((doc) => {
+          const pedidoData = {
+            id: doc.id,
+            ...doc.data()
+          };
+          pedidos.push(pedidoData);
+          nuevosIds.add(doc.id);
+        });
+
+        // Ordenar por fecha de creación
+        pedidos.sort((a, b) => {
+          if (!a.pedido_creado || !b.pedido_creado) return 0;
+          return a.pedido_creado.toDate() - b.pedido_creado.toDate();
+        });
+
+        // Detectar nuevos pedidos pendientes
+        if (filtroEstado === 'pendiente' && pedidosAnterioresRef.current.size > 0) {
+          nuevosIds.forEach(id => {
+            if (!pedidosAnterioresRef.current.has(id)) {
+              // Hay un nuevo pedido!
+              reproducirSonido();
+              mostrarNotificacion();
+            }
+          });
+        }
+
+        // Actualizar la referencia de pedidos anteriores
+        pedidosAnterioresRef.current = nuevosIds;
+        
+        setPedidosPendientes(pedidos);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error en listener:', error);
+        setMensaje({ tipo: 'error', texto: 'Error al escuchar pedidos en tiempo real' });
+        setLoading(false);
+      });
+    };
+
+    setLoading(true);
+    setupRealtimeListener();
+
+    // Cleanup: desuscribirse cuando el componente se desmonte o cambie el filtro
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [filtroEstado]);
+
+  const reproducirSonido = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(err => console.log('Error reproduciendo sonido:', err));
+    }
+  };
+
+  const mostrarNotificacion = () => {
+    setMensaje({ tipo: 'success', texto: '🔔 ¡Nuevo pedido ingresado!' });
+    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 5000);
+    
+    // Notificación del navegador si está permitida
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Selvaggio - Nuevo Pedido', {
+        body: '¡Ha ingresado un nuevo pedido!',
+        icon: '/favicon.ico',
+        tag: 'nuevo-pedido'
+      });
+    }
+  };
+
+  // Solicitar permiso para notificaciones al montar el componente
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   const cargarPedidos = async () => {
     setLoading(true);
@@ -176,12 +269,17 @@ function Cocina() {
 
   return (
     <div className="cocina-container">
+      {/* Audio para notificación de nuevo pedido */}
+      <audio ref={audioRef} preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg" />
+      </audio>
+      
       <div className="cocina-header">
         <div className="header-content">
           <h1>👨‍🍳 Cocina - Gestión de Pedidos</h1>
-          <button onClick={cargarPedidos} className="btn-refresh">
-            🔄 Actualizar
-          </button>
+          <div className="header-info">
+            <span className="badge-realtime">🔴 En vivo</span>
+          </div>
         </div>
         {mensaje.texto && (
           <div className={`mensaje-top ${mensaje.tipo}`}>

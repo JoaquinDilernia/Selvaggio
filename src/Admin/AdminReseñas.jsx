@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useToast } from '../components/Toast';
-import '../Admin/AdminMaridajes.css';
+import './AdminReseñas.css';
 
 function AdminReseñas() {
   const toast = useToast();
@@ -167,9 +167,9 @@ function AdminReseñas() {
   };
 
   return (
-    <div className="admin-maridajes">
+    <div className="admin-resenas-container">
       <div className="admin-header">
-        <h1>Administrar Reseñas</h1>
+        <h1>⭐ Administrar Reseñas</h1>
         <p>Gestiona los testimonios y opiniones de clientes</p>
       </div>
 

@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { updateAllSEO } from '../utils/seo';
 import ContactForm from './ContactForm';
 import MaridajesSection from './MaridajesSection';
-import VinosSection from './VinosSection';
-import ProductosSection from './ProductosSection';
+import CartaSection from './CartaSection';
 import GaleriaSection from './GaleriaSection';
 import ReseñasSection from './ReseñasSection';
 import PrensaSection from './PrensaSection';
@@ -78,7 +77,7 @@ function Landing() {
           <nav className={`nav-links ${menuOpen ? 'active' : ''}`}>
             <a href="#como-funciona" onClick={(e) => handleNavClick(e, '#como-funciona')}>Cómo funciona</a>
             <a href="#cava" onClick={(e) => handleNavClick(e, '#cava')}>La Cava</a>
-            <a href="#vinos" onClick={(e) => handleNavClick(e, '#vinos')}>Vinos</a>
+            <a href="#carta" onClick={(e) => handleNavClick(e, '#carta')}>Carta</a>
             <a href="#galeria" onClick={(e) => handleNavClick(e, '#galeria')}>Galería</a>
             <a href="#trabaja-con-nosotros" onClick={(e) => handleNavClick(e, '#trabaja-con-nosotros')}>Trabajá con nosotros</a>
             <a href="#contacto" onClick={(e) => handleNavClick(e, '#contacto')}>Contacto</a>
@@ -112,8 +111,8 @@ function Landing() {
             <span className="hero-feature">Ambiente bohemio único</span>
           </div>
           <div className="hero-buttons">
-            <a href="#cava" className="btn-primary" onClick={(e) => handleNavClick(e, '#cava')}>Reservar La Cava</a>
-            <a href="#como-funciona" className="btn-secondary" onClick={(e) => handleNavClick(e, '#como-funciona')}>Cómo funciona</a>
+            <Link to="/reserva-cava" className="btn-primary">Reservar La Cava</Link>
+            <Link to="/reserva-mesas" className="btn-secondary">Reservar Mesa</Link>
           </div>
         </div>
       </section>
@@ -129,10 +128,10 @@ function Landing() {
         </div>
       </section>
 
-      {/* Info Bar - Sin reservas */}
+      {/* Info Bar - Reservas */}
       <section className="disclaimer-bar animate-on-scroll">
         <div className="disclaimer-content">
-          <p><strong>No tomamos reservas para mesas.</strong> La experiencia funciona por orden de llegada.</p>
+          <p>💡 <strong>Reservá la cava</strong> para eventos privados desde 10 personas. Para mesas regulares, podés <Link to="/reserva-mesas" style={{color: '#d4af37', textDecoration: 'underline'}}>anticipar tu visita</Link>.</p>
         </div>
       </section>
 
@@ -204,11 +203,8 @@ function Landing() {
       {/* Maridajes Perfectos - Administrable desde Firebase */}
       <MaridajesSection />
 
-      {/* Vinos - Administrable desde Firebase */}
-      <VinosSection />
-
-      {/* Quesos y Fiambres - Administrable desde Firebase */}
-      <ProductosSection />
+      {/* Carta Digital - PDF administrable desde Firebase */}
+      <CartaSection />
 
       {/* Galería - Administrable desde Firebase */}
       <GaleriaSection />
@@ -317,6 +313,7 @@ function Landing() {
             <a href="#contacto" onClick={(e) => handleNavClick(e, '#contacto')}>Contacto</a>
           </div>
           <p className="footer-copy">© 2025 Selvaggio Wine Bar. Elegí tu vino, armá tu picada, creá tu momento.</p>
+          <p className="footer-dev">🚀 Desarrollado por <a href="https://techdi.com.ar" target="_blank" rel="noopener noreferrer">TechDi</a></p>
         </div>
       </footer>
     </div>

@@ -1,0 +1,313 @@
+.admin-reservas-container {
+  padding: 2rem;
+  background: rgba(10, 10, 10, 0.5);
+  min-height: 100vh;
+}
+
+.admin-reservas-container h2 {
+  color: #d4af37;
+  margin-bottom: 1.5rem;
+}
+
+.tabs-reservas {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.tabs-reservas button {
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tabs-reservas button:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tabs-reservas button.active {
+  color: #d4af37;
+  border-bottom-color: #d4af37;
+}
+
+.loading-reservas {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.reservas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.reserva-card {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.reserva-card:hover {
+  background: rgba(26, 26, 26, 0.95);
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.cava-card {
+  border-left: 4px solid #d4af37;
+}
+
+.mesa-card {
+  border-left: 4px solid #4CAF50;
+}
+
+.influ-card {
+  border-left: 4px solid #9C27B0;
+}
+
+.reserva-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reserva-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge.confirmada {
+  background: #4CAF50;
+  color: white;
+}
+
+.badge.pendiente {
+  background: #FF9800;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+
+.badge.cancelada {
+  background: #f44336;
+  color: white;
+}
+
+.badge.tipo-prensa {
+  background: #2196F3;
+  color: white;
+}
+
+.badge.tipo-creadora-de-contenido {
+  background: #E91E63;
+  color: white;
+}
+
+.badge.tipo-influencer {
+  background: #9C27B0;
+  color: white;
+}
+
+.badge.tipo-tiktoker {
+  background: #00BCD4;
+  color: white;
+}
+
+.reserva-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reserva-details p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.reserva-details strong {
+  color: #d4af37;
+}
+
+.btn-ver-comprobante {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: #2196F3;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.btn-ver-comprobante:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+}
+
+.btn-delete {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.6rem;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+  background: #d32f2f;
+}
+
+/* FORMULARIO INFLUENCERS */
+
+.btn-add-influ {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+}
+
+.btn-add-influ:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.influ-form {
+  background: rgba(26, 26, 26, 0.95);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  margin-bottom: 2rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  color: #d4af37;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #d4af37;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group select option {
+  background: #1a1a1a;
+  color: white;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.btn-submit-influ {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.btn-submit-influ:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+@media (max-width: 768px) {
+  .tabs-reservas {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tabs-reservas button {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .reservas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .influ-form {
+    padding: 1.5rem;
+  }
+}

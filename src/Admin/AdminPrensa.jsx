@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase/config';
 import { useToast } from '../components/Toast';
 import '../Admin/AdminMaridajes.css';
 
@@ -10,6 +11,8 @@ function AdminPrensa() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const [archivoImagen, setArchivoImagen] = useState(null);
   
   const [nuevaNota, setNuevaNota] = useState({
     medio: '',
@@ -44,6 +47,43 @@ function AdminPrensa() {
       toast.error('Error al cargar notas de prensa');
     } finally {
       setCargando(false);
+    }
+  };
+
+  const handleImagenChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validar que sea imagen
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor seleccioná un archivo de imagen');
+      return;
+    }
+
+    // Validar tamaño (máx 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede pesar más de 5MB');
+      return;
+    }
+
+    setSubiendoImagen(true);
+
+    try {
+      const timestamp = Date.now();
+      const fileName = `prensa/${timestamp}_${file.name}`;
+      const storageRef = ref(storage, fileName);
+      
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      setNuevaNota({...nuevaNota, imagen: url});
+      setArchivoImagen(file);
+      toast.success('Imagen subida exitosamente');
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      toast.error('Error al subir la imagen');
+    } finally {
+      setSubiendoImagen(false);
     }
   };
 
@@ -206,14 +246,34 @@ function AdminPrensa() {
             </div>
 
             <div className="form-group full-width">
-              <label>Imagen (opcional)</label>
-              <input
-                type="url"
-                value={nuevaNota.imagen}
-                onChange={(e) => setNuevaNota({...nuevaNota, imagen: e.target.value})}
-                placeholder="https://ejemplo.com/imagen.jpg"
-              />
-              <small>URL de una imagen representativa</small>
+              <label>Imagen</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagenChange}
+                  disabled={subiendoImagen}
+                  style={{ padding: '10px', border: '2px dashed #ddd', borderRadius: '8px', cursor: 'pointer' }}
+                />
+                {subiendoImagen && <p style={{ margin: 0, color: '#666' }}>Subiendo imagen...</p>}
+                {nuevaNota.imagen && (
+                  <div style={{ marginTop: '10px' }}>
+                    <img 
+                      src={nuevaNota.imagen} 
+                      alt="Preview" 
+                      style={{ maxWidth: '200px', maxHeight: '150px', borderRadius: '8px', border: '1px solid #ddd' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setNuevaNota({...nuevaNota, imagen: ''})}
+                      style={{ marginLeft: '10px', padding: '5px 10px', background: '#ff6b6b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
+              <small>Sube una imagen desde tu computadora (máx 5MB)</small>
             </div>
 
             <div className="form-group full-width">

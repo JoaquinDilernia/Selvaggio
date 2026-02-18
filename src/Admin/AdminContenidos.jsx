@@ -1,32 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import AdminVinos from './AdminVinos';
-import AdminProductos from './AdminProductos';
 import AdminMaridajes from './AdminMaridajes';
 import AdminGaleria from './AdminGaleria';
 import AdminReseñas from './AdminReseñas';
 import AdminPrensa from './AdminPrensa';
+import AdminConfiguracion from './AdminConfiguracion';
+import AdminCarta from './AdminCarta';
 import './AdminContenidos.css';
 import './AdminGaleria.css';
 
 function AdminContenidos() {
-  const [tabActiva, setTabActiva] = useState('vinos');
+  const [tabActiva, setTabActiva] = useState('carta');
 
   const tabs = [
-    { id: 'vinos', label: 'Vinos', icon: '🍷' },
-    { id: 'productos', label: 'Productos', icon: '🧀' },
+    { id: 'carta', label: 'Carta PDF', icon: '📝' },
     { id: 'maridajes', label: 'Maridajes', icon: '✨' },
     { id: 'galeria', label: 'Galería', icon: '📸' },
     { id: 'reseñas', label: 'Reseñas', icon: '⭐' },
-    { id: 'prensa', label: 'Prensa', icon: '📰' }
+    { id: 'prensa', label: 'Prensa', icon: '📰' },
+    { id: 'configuracion', label: 'Configuración', icon: '⚙️' }
   ];
 
   const renderContenido = () => {
     switch (tabActiva) {
-      case 'vinos':
-        return <AdminVinos />;
-      case 'productos':
-        return <AdminProductos />;
+      case 'carta':
+        return <AdminCarta />;
       case 'maridajes':
         return <AdminMaridajes />;
       case 'galeria':
@@ -35,6 +33,8 @@ function AdminContenidos() {
         return <AdminReseñas />;
       case 'prensa':
         return <AdminPrensa />;
+      case 'configuracion':
+        return <AdminConfiguracion />;
       default:
         return null;
     }
@@ -46,7 +46,7 @@ function AdminContenidos() {
       <div className="admin-contenidos-header">
         <div className="header-info">
           <h1>Gestión de Contenidos</h1>
-          <p>Administra la carta de vinos, productos y maridajes de la landing</p>
+          <p>Administra la carta PDF, maridajes, galería y contenido de la landing</p>
         </div>
         <div className="header-nav-buttons">
           <Link to="/admin" className="btn-panel-principal">

@@ -90,6 +90,10 @@
   transition: all 0.3s ease;
 }
 
+.search-input::placeholder {
+  color: rgba(67, 10, 51, 0.5);
+}
+
 .search-input:focus {
   outline: none;
   border-color: #07382b;
