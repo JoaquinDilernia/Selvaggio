@@ -81,18 +81,30 @@ function ReservaMesas() {
       return [];
     }
     
-    // Horarios base (18:00 a 00:00)
-    const baseHorarios = [
+    // Martes (2), Miércoles (3) y Jueves (4): último horario 22:00
+    const horariosSemana = [
+      '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+      '21:00', '21:30', '22:00'
+    ];
+
+    // Viernes (5), Sábado (6) y Domingo (0): horarios hasta 00:00
+    const horariosFinDeSemana = [
       '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
       '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00'
     ];
     
     // Viernes (5) y Sábado (6) tienen horarios extendidos hasta 2:00 AM
     if (dayOfWeek === 5 || dayOfWeek === 6) {
-      return [...baseHorarios, '00:30', '01:00', '01:30', '02:00'];
+      return [...horariosFinDeSemana, '00:30', '01:00', '01:30', '02:00'];
+    }
+
+    // Domingo (0): hasta 00:00
+    if (dayOfWeek === 0) {
+      return horariosFinDeSemana;
     }
     
-    return baseHorarios;
+    // Martes, Miércoles, Jueves: hasta 22:00
+    return horariosSemana;
   };
 
   const handleChange = (e) => {
@@ -299,7 +311,9 @@ function ReservaMesas() {
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 {new Date(formData.fecha + 'T00:00:00').getDay() === 5 || new Date(formData.fecha + 'T00:00:00').getDay() === 6
                   ? 'Viernes y sábado: hasta 2:00 AM'
-                  : 'Martes a domingo: hasta 00:00 hs'}
+                  : new Date(formData.fecha + 'T00:00:00').getDay() === 0
+                    ? 'Domingo: hasta 00:00 hs'
+                    : 'Martes a jueves: último horario 22:00 hs'}
               </p>
             )}
           </div>
