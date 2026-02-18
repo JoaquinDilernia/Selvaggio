@@ -13,6 +13,7 @@ function ReservaCava() {
     cantidadPersonas: 10,
     traeTorta: false,
     fecha: '',
+    horario: '',
     comprobante: null
   });
   
@@ -172,11 +173,12 @@ function ReservaCava() {
         cantidadPersonas: formData.cantidadPersonas,
         traeTorta: formData.traeTorta,
         fecha: formData.fecha,
+        horario: formData.horario,
         comprobanteUrl,
         estado: 'confirmada', // Se confirma automáticamente con el comprobante
-        precioPersona: 45000,
+        precioPersona: 50000,
         seña: 100000,
-        total: formData.cantidadPersonas * 45000,
+        total: formData.cantidadPersonas * 50000,
         createdAt: new Date().toISOString()
       };
 
@@ -196,7 +198,7 @@ function ReservaCava() {
     }
   };
 
-  const totalAPagar = formData.cantidadPersonas * 45000;
+  const totalAPagar = formData.cantidadPersonas * 50000;
 
   // Si la reserva fue exitosa, mostrar pantalla de confirmación
   if (reservaExitosa) {
@@ -208,10 +210,9 @@ function ReservaCava() {
           <p className="exito-mensaje">
             Tu reserva de la cava ha sido confirmada exitosamente.
             <br />
-            Te contactaremos pronto por WhatsApp para coordinar los detalles.
+            ¡Te esperamos!
           </p>
           <div className="exito-info">
-            <p>📱 Te escribiremos por WhatsApp</p>
             <p>✅ Reserva confirmada</p>
           </div>
           <Link to="/" className="btn-volver-home">
@@ -229,9 +230,9 @@ function ReservaCava() {
         <p className="reserva-subtitle">Eventos y Cumpleaños</p>
 
         <div className="reserva-info-destacada">
-          <h3>$45.000 por persona</h3>
-          <p>Incluye: Degustación completa + Maridaje libre + Panera + Agua</p>
-          <p className="degustacion-detalle">Charcuterie premium, quesos seleccionados, conservas y acompañamientos</p>
+          <h3>$50.000 por persona</h3>
+          <p>Degustación completa con maridaje libre, panera artesanal y agua.</p>
+          <p className="degustacion-detalle">Una selección de charcuterie premium, quesos especialmente curados, conservas seleccionadas y acompañamientos pensados para realzar cada copa.</p>
           <p className="seña-info">Seña de reserva: $100.000 (por transferencia)</p>
         </div>
 
@@ -283,6 +284,33 @@ function ReservaCava() {
               />
               ¿Traerás torta?
             </label>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="horario">Horario *</label>
+            <select
+              id="horario"
+              name="horario"
+              value={formData.horario}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Seleccionar horario</option>
+              <option value="12:00">12:00</option>
+              <option value="12:30">12:30</option>
+              <option value="13:00">13:00</option>
+              <option value="13:30">13:30</option>
+              <option value="14:00">14:00</option>
+              <option value="18:00">18:00</option>
+              <option value="18:30">18:30</option>
+              <option value="19:00">19:00</option>
+              <option value="19:30">19:30</option>
+              <option value="20:00">20:00</option>
+              <option value="20:30">20:30</option>
+              <option value="21:00">21:00</option>
+              <option value="21:30">21:30</option>
+              <option value="22:00">22:00</option>
+            </select>
           </div>
 
           <div className="form-group">

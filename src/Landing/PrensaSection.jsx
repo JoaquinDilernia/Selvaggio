@@ -45,7 +45,7 @@ function PrensaSection() {
   }
 
   return (
-    <section className="prensa-section">
+    <section id="prensa" className="prensa-section">
       <div className="container">
         <h2 className="section-title">En los Medios</h2>
         <p className="prensa-intro">

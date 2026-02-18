@@ -3,14 +3,14 @@
   /* Colores Principales */
   --burgundy: #430a33;
   --beige-light: #ece7e0;
-  --taupe: #ac987f;
+  --violet: #a88cb5;
   --green-dark: #07382b;
   --black: #000000;
   
   /* Gradientes */
   --gradient-primary: linear-gradient(135deg, #430a33 0%, #07382b 100%);
   --gradient-secondary: linear-gradient(135deg, #07382b 0%, #430a33 100%);
-  --gradient-accent: linear-gradient(135deg, #ac987f 0%, #ece7e0 100%);
+  --gradient-accent: linear-gradient(135deg, #a88cb5 0%, #ece7e0 100%);
   
   /* Overlay */
   --overlay-dark: rgba(7, 56, 43, 0.8);
@@ -25,10 +25,10 @@
 /* Tema Oscuro */
 body.dark-theme {
   --text-primary: #ece7e0;
-  --text-secondary: #ac987f;
+  --text-secondary: #a88cb5;
   --bg-primary: #000000;
   --bg-secondary: #0f0f0f;
-  --border-color: rgba(172, 152, 127, 0.3);
+  --border-color: rgba(168, 140, 181, 0.3);
 }
 
 /* Tema Claro */

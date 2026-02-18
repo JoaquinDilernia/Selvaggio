@@ -5,7 +5,7 @@
   --dark-bg: #141414;
   --dark-secondary: #1a1a1a;
   --wine-dark: #2d0a1f;
-  --taupe-accent: #ac987f;
+  --taupe-accent: #a88cb5;
   --text-light: #d4d4d4;
   --text-muted: #999;
 }
@@ -13,14 +13,14 @@
 /* Navbar Oscuro */
 .navbar {
   background: rgba(20, 20, 20, 0.98) !important;
-  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.2);
   box-shadow: 0 2px 30px rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(10px);
 }
 
 .nav-logo {
   height: 90px !important;
-  filter: drop-shadow(0 2px 12px rgba(172, 152, 127, 0.4)) brightness(1.1) !important;
+  filter: drop-shadow(0 2px 12px rgba(168, 140, 181, 0.4)) brightness(1.1) !important;
   transition: all 0.3s ease !important;
 }
 
@@ -35,8 +35,8 @@
 }
 
 .nav-links a:hover {
-  color: #ac987f !important;
-  border-bottom-color: #ac987f;
+  color: #a88cb5 !important;
+  border-bottom-color: #a88cb5;
 }
 
 /* Hero Más Oscuro */
@@ -57,10 +57,10 @@
 .hero-badge {
   display: inline-block;
   padding: 8px 20px;
-  background: rgba(172, 152, 127, 0.15);
-  border: 1px solid rgba(172, 152, 127, 0.4);
+  background: rgba(168, 140, 181, 0.15);
+  border: 1px solid rgba(168, 140, 181, 0.4);
   border-radius: 50px;
-  color: #ac987f !important;
+  color: #a88cb5 !important;
   font-size: 13px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
 }
 
 .hero-subtitle {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
   font-weight: 300;
   letter-spacing: 1.2px;
   font-size: 1.4rem !important;
@@ -100,7 +100,7 @@
   padding: 10px 20px;
   background: rgba(26, 26, 26, 0.6);
   border-radius: 50px;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
   backdrop-filter: blur(10px);
   letter-spacing: 0.5px;
 }
@@ -127,21 +127,21 @@
 
 .btn-secondary {
   background: transparent !important;
-  border: 2px solid #ac987f !important;
-  color: #ac987f !important;
+  border: 2px solid #a88cb5 !important;
+  color: #a88cb5 !important;
 }
 
 .btn-secondary:hover {
-  background: rgba(172, 152, 127, 0.15) !important;
-  border-color: #ac987f !important;
+  background: rgba(168, 140, 181, 0.15) !important;
+  border-color: #a88cb5 !important;
   transform: translateY(-2px);
 }
 
 /* Secciones con Fondos Oscuros */
 .presentacion-section {
   background: #1a1a1a !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .text-intro {
@@ -153,8 +153,8 @@
 /* Disclaimer Bar */
 .disclaimer-bar {
   background: #141414 !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.3);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.3);
+  border-top: 1px solid rgba(168, 140, 181, 0.3);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 .disclaimer-content {
@@ -162,7 +162,7 @@
 }
 
 .disclaimer-content strong {
-  color: #ac987f;
+  color: #a88cb5;
 }
 
 /* Cómo Funciona - Oscuro */
@@ -178,16 +178,16 @@
 
 .paso-card {
   background: #1a1a1a !important;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .paso-card:hover {
-  border-color: #ac987f;
-  box-shadow: 0 8px 30px rgba(172, 152, 127, 0.15) !important;
+  border-color: #a88cb5;
+  box-shadow: 0 8px 30px rgba(168, 140, 181, 0.15) !important;
 }
 
 .paso-numero {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
   font-size: 48px !important;
   font-weight: 200 !important;
   font-family: Georgia, serif !important;
@@ -196,7 +196,7 @@
 }
 
 .paso-card h3 {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .paso-card p {
@@ -206,8 +206,8 @@
 /* Concepto */
 .concepto-section {
   background: #1a1a1a !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .concepto-content h2 {
@@ -233,7 +233,7 @@
 }
 
 .btn-reservar-cava {
-  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%) !important;
+  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%) !important;
   color: #000 !important;
 }
 
@@ -244,7 +244,7 @@
 /* Vinos */
 .vinos-section {
   background: #141414 !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .vinos-intro {
@@ -253,12 +253,12 @@
 
 .vino-categoria {
   background: #1a1a1a !important;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .categoria-title {
-  color: #ac987f !important;
-  border-bottom-color: rgba(172, 152, 127, 0.3) !important;
+  color: #a88cb5 !important;
+  border-bottom-color: rgba(168, 140, 181, 0.3) !important;
 }
 
 .vino-item h4 {
@@ -270,12 +270,12 @@
 }
 
 .vino-precio {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .vinos-nota {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d0a1f 100%) !important;
-  border: 1px solid rgba(172, 152, 127, 0.3);
+  border: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 /* Galería */
@@ -284,11 +284,11 @@
 }
 
 .galeria-item {
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .galeria-item:hover {
-  border-color: #ac987f;
+  border-color: #a88cb5;
 }
 
 /* Prensa */
@@ -298,12 +298,12 @@
 
 .prensa-item {
   background: #141414 !important;
-  border-left-color: #ac987f !important;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border-left-color: #a88cb5 !important;
+  border: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .prensa-item h4 {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .prensa-item p {
@@ -319,12 +319,24 @@
   background: #0f0f0f !important;
 }
 
+.info-block {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.info-icon {
+  color: #a88cb5 !important;
+}
+
 .ubicacion-info h3 {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .ubicacion-info p {
   color: #d4d4d4 !important;
+}
+
+.direccion-text {
+  color: #ece7e0 !important;
 }
 
 .btn-whatsapp {
@@ -338,7 +350,7 @@
 /* Formulario Contacto */
 .contacto-form-container {
   background: #1a1a1a !important;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .form-title {
@@ -352,7 +364,7 @@
 .contact-form input,
 .contact-form textarea {
   background: #141414 !important;
-  border-color: rgba(172, 152, 127, 0.3) !important;
+  border-color: rgba(168, 140, 181, 0.3) !important;
   color: #ece7e0 !important;
 }
 
@@ -363,19 +375,19 @@
 
 .contact-form input:focus,
 .contact-form textarea:focus {
-  border-color: #ac987f !important;
-  box-shadow: 0 0 0 3px rgba(172, 152, 127, 0.1) !important;
+  border-color: #a88cb5 !important;
+  box-shadow: 0 0 0 3px rgba(168, 140, 181, 0.1) !important;
 }
 
 .btn-enviar-contacto {
-  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%) !important;
+  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%) !important;
   color: #000 !important;
 }
 
 /* Feedback Section */
 .feedback-section {
   background: linear-gradient(135deg, #1a1a1a 0%, #2d0a1f 100%) !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.3);
+  border-top: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 .feedback-content h2 {
@@ -383,11 +395,11 @@
 }
 
 .feedback-content p {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .btn-feedback {
-  background: #ac987f !important;
+  background: #a88cb5 !important;
   color: #000 !important;
 }
 
@@ -398,7 +410,7 @@
 /* Footer */
 .footer {
   background: #0a0a0a !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.3);
+  border-top: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 .footer-logo {
@@ -412,7 +424,7 @@
 }
 
 .footer-links a:hover {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
 }
 
 .footer-copy {
@@ -423,8 +435,8 @@
 .proof-section {
   background: #1a1a1a !important;
   padding: 80px 0;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .proof-grid {
@@ -439,21 +451,21 @@
   text-align: center;
   padding: 40px 30px;
   background: rgba(26, 26, 26, 0.6);
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
   border-radius: 12px;
   transition: all 0.3s ease;
 }
 
 .proof-card:hover {
-  border-color: #ac987f;
+  border-color: #a88cb5;
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(172, 152, 127, 0.15);
+  box-shadow: 0 10px 30px rgba(168, 140, 181, 0.15);
 }
 
 .proof-number {
   font-size: 3.5rem;
   font-weight: 200;
-  color: #ac987f !important;
+  color: #a88cb5 !important;
   font-family: Georgia, serif;
   margin-bottom: 15px;
 }
@@ -467,9 +479,9 @@
 
 /* Disclaimer Bar */
 .disclaimer-bar {
-  background: rgba(172, 152, 127, 0.1) !important;
-  border-top: 1px solid rgba(172, 152, 127, 0.3);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.3);
+  background: rgba(168, 140, 181, 0.1) !important;
+  border-top: 1px solid rgba(168, 140, 181, 0.3);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 .disclaimer-content {
@@ -480,7 +492,7 @@
 }
 
 .disclaimer-content p {
-  color: #ac987f !important;
+  color: #a88cb5 !important;
   font-weight: 500;
   letter-spacing: 0.5px;
 }

@@ -175,8 +175,8 @@
 .demo-float-card.cava-destacada {
   width: 320px;
   height: 260px;
-  border: 3px solid #d4af37;
-  box-shadow: 0 12px 50px rgba(212, 175, 55, 0.4);
+  border: 3px solid #b794c7;
+  box-shadow: 0 12px 50px rgba(183, 148, 199, 0.4);
 }
 
 .demo-float-card:hover {
@@ -186,7 +186,7 @@
 
 .demo-float-card.cava-destacada:hover {
   transform: translateX(-15px) scale(1.08);
-  box-shadow: 0 15px 60px rgba(212, 175, 55, 0.6);
+  box-shadow: 0 15px 60px rgba(183, 148, 199, 0.6);
 }
 
 .demo-card-img {
@@ -260,7 +260,7 @@
   position: absolute;
   top: 1rem;
   left: 1rem;
-  background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #c9a8d9 100%);
   color: #000;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
@@ -268,7 +268,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.5);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -357,9 +357,9 @@
 }
 
 .demo-badge.gold {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: rgba(212, 175, 55, 0.3);
-  color: #d4af37;
+  background: rgba(183, 148, 199, 0.1);
+  border-color: rgba(183, 148, 199, 0.3);
+  color: #b794c7;
 }
 
 .demo-section h2 {
@@ -436,7 +436,7 @@
 .demo-image-placeholder {
   width: 100%;
   aspect-ratio: 4/5;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(183, 148, 199, 0.1) 0%, rgba(183, 148, 199, 0.05) 100%);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -451,7 +451,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(183, 148, 199, 0.1) 0%, transparent 70%);
 }
 
 .demo-image-placeholder span {
@@ -496,7 +496,7 @@
 .demo-price {
   font-size: 3rem;
   font-weight: 700;
-  color: #d4af37;
+  color: #b794c7;
 }
 
 .demo-price-unit {
@@ -539,7 +539,7 @@
 .demo-btn-cava {
   display: inline-block;
   padding: 1.25rem 3rem;
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
   color: #0a0a0a;
   text-decoration: none;
   border-radius: 8px;
@@ -550,7 +550,7 @@
 
 .demo-btn-cava:hover {
   transform: translateY(-3px);
-  box-shadow: 0 15px 40px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 15px 40px rgba(183, 148, 199, 0.3);
 }
 
 /* Sección Propuesta */
@@ -589,7 +589,7 @@
 
 .demo-valor-card:hover {
   background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(212, 175, 55, 0.3);
+  border-color: rgba(183, 148, 199, 0.3);
   transform: translateY(-5px);
 }
 
@@ -621,7 +621,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(183, 148, 199, 0.1) 0%, transparent 70%);
 }
 
 .demo-final-cta-content {

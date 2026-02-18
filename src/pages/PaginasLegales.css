@@ -78,7 +78,7 @@
 .btn-volver {
   display: inline-block;
   padding: 14px 32px;
-  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  background: linear-gradient(135deg, #430a33 0%, #a88cb5 100%);
   color: white;
   text-decoration: none;
   border-radius: 50px;
@@ -110,7 +110,7 @@
 .error-code {
   font-size: 120px;
   font-weight: 900;
-  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  background: linear-gradient(135deg, #430a33 0%, #a88cb5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -170,7 +170,7 @@
 }
 
 .error-suggestions a:hover {
-  color: #ac987f;
+  color: #a88cb5;
 }
 
 /* Página Gracias */
@@ -312,7 +312,7 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #430a33 0%, #ac987f 100%);
+  background: linear-gradient(135deg, #430a33 0%, #a88cb5 100%);
   color: white;
 }
 

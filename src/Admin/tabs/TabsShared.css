@@ -42,7 +42,7 @@
 
 .stat-box:hover {
   transform: translateY(-3px);
-  border-color: #ac987f;
+  border-color: #a88cb5;
 }
 
 .stat-box.highlight {
@@ -322,7 +322,7 @@
 }
 
 .postulacion-card:hover {
-  border-color: #ac987f;
+  border-color: #a88cb5;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
@@ -465,7 +465,7 @@
 }
 
 .filter-btn:hover {
-  border-color: #ac987f;
+  border-color: #a88cb5;
   background: #f8f6f3;
 }
 
@@ -486,7 +486,7 @@
 
 .stat-card:hover {
   transform: translateY(-3px);
-  border-color: #ac987f;
+  border-color: #a88cb5;
 }
 
 .stat-number {

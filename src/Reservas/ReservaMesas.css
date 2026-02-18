@@ -15,19 +15,19 @@
 }
 
 .reserva-mesas-content h1 {
-  color: #d4af37;
+  color: #b794c7;
   text-align: center;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
 }
 
 .reserva-info {
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(183, 148, 199, 0.1);
   padding: 1rem;
   border-radius: 8px;
   text-align: center;
   margin-bottom: 2rem;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid rgba(183, 148, 199, 0.3);
 }
 
 .reserva-info p {
@@ -51,7 +51,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #d4af37;
+  border-color: #b794c7;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -146,7 +146,7 @@
 .btn-volver-home {
   display: inline-block;
   padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
   color: #1a1a1a;
   text-decoration: none;
   border-radius: 8px;
@@ -157,5 +157,5 @@
 
 .btn-volver-home:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 6px 25px rgba(183, 148, 199, 0.5);
 }

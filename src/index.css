@@ -2,13 +2,13 @@
 :root {
   --burgundy: #430a33;
   --beige-light: #ece7e0;
-  --taupe: #ac987f;
+  --taupe: #a88cb5;
   --green-dark: #07382b;
   --black: #000000;
   
   --gradient-primary: linear-gradient(135deg, #430a33 0%, #07382b 100%);
   --gradient-secondary: linear-gradient(135deg, #07382b 0%, #430a33 100%);
-  --gradient-accent: linear-gradient(135deg, #ac987f 0%, #ece7e0 100%);
+  --gradient-accent: linear-gradient(135deg, #a88cb5 0%, #ece7e0 100%);
 }
 
 * {

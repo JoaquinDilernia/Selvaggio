@@ -57,7 +57,7 @@
 }
 
 .header p {
-  color: #ac987f;
+  color: #a88cb5;
   font-size: 16px;
   margin: 5px 0;
 }
@@ -107,7 +107,7 @@
   align-items: center;
   padding: 12px 15px;
   background: white;
-  border: 2px solid #ac987f;
+  border: 2px solid #a88cb5;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -176,7 +176,7 @@
   align-items: center;
   justify-content: center;
   background: white;
-  border: 2px solid #ac987f;
+  border: 2px solid #a88cb5;
   border-radius: 50%;
   font-weight: 600;
   color: #430a33;
@@ -219,7 +219,7 @@
 .text-input {
   width: 100%;
   padding: 12px 15px;
-  border: 2px solid #ac987f;
+  border: 2px solid #a88cb5;
   border-radius: 10px;
   font-size: 15px;
   font-family: inherit;

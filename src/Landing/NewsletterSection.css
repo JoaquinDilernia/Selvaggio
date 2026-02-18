@@ -3,8 +3,8 @@
   padding: 80px 20px;
   background: linear-gradient(135deg, rgba(7, 56, 43, 0.15) 0%, rgba(0, 0, 0, 0) 100%),
               #1a1a1a;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .newsletter-container {
@@ -49,7 +49,7 @@
   min-width: 200px;
   padding: 16px 20px;
   background: #0f0f0f;
-  border: 1px solid rgba(172, 152, 127, 0.3);
+  border: 1px solid rgba(168, 140, 181, 0.3);
   border-radius: 8px;
   color: #ece7e0;
   font-size: 1rem;
@@ -62,8 +62,8 @@
 
 .newsletter-input:focus {
   outline: none;
-  border-color: #ac987f;
-  box-shadow: 0 0 0 3px rgba(172, 152, 127, 0.1);
+  border-color: #a88cb5;
+  box-shadow: 0 0 0 3px rgba(168, 140, 181, 0.1);
 }
 
 .newsletter-input:disabled {
@@ -73,7 +73,7 @@
 
 .newsletter-btn {
   padding: 16px 40px;
-  background: linear-gradient(135deg, #ac987f 0%, #ece7e0 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #ece7e0 100%);
   border: none;
   border-radius: 8px;
   color: #430a33;
@@ -91,7 +91,7 @@
 
 .newsletter-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(172, 152, 127, 0.4);
+  box-shadow: 0 8px 20px rgba(168, 140, 181, 0.4);
 }
 
 .newsletter-btn:active:not(:disabled) {

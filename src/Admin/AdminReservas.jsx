@@ -68,6 +68,10 @@ function AdminReservas() {
   const [toast, setToast] = useState(null);
   const [mostrarArchivadas, setMostrarArchivadas] = useState(false);
   
+  // Estado para edición
+  const [editingReserva, setEditingReserva] = useState(null); // { id, tipo: 'cava'|'mesa', ...data }
+  const [editForm, setEditForm] = useState({});
+  
   // Form para crear invitación influencer
   const [showInfluForm, setShowInfluForm] = useState(false);
   const [influForm, setInfluForm] = useState({
@@ -87,8 +91,16 @@ function AdminReservas() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  // Auto-refresh cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData(true); // silent refresh
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       await Promise.all([
         fetchReservasCava(),
@@ -98,7 +110,7 @@ function AdminReservas() {
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -107,18 +119,18 @@ function AdminReservas() {
       const snapshot = await getDocs(collection(db, 'selvaggio_reservas_cava'));
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Ordenamiento en el cliente
+      // Ordenar por fecha + horario
       data = data.sort((a, b) => {
         if (!a.fecha || !b.fecha) return 0;
-        const fechaA = new Date(a.fecha + 'T00:00:00');
-        const fechaB = new Date(b.fecha + 'T00:00:00');
-        return fechaA - fechaB;
+        const fechaA = a.fecha + (a.horario || '00:00');
+        const fechaB = b.fecha + (b.horario || '00:00');
+        return fechaA.localeCompare(fechaB);
       });
       
       setReservasCava(data);
     } catch (error) {
       console.error('Error al cargar reservas de cava:', error);
-      setReservasCava([]); // Asegurar que siempre se establece un valor
+      setReservasCava([]);
     }
   };
 
@@ -127,100 +139,56 @@ function AdminReservas() {
       const snapshot = await getDocs(collection(db, 'selvaggio_reservas_mesas'));
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Ordenamiento en el cliente
+      // Ordenar por fecha + horario
       data = data.sort((a, b) => {
         if (!a.fecha || !b.fecha) return 0;
-        const fechaA = new Date(a.fecha + 'T00:00:00');
-        const fechaB = new Date(b.fecha + 'T00:00:00');
-        return fechaA - fechaB;
+        const fechaA = a.fecha + (a.horario || '00:00');
+        const fechaB = b.fecha + (b.horario || '00:00');
+        return fechaA.localeCompare(fechaB);
       });
       
       setReservasMesas(data);
     } catch (error) {
       console.error('Error al cargar reservas de mesas:', error);
-      setReservasMesas([]); // Asegurar que siempre se establece un valor
+      setReservasMesas([]);
     }
   };
 
   const fetchInvitaciones = async () => {
     try {
-      // Intentar primero sin orderBy para evitar problemas de índices
       const snapshot = await getDocs(collection(db, 'selvaggio_invitaciones'));
       let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Ordenamiento en el cliente
       data = data.sort((a, b) => {
         if (!a.dia || !b.dia) return 0;
-        const fechaA = new Date(a.dia + 'T00:00:00');
-        const fechaB = new Date(b.dia + 'T00:00:00');
-        return fechaA - fechaB;
+        const fechaA = a.dia + (a.horario || '00:00');
+        const fechaB = b.dia + (b.horario || '00:00');
+        return fechaA.localeCompare(fechaB);
       });
       
       setInvitaciones(data);
     } catch (error) {
       console.error('Error al cargar invitaciones:', error);
-      setInvitaciones([]); // Asegurar que siempre se establece un valor
+      setInvitaciones([]);
     }
   };
 
-  const archivarReservaCava = async (id) => {
+  // ===== ARCHIVAR / DESARCHIVAR =====
+  const toggleArchivarCava = async (id, archivar) => {
     try {
-      await updateDoc(doc(db, 'selvaggio_reservas_cava', id), {
-        archivada: true
-      });
-      setToast({ message: 'Reserva archivada', type: 'success' });
+      await updateDoc(doc(db, 'selvaggio_reservas_cava', id), { archivada: archivar });
+      setToast({ message: archivar ? 'Reserva archivada' : 'Reserva desarchivada', type: 'success' });
       fetchReservasCava();
     } catch (error) {
       console.error('Error:', error);
-      setToast({ message: 'Error al archivar', type: 'error' });
+      setToast({ message: 'Error al actualizar', type: 'error' });
     }
   };
 
-  const deleteReservaCava = async (id) => {
-    if (!confirm('¿Eliminar esta reserva de cava?')) return;
-    
+  const toggleArchivarMesa = async (id, archivar) => {
     try {
-      await deleteDoc(doc(db, 'selvaggio_reservas_cava', id));
-      setToast({ message: 'Reserva de cava eliminada exitosamente', type: 'success' });
-      fetchReservasCava();
-    } catch (error) {
-      console.error('Error:', error);
-      setToast({ message: 'Error al eliminar', type: 'error' });
-    }
-  };
-
-  const archivarReservaMesa = async (id) => {
-    try {
-      await updateDoc(doc(db, 'selvaggio_reservas_mesas', id), {
-        archivada: true
-      });
-      setToast({ message: 'Reserva archivada', type: 'success' });
-      fetchReservasMesas();
-    } catch (error) {
-      console.error('Error:', error);
-      setToast({ message: 'Error al archivar', type: 'error' });
-    }
-  };
-
-  const deleteReservaMesa = async (id) => {
-    if (!confirm('¿Eliminar esta reserva de mesa?')) return;
-    
-    try {
-      await deleteDoc(doc(db, 'selvaggio_reservas_mesas', id));
-      setToast({ message: 'Reserva de mesa eliminada exitosamente', type: 'success' });
-      fetchReservasMesas();
-    } catch (error) {
-      console.error('Error:', error);
-      setToast({ message: 'Error al eliminar', type: 'error' });
-    }
-  };
-
-  const updateEstadoMesa = async (id, nuevoEstado) => {
-    try {
-      await updateDoc(doc(db, 'selvaggio_reservas_mesas', id), {
-        estado: nuevoEstado
-      });
-      setToast({ message: 'Estado actualizado exitosamente', type: 'success' });
+      await updateDoc(doc(db, 'selvaggio_reservas_mesas', id), { archivada: archivar });
+      setToast({ message: archivar ? 'Reserva archivada' : 'Reserva desarchivada', type: 'success' });
       fetchReservasMesas();
     } catch (error) {
       console.error('Error:', error);
@@ -228,6 +196,140 @@ function AdminReservas() {
     }
   };
 
+  const toggleArchivarInvitacion = async (id, archivar) => {
+    try {
+      await updateDoc(doc(db, 'selvaggio_invitaciones', id), { archivada: archivar });
+      setToast({ message: archivar ? 'Invitación archivada' : 'Invitación desarchivada', type: 'success' });
+      fetchInvitaciones();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al actualizar', type: 'error' });
+    }
+  };
+
+  // ===== ELIMINAR =====
+  const deleteReservaCava = async (id) => {
+    if (!confirm('¿Eliminar esta reserva de cava?')) return;
+    try {
+      await deleteDoc(doc(db, 'selvaggio_reservas_cava', id));
+      setToast({ message: 'Reserva de cava eliminada', type: 'success' });
+      fetchReservasCava();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al eliminar', type: 'error' });
+    }
+  };
+
+  const deleteReservaMesa = async (id) => {
+    if (!confirm('¿Eliminar esta reserva de mesa?')) return;
+    try {
+      await deleteDoc(doc(db, 'selvaggio_reservas_mesas', id));
+      setToast({ message: 'Reserva de mesa eliminada', type: 'success' });
+      fetchReservasMesas();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al eliminar', type: 'error' });
+    }
+  };
+
+  const deleteInvitacion = async (id) => {
+    if (!confirm('¿Eliminar esta invitación?')) return;
+    try {
+      await deleteDoc(doc(db, 'selvaggio_invitaciones', id));
+      setToast({ message: 'Invitación eliminada', type: 'success' });
+      fetchInvitaciones();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al eliminar', type: 'error' });
+    }
+  };
+
+  // ===== ESTADO MESA =====
+  const updateEstadoMesa = async (id, nuevoEstado) => {
+    try {
+      await updateDoc(doc(db, 'selvaggio_reservas_mesas', id), { estado: nuevoEstado });
+      setToast({ message: 'Estado actualizado', type: 'success' });
+      fetchReservasMesas();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al actualizar', type: 'error' });
+    }
+  };
+
+  // ===== EDICIÓN =====
+  const startEditCava = (reserva) => {
+    setEditingReserva({ ...reserva, tipo: 'cava' });
+    setEditForm({
+      nombre: reserva.nombre || '',
+      telefono: reserva.telefono || '',
+      cantidadPersonas: reserva.cantidadPersonas || 10,
+      traeTorta: reserva.traeTorta || false,
+      fecha: reserva.fecha || '',
+      horario: reserva.horario || ''
+    });
+  };
+
+  const startEditMesa = (reserva) => {
+    setEditingReserva({ ...reserva, tipo: 'mesa' });
+    setEditForm({
+      nombre: reserva.nombre || '',
+      apellido: reserva.apellido || '',
+      telefono: reserva.telefono || '',
+      cantidadPersonas: reserva.cantidadPersonas || 2,
+      fecha: reserva.fecha || '',
+      horario: reserva.horario || '',
+      preferencia: reserva.preferencia || '',
+      restricciones: reserva.restricciones || '',
+      comentarios: reserva.comentarios || ''
+    });
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setEditForm(prev => ({ ...prev, [name]: checked }));
+    } else if (name === 'cantidadPersonas') {
+      setEditForm(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
+    } else {
+      setEditForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editingReserva) return;
+    
+    try {
+      const { tipo, id } = editingReserva;
+      const collectionName = tipo === 'cava' ? 'selvaggio_reservas_cava' : 'selvaggio_reservas_mesas';
+      
+      const updateData = { ...editForm };
+      
+      // Recalcular total para cava
+      if (tipo === 'cava') {
+        updateData.total = updateData.cantidadPersonas * 50000;
+        updateData.precioPersona = 50000;
+      }
+      
+      await updateDoc(doc(db, collectionName, id), updateData);
+      
+      setToast({ message: 'Reserva actualizada exitosamente', type: 'success' });
+      setEditingReserva(null);
+      setEditForm({});
+      
+      if (tipo === 'cava') fetchReservasCava();
+      else fetchReservasMesas();
+    } catch (error) {
+      console.error('Error:', error);
+      setToast({ message: 'Error al actualizar reserva', type: 'error' });
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingReserva(null);
+    setEditForm({});
+  };
+
+  // ===== INFLUENCERS =====
   const handleInfluFormChange = (e) => {
     const { name, value } = e.target;
     setInfluForm(prev => ({
@@ -272,46 +374,29 @@ function AdminReservas() {
     }
   };
 
-  const archivarInvitacion = async (id) => {
-    try {
-      await updateDoc(doc(db, 'selvaggio_invitaciones', id), {
-        archivada: true
-      });
-      setToast({ message: 'Invitación archivada', type: 'success' });
-      fetchInvitaciones();
-    } catch (error) {
-      console.error('Error:', error);
-      setToast({ message: 'Error al archivar', type: 'error' });
-    }
-  };
-
-  const deleteInvitacion = async (id) => {
-    if (!confirm('¿Eliminar esta invitación?')) return;
-    
-    try {
-      await deleteDoc(doc(db, 'selvaggio_invitaciones', id));
-      setToast({ message: 'Invitación eliminada exitosamente', type: 'success' });
-      fetchInvitaciones();
-    } catch (error) {
-      console.error('Error:', error);
-      setToast({ message: 'Error al eliminar', type: 'error' });
-    }
-  };
-
   return (
     <div className="admin-reservas-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <h2>Gestión de Reservas</h2>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={mostrarArchivadas}
-            onChange={(e) => setMostrarArchivadas(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          <span>Mostrar archivadas</span>
-        </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button
+            onClick={() => fetchData()}
+            style={{ background: 'transparent', border: '1px solid rgba(183, 148, 199, 0.5)', color: '#b794c7', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            🔄 Actualizar
+          </button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={mostrarArchivadas}
+              onChange={(e) => setMostrarArchivadas(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <span>Mostrar archivadas</span>
+          </label>
+        </div>
       </div>
+      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', marginBottom: '15px' }}>Se actualiza automáticamente cada 30 segundos</p>
 
       <div className="tabs-reservas">
         <button
@@ -346,7 +431,7 @@ function AdminReservas() {
               ) : (
                 <div className="reservas-grid">
                   {reservasCava.filter(r => mostrarArchivadas || !r.archivada).map(reserva => (
-                    <div key={reserva.id} className="reserva-card cava-card">
+                    <div key={reserva.id} className={`reserva-card cava-card ${reserva.esNueva ? 'nueva-reserva' : ''}`}>
                       <div className="reserva-header">
                         <h3>{reserva.nombre}</h3>
                         <span className="badge confirmada">{reserva.archivada ? 'Archivada' : 'Confirmada'}</span>
@@ -354,8 +439,9 @@ function AdminReservas() {
                       
                       <div className="reserva-details">
                         <p><strong>📅 Fecha:</strong> {new Date(reserva.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</p>
-                        <p><strong>�️ Creada:</strong> {new Date(reserva.createdAt).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                        <p><strong>�📞 Teléfono:</strong> {reserva.telefono}</p>
+                        {reserva.horario && <p><strong>⏰ Horario:</strong> {reserva.horario}</p>}
+                        <p><strong>🗓️ Creada:</strong> {new Date(reserva.createdAt).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        <p><strong>📞 Teléfono:</strong> {reserva.telefono}</p>
                         <p><strong>👥 Personas:</strong> {reserva.cantidadPersonas}</p>
                         <p><strong>🎂 Trae torta:</strong> {reserva.traeTorta ? 'Sí' : 'No'}</p>
                         <p><strong>💰 Total:</strong> ${reserva.total?.toLocaleString('es-AR')}</p>
@@ -373,10 +459,23 @@ function AdminReservas() {
                         </a>
                       )}
 
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        {!reserva.archivada && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => startEditCava(reserva)}
+                          className="btn-editar"
+                        >
+                          ✏️ Editar
+                        </button>
+                        {reserva.archivada ? (
                           <button
-                            onClick={() => archivarReservaCava(reserva.id)}
+                            onClick={() => toggleArchivarCava(reserva.id, false)}
+                            className="btn-desarchivar"
+                          >
+                            📤 Desarchivar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleArchivarCava(reserva.id, true)}
                             className="btn-archivar"
                             style={{ flex: 1, background: '#6c757d', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}
                           >
@@ -408,7 +507,7 @@ function AdminReservas() {
                   {reservasMesas.filter(r => mostrarArchivadas || !r.archivada).map(reserva => (
                     <div key={reserva.id} className="reserva-card mesa-card">
                       <div className="reserva-header">
-                        <h3>{reserva.nombre}</h3>
+                        <h3>{reserva.nombre} {reserva.apellido && reserva.apellido}</h3>
                         {reserva.archivada ? (
                           <span className="badge archivada" style={{ background: '#6c757d' }}>Archivada</span>
                         ) : (
@@ -430,15 +529,34 @@ function AdminReservas() {
                         <p><strong>⏰ Horario:</strong> {reserva.horario}</p>
                         <p><strong>📞 Teléfono:</strong> {reserva.telefono}</p>
                         <p><strong>👥 Personas:</strong> {reserva.cantidadPersonas}</p>
+                        {reserva.preferencia && (
+                          <p><strong>📍 Ubicación:</strong> {reserva.preferencia}</p>
+                        )}
+                        {reserva.restricciones && (
+                          <p><strong>⚠️ Restricciones/Alergias:</strong> {reserva.restricciones}</p>
+                        )}
                         {reserva.comentarios && (
                           <p><strong>💬 Comentarios:</strong> {reserva.comentarios}</p>
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        {!reserva.archivada && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => startEditMesa(reserva)}
+                          className="btn-editar"
+                        >
+                          ✏️ Editar
+                        </button>
+                        {reserva.archivada ? (
                           <button
-                            onClick={() => archivarReservaMesa(reserva.id)}
+                            onClick={() => toggleArchivarMesa(reserva.id, false)}
+                            className="btn-desarchivar"
+                          >
+                            📤 Desarchivar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleArchivarMesa(reserva.id, true)}
                             className="btn-archivar"
                             style={{ flex: 1, background: '#6c757d', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}
                           >
@@ -634,10 +752,17 @@ function AdminReservas() {
                         <p><strong>📝 Contenido:</strong> {inv.contenidoAcordado}</p>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        {!inv.archivada && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                        {inv.archivada ? (
                           <button
-                            onClick={() => archivarInvitacion(inv.id)}
+                            onClick={() => toggleArchivarInvitacion(inv.id, false)}
+                            className="btn-desarchivar"
+                          >
+                            📤 Desarchivar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleArchivarInvitacion(inv.id, true)}
                             className="btn-archivar"
                             style={{ flex: 1, background: '#6c757d', color: 'white', border: 'none', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}
                           >
@@ -659,6 +784,135 @@ function AdminReservas() {
             </div>
           )}
         </>
+      )}
+
+      {/* MODAL DE EDICIÓN */}
+      {editingReserva && (
+        <div className="edit-modal-overlay" onClick={cancelEdit}>
+          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Editar Reserva {editingReserva.tipo === 'cava' ? 'de Cava' : 'de Mesa'}</h3>
+            
+            <div className="edit-form">
+              <div className="form-group">
+                <label>Nombre</label>
+                <input type="text" name="nombre" value={editForm.nombre} onChange={handleEditFormChange} />
+              </div>
+              
+              {editingReserva.tipo === 'mesa' && (
+                <div className="form-group">
+                  <label>Apellido</label>
+                  <input type="text" name="apellido" value={editForm.apellido} onChange={handleEditFormChange} />
+                </div>
+              )}
+              
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input type="tel" name="telefono" value={editForm.telefono} onChange={handleEditFormChange} />
+              </div>
+              
+              <div className="form-group">
+                <label>Cantidad de personas</label>
+                <input type="number" name="cantidadPersonas" value={editForm.cantidadPersonas} onChange={handleEditFormChange} min={editingReserva.tipo === 'cava' ? 10 : 1} />
+              </div>
+              
+              <div className="form-group">
+                <label>Fecha</label>
+                <input type="date" name="fecha" value={editForm.fecha} onChange={handleEditFormChange} />
+              </div>
+              
+              <div className="form-group">
+                <label>Horario</label>
+                {editingReserva.tipo === 'cava' ? (
+                  <select name="horario" value={editForm.horario} onChange={handleEditFormChange}>
+                    <option value="">Seleccionar horario</option>
+                    <option value="12:00">12:00</option>
+                    <option value="12:30">12:30</option>
+                    <option value="13:00">13:00</option>
+                    <option value="13:30">13:30</option>
+                    <option value="14:00">14:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="18:30">18:30</option>
+                    <option value="19:00">19:00</option>
+                    <option value="19:30">19:30</option>
+                    <option value="20:00">20:00</option>
+                    <option value="20:30">20:30</option>
+                    <option value="21:00">21:00</option>
+                    <option value="21:30">21:30</option>
+                    <option value="22:00">22:00</option>
+                  </select>
+                ) : (
+                  <select name="horario" value={editForm.horario} onChange={handleEditFormChange}>
+                    <option value="">Seleccionar horario</option>
+                    <option value="18:00">18:00</option>
+                    <option value="18:30">18:30</option>
+                    <option value="19:00">19:00</option>
+                    <option value="19:30">19:30</option>
+                    <option value="20:00">20:00</option>
+                    <option value="20:30">20:30</option>
+                    <option value="21:00">21:00</option>
+                    <option value="21:30">21:30</option>
+                    <option value="22:00">22:00</option>
+                    <option value="22:30">22:30</option>
+                    <option value="23:00">23:00</option>
+                    <option value="23:30">23:30</option>
+                    <option value="00:00">00:00</option>
+                    <option value="00:30">00:30</option>
+                    <option value="01:00">01:00</option>
+                    <option value="01:30">01:30</option>
+                    <option value="02:00">02:00</option>
+                  </select>
+                )}
+              </div>
+              
+              {editingReserva.tipo === 'cava' && (
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" name="traeTorta" checked={editForm.traeTorta} onChange={handleEditFormChange} />
+                    ¿Trae torta?
+                  </label>
+                </div>
+              )}
+              
+              {editingReserva.tipo === 'mesa' && (
+                <>
+                  <div className="form-group">
+                    <label>Preferencia de ubicación</label>
+                    <select name="preferencia" value={editForm.preferencia} onChange={handleEditFormChange}>
+                      <option value="">Sin preferencia</option>
+                      <option value="Adentro / Living">Adentro / Living</option>
+                      <option value="Pérgola / La Galería">Pérgola / La Galería</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Restricciones alimentarias / Alergias</label>
+                    <textarea name="restricciones" value={editForm.restricciones} onChange={handleEditFormChange} rows="2" />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Comentarios</label>
+                    <textarea name="comentarios" value={editForm.comentarios} onChange={handleEditFormChange} rows="2" />
+                  </div>
+                </>
+              )}
+
+              {editingReserva.tipo === 'cava' && (
+                <div className="edit-total-preview">
+                  <strong>Total: ${(editForm.cantidadPersonas * 50000).toLocaleString('es-AR')}</strong>
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button onClick={saveEdit} className="btn-save-edit">
+                  Guardar Cambios
+                </button>
+                <button onClick={cancelEdit} className="btn-cancel-edit">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && (

@@ -226,7 +226,7 @@ function CargarDatosPrueba() {
         style={{
           width: '100%',
           padding: '15px',
-          background: completado ? '#4caf50' : (cargando ? '#999' : 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)'),
+          background: completado ? '#4caf50' : (cargando ? '#999' : 'linear-gradient(135deg, #b794c7 0%, #c9a8d9 100%)'),
           color: completado ? 'white' : '#1a1a2e',
           border: 'none',
           borderRadius: '8px',

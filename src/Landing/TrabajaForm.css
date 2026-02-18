@@ -20,7 +20,7 @@
   background: rgba(20, 20, 20, 0.6);
   padding: 40px;
   border-radius: 16px;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
   backdrop-filter: blur(10px);
 }
 
@@ -49,7 +49,7 @@
 .form-group textarea {
   padding: 14px 18px;
   background: rgba(20, 20, 20, 0.8);
-  border: 2px solid rgba(172, 152, 127, 0.2);
+  border: 2px solid rgba(168, 140, 181, 0.2);
   border-radius: 10px;
   color: #ece7e0;
   font-size: 16px;
@@ -66,9 +66,9 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #ac987f;
+  border-color: #a88cb5;
   background: rgba(20, 20, 20, 0.95);
-  box-shadow: 0 0 0 4px rgba(172, 152, 127, 0.1);
+  box-shadow: 0 0 0 4px rgba(168, 140, 181, 0.1);
 }
 
 .form-group select {
@@ -89,7 +89,7 @@
 .btn-enviar-trabaja {
   width: 100%;
   padding: 16px 32px;
-  background: linear-gradient(135deg, #ac987f 0%, #8a7563 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #7a6390 100%);
   color: #000;
   border: none;
   border-radius: 12px;
@@ -102,12 +102,12 @@
   gap: 10px;
   margin-top: 30px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 6px 20px rgba(172, 152, 127, 0.3);
+  box-shadow: 0 6px 20px rgba(168, 140, 181, 0.3);
 }
 
 .btn-enviar-trabaja:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(172, 152, 127, 0.45);
+  box-shadow: 0 10px 30px rgba(168, 140, 181, 0.45);
   background: linear-gradient(135deg, #b8a589 0%, #9a8371 100%);
 }
 

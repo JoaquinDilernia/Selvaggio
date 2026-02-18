@@ -183,7 +183,7 @@ function Cocina() {
     try {
       const mensaje = `Hola ${pedido.nombre}! Tu pedido #${pedido.numeroPedido} está listo para retirar. Te esperamos! 🍷 - Selvaggio`;
       const telefono = pedido.telefono.replace(/\D/g, ''); // Eliminar caracteres no numéricos
-      const whatsappUrl = `https://wa.me/549${telefono}?text=${encodeURIComponent(mensaje)}`;
+      const whatsappUrl = `https://wa.me/54${telefono}?text=${encodeURIComponent(mensaje)}`;
       
       // Abrir WhatsApp
       window.open(whatsappUrl, '_blank');

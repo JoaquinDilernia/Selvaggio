@@ -233,11 +233,11 @@ function AdminCarta() {
           <div style={{
             marginTop: '30px',
             padding: '20px',
-            background: 'rgba(212, 175, 55, 0.1)',
+            background: 'rgba(183, 148, 199, 0.1)',
             borderRadius: '12px',
-            border: '1px solid rgba(212, 175, 55, 0.3)'
+            border: '1px solid rgba(183, 148, 199, 0.3)'
           }}>
-            <h4 style={{ marginTop: 0, color: '#c19a2e' }}>💡 Importante</h4>
+            <h4 style={{ marginTop: 0, color: '#916faa' }}>💡 Importante</h4>
             <ul style={{ marginBottom: 0, paddingLeft: '20px' }}>
               <li>El PDF se mostrará en la sección de carta de la web</li>
               <li>Asegurate de que el PDF esté optimizado para web</li>

@@ -232,7 +232,7 @@ function ImportarProductosExcel() {
             📁 Seleccionar products-today.xlsx
           </label>
           
-          <div style={{marginTop: '20px', padding: '15px', background: 'rgba(172, 152, 127, 0.1)', borderRadius: '8px'}}>
+          <div style={{marginTop: '20px', padding: '15px', background: 'rgba(168, 140, 181, 0.1)', borderRadius: '8px'}}>
             <button 
               onClick={eliminarTodosLosProductos}
               disabled={eliminando}
@@ -241,7 +241,7 @@ function ImportarProductosExcel() {
             >
               {eliminando ? '🗑️ Eliminando...' : '🗑️ Eliminar TODOS los Productos y Vinos'}
             </button>
-            <small style={{display: 'block', marginTop: '8px', color: '#ac987f'}}>
+            <small style={{display: 'block', marginTop: '8px', color: '#a88cb5'}}>
               Usa esto antes de importar para limpiar todos los datos de prueba
             </small>
           </div>
@@ -254,7 +254,7 @@ function ImportarProductosExcel() {
             <h2>Vista Previa ({preview.length} productos)</h2>
             <div style={{marginBottom: '20px'}}>
               <p><strong>Distribución por categoría:</strong></p>
-              <ul style={{marginLeft: '20px', color: '#ac987f'}}>
+              <ul style={{marginLeft: '20px', color: '#a88cb5'}}>
                 <li>Vinos: {preview.filter(p => p.categoria === 'Vinos').length}</li>
                 <li>Quesos: {preview.filter(p => p.categoria === 'Quesos').length}</li>
                 <li>Fiambres: {preview.filter(p => p.categoria === 'Fiambres').length}</li>
@@ -265,18 +265,18 @@ function ImportarProductosExcel() {
               </ul>
             </div>
 
-            <div style={{maxHeight: '400px', overflowY: 'auto', border: '1px solid rgba(172, 152, 127, 0.3)', borderRadius: '8px', padding: '15px'}}>
+            <div style={{maxHeight: '400px', overflowY: 'auto', border: '1px solid rgba(168, 140, 181, 0.3)', borderRadius: '8px', padding: '15px'}}>
               {preview.slice(0, 20).map((prod, idx) => (
-                <div key={idx} style={{padding: '8px', borderBottom: '1px solid rgba(172, 152, 127, 0.2)', display: 'flex', justifyContent: 'space-between'}}>
+                <div key={idx} style={{padding: '8px', borderBottom: '1px solid rgba(168, 140, 181, 0.2)', display: 'flex', justifyContent: 'space-between'}}>
                   <div>
                     <strong>{prod.nombre}</strong>
-                    <span style={{marginLeft: '10px', color: '#ac987f', fontSize: '0.9em'}}>({prod.categoria})</span>
+                    <span style={{marginLeft: '10px', color: '#a88cb5', fontSize: '0.9em'}}>({prod.categoria})</span>
                   </div>
                   {prod.precio && <span>${prod.precio.toLocaleString()}</span>}
                 </div>
               ))}
               {preview.length > 20 && (
-                <p style={{textAlign: 'center', padding: '10px', color: '#ac987f'}}>
+                <p style={{textAlign: 'center', padding: '10px', color: '#a88cb5'}}>
                   ... y {preview.length - 20} productos más
                 </p>
               )}

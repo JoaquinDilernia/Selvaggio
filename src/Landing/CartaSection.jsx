@@ -43,7 +43,7 @@ function CartaSection() {
       <section id="carta" className="vinos-section" style={{ background: '#0a0a0a', padding: '80px 20px' }}>
         <div className="section-content" style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
           <div className="section-header">
-            <h2 style={{ color: '#d4af37', fontSize: '3rem', marginBottom: '15px' }}>Nuestra Carta</h2>
+            <h2 style={{ color: '#b794c7', fontSize: '3rem', marginBottom: '15px' }}>Nuestra Carta</h2>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.2rem' }}>
               📄 Carta próximamente disponible
             </p>
@@ -57,7 +57,7 @@ function CartaSection() {
     <section id="carta" className="vinos-section" style={{ background: '#0a0a0a', padding: '80px 20px' }}>
       <div className="section-content" style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div className="section-header" style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h2 style={{ color: '#d4af37', fontSize: '3rem', marginBottom: '15px' }}>Nuestra Carta</h2>
+          <h2 style={{ color: '#b794c7', fontSize: '3rem', marginBottom: '15px' }}>Nuestra Carta</h2>
           <p className="section-description" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.2rem' }}>
             Descubrí nuestra selección de vinos, quesos y fiambres premium
           </p>
@@ -82,7 +82,7 @@ function CartaSection() {
               rel="noopener noreferrer"
               style={{
                 padding: '12px 30px',
-                background: 'linear-gradient(135deg, #d4af37 0%, #c19a2e 100%)',
+                background: 'linear-gradient(135deg, #b794c7 0%, #916faa 100%)',
                 color: '#1a1a1a',
                 textDecoration: 'none',
                 borderRadius: '10px',
@@ -104,7 +104,7 @@ function CartaSection() {
               style={{
                 padding: '12px 30px',
                 background: 'rgba(255,255,255,0.1)',
-                color: '#d4af37',
+                color: '#b794c7',
                 textDecoration: 'none',
                 borderRadius: '10px',
                 fontWeight: '600',
@@ -112,7 +112,7 @@ function CartaSection() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '10px',
-                border: '2px solid #d4af37',
+                border: '2px solid #b794c7',
                 transition: 'all 0.3s ease'
               }}
               onMouseOver={(e) => {

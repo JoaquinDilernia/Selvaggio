@@ -22,7 +22,7 @@
 
 .prensa-card {
   background: #1a1a1a;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -30,8 +30,8 @@
 
 .prensa-card:hover {
   transform: translateY(-5px);
-  border-color: #ac987f;
-  box-shadow: 0 10px 30px rgba(172, 152, 127, 0.2);
+  border-color: #a88cb5;
+  box-shadow: 0 10px 30px rgba(168, 140, 181, 0.2);
 }
 
 .prensa-imagen {
@@ -59,7 +59,7 @@
 .prensa-medio {
   display: inline-block;
   padding: 6px 14px;
-  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%);
   color: #000;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -89,7 +89,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 20px;
-  border-top: 1px solid rgba(172, 152, 127, 0.1);
+  border-top: 1px solid rgba(168, 140, 181, 0.1);
 }
 
 .prensa-fecha {
@@ -99,7 +99,7 @@
 }
 
 .prensa-link {
-  color: #ac987f;
+  color: #a88cb5;
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -109,7 +109,7 @@
 
 .prensa-link:hover {
   color: #ece7e0;
-  text-shadow: 0 0 10px rgba(172, 152, 127, 0.5);
+  text-shadow: 0 0 10px rgba(168, 140, 181, 0.5);
 }
 
 @media (max-width: 768px) {

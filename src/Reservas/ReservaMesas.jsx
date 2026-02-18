@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import './ReservaMesas.css';
+
+const LIMITE_MESAS_POR_SLOT = 4; // Máximo 4 mesas cada 15 minutos
+
+// Agrupar horarios en slots de 15 minutos
+const getSlotKey = (horario) => {
+  // Cada horario ya viene en intervalos de 30 min, así que mapeamos a su slot de 15 min
+  return horario; // Usamos el horario directo como slot key
+};
 
 function ReservaMesas() {
   const [formData, setFormData] = useState({
@@ -14,6 +22,7 @@ function ReservaMesas() {
     fecha: '',
     horario: '',
     preferencia: '',
+    restricciones: '',
     comentarios: ''
   });
   
@@ -21,6 +30,38 @@ function ReservaMesas() {
   const [toast, setToast] = useState(null);
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [fechaReservada, setFechaReservada] = useState('');
+  const [reservasPorHorario, setReservasPorHorario] = useState({});
+
+  // Cargar reservas existentes cuando cambia la fecha
+  useEffect(() => {
+    if (formData.fecha) {
+      fetchReservasPorFecha(formData.fecha);
+    }
+  }, [formData.fecha]);
+
+  const fetchReservasPorFecha = async (fecha) => {
+    try {
+      const snapshot = await getDocs(collection(db, 'selvaggio_reservas_mesas'));
+      const reservas = snapshot.docs
+        .map(doc => doc.data())
+        .filter(r => r.fecha === fecha && r.estado !== 'cancelada');
+      
+      // Contar reservas por horario
+      const conteo = {};
+      reservas.forEach(r => {
+        if (r.horario) {
+          conteo[r.horario] = (conteo[r.horario] || 0) + 1;
+        }
+      });
+      setReservasPorHorario(conteo);
+    } catch (error) {
+      console.error('Error al cargar disponibilidad:', error);
+    }
+  };
+
+  const isHorarioLleno = (horario) => {
+    return (reservasPorHorario[horario] || 0) >= LIMITE_MESAS_POR_SLOT;
+  };
 
   const getMinDate = () => {
     const today = new Date();
@@ -82,6 +123,12 @@ function ReservaMesas() {
       return;
     }
 
+    // Validar límite de reservas por horario
+    if (isHorarioLleno(formData.horario)) {
+      setToast({ message: 'Este horario ya está completo. Por favor elegí otro.', type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -93,6 +140,7 @@ function ReservaMesas() {
         fecha: formData.fecha,
         horario: formData.horario,
         preferencia: formData.preferencia,
+        restricciones: formData.restricciones,
         comentarios: formData.comentarios,
         estado: 'pendiente',
         createdAt: new Date().toISOString()
@@ -112,6 +160,7 @@ function ReservaMesas() {
         fecha: '',
         horario: '',
         preferencia: '',
+        restricciones: '',
         comentarios: ''
       });
 
@@ -129,15 +178,15 @@ function ReservaMesas() {
       <div className="reserva-mesas-container">
         <div className="reserva-exitosa-content">
           <div className="exito-icon">✓</div>
-          <h1>¡Solicitud Enviada!</h1>
+          <h1>¡Reserva Confirmada!</h1>
           <p className="exito-mensaje">
-            Tu solicitud de reserva ha sido enviada exitosamente.
+            Tu reserva ha sido confirmada exitosamente.
             <br />
-            Te contactaremos pronto por WhatsApp para confirmar disponibilidad.
+            ¡Te esperamos!
           </p>
           <div className="exito-info">
-            <p>📱 Te escribiremos por WhatsApp</p>
-            <p>📅 Fecha solicitada: {new Date(fechaReservada + 'T00:00:00').toLocaleDateString('es-AR')}</p>
+            <p>✅ Reserva confirmada</p>
+            <p>📅 Fecha: {new Date(fechaReservada + 'T00:00:00').toLocaleDateString('es-AR')}</p>
           </div>
           <Link to="/" className="btn-volver-home">
             Volver al Inicio
@@ -154,7 +203,7 @@ function ReservaMesas() {
         <p className="reserva-subtitle">Anticipá tu visita</p>
 
         <div className="reserva-info">
-          <p>Completá el formulario y te contactaremos para confirmar disponibilidad</p>
+          <p>Completá el formulario para confirmar tu reserva</p>
         </div>
 
         <form onSubmit={handleSubmit} className="reserva-form">
@@ -231,9 +280,15 @@ function ReservaMesas() {
               disabled={!formData.fecha || (formData.fecha && new Date(formData.fecha + 'T00:00:00').getDay() === 1)}
             >
               <option value="">Seleccionar horario</option>
-              {getAvailableHorarios().map(horario => (
-                <option key={horario} value={horario}>{horario}</option>
-              ))}
+              {getAvailableHorarios().map(horario => {
+                const lleno = isHorarioLleno(horario);
+                const disponibles = LIMITE_MESAS_POR_SLOT - (reservasPorHorario[horario] || 0);
+                return (
+                  <option key={horario} value={horario} disabled={lleno}>
+                    {horario} {lleno ? '(completo)' : `(${disponibles} ${disponibles === 1 ? 'mesa disponible' : 'mesas disponibles'})`}
+                  </option>
+                );
+              })}
             </select>
             {formData.fecha && new Date(formData.fecha + 'T00:00:00').getDay() === 1 && (
               <p style={{ color: '#ff6b6b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
@@ -259,9 +314,8 @@ function ReservaMesas() {
               required
             >
               <option value="">Seleccionar preferencia</option>
-              <option value="Jardín">Jardín</option>
-              <option value="Pérgola">Pérgola</option>
-              <option value="Adentro (si hay disponibilidad)">Adentro (si hay disponibilidad)</option>
+              <option value="Adentro / Living">Adentro / Living</option>
+              <option value="Pérgola / La Galería">Pérgola / La Galería</option>
             </select>
           </div>
 
@@ -273,7 +327,19 @@ function ReservaMesas() {
               value={formData.comentarios}
               onChange={handleChange}
               rows="3"
-              placeholder="Ocasión especial, restricciones alimentarias, etc."
+              placeholder="Ocasión especial, etc."
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="restricciones">¿Tienen restricciones alimentarias o alergias?</label>
+            <textarea
+              id="restricciones"
+              name="restricciones"
+              value={formData.restricciones}
+              onChange={handleChange}
+              rows="2"
+              placeholder="Celíaco, vegetariano, alergia a frutos secos, etc."
             />
           </div>
 

@@ -38,7 +38,7 @@
 }
 
 .subtitle {
-  color: #ac987f;
+  color: #a88cb5;
   font-size: 16px;
   margin: 0;
 }
@@ -50,20 +50,20 @@
 }
 
 .btn-contenidos {
-  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%);
   color: #000;
   padding: 12px 24px;
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.3);
 }
 
 .btn-contenidos:hover {
   background: linear-gradient(135deg, #07382b 0%, #9a7a1a 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 6px 20px rgba(183, 148, 199, 0.4);
 }
 
 .btn-volver {

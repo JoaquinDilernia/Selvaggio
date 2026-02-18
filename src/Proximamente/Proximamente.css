@@ -16,7 +16,7 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(172, 152, 127, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(168, 140, 181, 0.05) 0%, transparent 70%);
   animation: rotate 30s linear infinite;
 }
 
@@ -109,7 +109,7 @@
 .texto-grande {
   font-size: 24px;
   line-height: 1.6;
-  color: #ac987f;
+  color: #a88cb5;
   font-weight: 300;
   margin: 0;
 }
@@ -117,8 +117,8 @@
 .mensaje-secundario {
   margin-bottom: 50px;
   padding: 25px;
-  border-top: 1px solid rgba(172, 152, 127, 0.3);
-  border-bottom: 1px solid rgba(172, 152, 127, 0.3);
+  border-top: 1px solid rgba(168, 140, 181, 0.3);
+  border-bottom: 1px solid rgba(168, 140, 181, 0.3);
 }
 
 .mensaje-secundario p {
@@ -137,7 +137,7 @@
 
 .newsletter-section h3 {
   font-size: 20px;
-  color: #ac987f;
+  color: #a88cb5;
   margin-bottom: 20px;
   font-weight: 400;
   letter-spacing: 1px;
@@ -156,7 +156,7 @@
   min-width: 250px;
   padding: 16px 24px;
   background: rgba(236, 231, 224, 0.1);
-  border: 2px solid rgba(172, 152, 127, 0.3);
+  border: 2px solid rgba(168, 140, 181, 0.3);
   border-radius: 50px;
   color: #ece7e0;
   font-size: 16px;
@@ -169,7 +169,7 @@
 
 .newsletter-input:focus {
   outline: none;
-  border-color: #ac987f;
+  border-color: #a88cb5;
   background: rgba(236, 231, 224, 0.15);
 }
 
@@ -180,7 +180,7 @@
 
 .newsletter-btn {
   padding: 16px 40px;
-  background: linear-gradient(135deg, #ac987f 0%, #c4aa8a 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #c4a0cc 100%);
   color: #430a33;
   border: none;
   border-radius: 50px;
@@ -188,12 +188,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(172, 152, 127, 0.3);
+  box-shadow: 0 4px 15px rgba(168, 140, 181, 0.3);
 }
 
 .newsletter-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(172, 152, 127, 0.5);
+  box-shadow: 0 6px 20px rgba(168, 140, 181, 0.5);
 }
 
 .newsletter-btn:disabled {
@@ -210,9 +210,9 @@
 }
 
 .newsletter-mensaje.success {
-  background: rgba(172, 152, 127, 0.2);
+  background: rgba(168, 140, 181, 0.2);
   color: #ece7e0;
-  border: 1px solid rgba(172, 152, 127, 0.5);
+  border: 1px solid rgba(168, 140, 181, 0.5);
 }
 
 .newsletter-mensaje.error {
@@ -236,7 +236,7 @@
   align-items: center;
   gap: 10px;
   font-size: 16px;
-  color: #ac987f;
+  color: #a88cb5;
 }
 
 .icono {
@@ -250,13 +250,13 @@
 }
 
 .info-item a:hover {
-  color: #ac987f;
+  color: #a88cb5;
 }
 
 /* Footer */
 .footer-proximamente {
   padding-top: 30px;
-  border-top: 1px solid rgba(172, 152, 127, 0.2);
+  border-top: 1px solid rgba(168, 140, 181, 0.2);
 }
 
 .footer-proximamente p {

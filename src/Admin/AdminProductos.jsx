@@ -257,10 +257,10 @@ function AdminProductos() {
       <div className="form-section">
         <h2>📊 Importación Masiva desde Excel</h2>
         <div className="import-section">
-          <p style={{marginBottom: '15px', color: '#ac987f'}}>
+          <p style={{marginBottom: '15px', color: '#a88cb5'}}>
             Sube un archivo Excel (.xlsx o .xls) con las siguientes columnas:
           </p>
-          <ul style={{marginBottom: '15px', marginLeft: '20px', color: '#ac987f'}}>
+          <ul style={{marginBottom: '15px', marginLeft: '20px', color: '#a88cb5'}}>
             <li><strong>nombre</strong> (obligatorio) - Nombre del producto</li>
             <li><strong>categoria</strong> (obligatorio) - Quesos, Fiambres, Panes, Conservas u Otros</li>
             <li><strong>origen</strong> (opcional) - País o región de origen</li>
@@ -281,7 +281,7 @@ function AdminProductos() {
             <label htmlFor="excel-import" className={`btn-primary ${importando ? 'disabled' : ''}`}>
               {importando ? '⏳ Importando...' : '📁 Seleccionar Excel'}
             </label>
-            {importando && <span style={{marginLeft: '10px', color: '#ac987f'}}>Procesando archivo...</span>}
+            {importando && <span style={{marginLeft: '10px', color: '#a88cb5'}}>Procesando archivo...</span>}
           </div>
         </div>
       </div>

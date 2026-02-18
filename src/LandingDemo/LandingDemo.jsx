@@ -122,7 +122,7 @@ function LandingDemo() {
 
       {/* Botón WhatsApp flotante */}
       <a 
-        href="https://wa.me/5491166864692?text=Hola! Quiero consultar sobre Selvaggio" 
+        href="https://wa.me/5491166864692?text=Hola!%20Quiero%20informaci%C3%B3n%20acerca%20de%20Selvaggio" 
         target="_blank" 
         rel="noopener noreferrer" 
         className="demo-whatsapp-float"

@@ -122,7 +122,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #ac987f;
+  border-color: #a88cb5;
 }
 
 .form-group small {
@@ -148,14 +148,14 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ac987f 0%, #07382b 100%);
+  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #07382b 0%, #430a33 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 12px rgba(183, 148, 199, 0.3);
 }
 
 .btn-primary:disabled {
@@ -208,8 +208,8 @@
 }
 
 .maridaje-item:hover {
-  border-color: #ac987f;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
+  border-color: #a88cb5;
+  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.1);
 }
 
 .maridaje-item-header {
@@ -228,7 +228,7 @@
 .badge {
   display: inline-block;
   padding: 4px 12px;
-  background: #ac987f;
+  background: #a88cb5;
   color: white;
   border-radius: 20px;
   font-size: 12px;
@@ -400,10 +400,10 @@
 
 .categoria-grupo-title {
   font-size: 20px;
-  color: #ac987f;
+  color: #a88cb5;
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #ac987f;
+  border-bottom: 2px solid #a88cb5;
 }
 
 .vino-info-admin {

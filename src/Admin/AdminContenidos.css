@@ -65,15 +65,15 @@
 }
 
 .btn-panel-principal {
-  background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #c9a8d9 100%);
   color: #1a1a2e;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.3);
 }
 
 .btn-panel-principal:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-  background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%);
+  box-shadow: 0 6px 20px rgba(183, 148, 199, 0.5);
+  background: linear-gradient(135deg, #c9a8d9 0%, #b794c7 100%);
 }
 
 .btn-volver-contenidos {
@@ -126,7 +126,7 @@
 
 .tab-button.active {
   color: #430a33;
-  border-bottom-color: #d4af37;
+  border-bottom-color: #b794c7;
   background: #fafafa;
 }
 

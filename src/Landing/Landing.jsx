@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { updateAllSEO } from '../utils/seo';
+import { HiOutlineLocationMarker, HiOutlineClock, HiOutlineMail } from 'react-icons/hi';
+import { FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
 import ContactForm from './ContactForm';
 import MaridajesSection from './MaridajesSection';
 import CartaSection from './CartaSection';
@@ -79,6 +81,7 @@ function Landing() {
             <a href="#cava" onClick={(e) => handleNavClick(e, '#cava')}>La Cava</a>
             <a href="#carta" onClick={(e) => handleNavClick(e, '#carta')}>Carta</a>
             <a href="#galeria" onClick={(e) => handleNavClick(e, '#galeria')}>Galería</a>
+            <a href="#prensa" onClick={(e) => handleNavClick(e, '#prensa')}>Prensa</a>
             <a href="#trabaja-con-nosotros" onClick={(e) => handleNavClick(e, '#trabaja-con-nosotros')}>Trabajá con nosotros</a>
             <a href="#contacto" onClick={(e) => handleNavClick(e, '#contacto')}>Contacto</a>
           </nav>
@@ -87,7 +90,7 @@ function Landing() {
 
       {/* Botón flotante WhatsApp */}
       <a 
-        href="https://wa.me/5491166864692?text=Hola!%20Quiero%20consultar%20sobre%20Selvaggio" 
+        href="https://wa.me/5491166864692?text=Hola!%20Quiero%20informaci%C3%B3n%20acerca%20de%20Selvaggio" 
         target="_blank" 
         rel="noopener noreferrer" 
         className="whatsapp-float"
@@ -131,7 +134,7 @@ function Landing() {
       {/* Info Bar - Reservas */}
       <section className="disclaimer-bar animate-on-scroll">
         <div className="disclaimer-content">
-          <p>💡 <strong>Reservá la cava</strong> para eventos privados desde 10 personas. Para mesas regulares, podés <Link to="/reserva-mesas" style={{color: '#d4af37', textDecoration: 'underline'}}>anticipar tu visita</Link>.</p>
+          <p>💡 <strong>Reservá la cava</strong> para eventos privados desde 10 personas. Para mesas regulares, podés <Link to="/reserva-mesas" style={{color: '#b794c7', textDecoration: 'underline'}}>anticipar tu visita</Link>.</p>
         </div>
       </section>
 
@@ -242,24 +245,41 @@ function Landing() {
           <h2 className="section-title animate-on-scroll">Encontranos</h2>
           <div className="ubicacion-grid">
             <div className="ubicacion-info animate-on-scroll">
-              <h3>Dirección</h3>
-              <p className="direccion-text">Av. Fondo de la Legua 59<br/>Las Lomas de San Isidro<br/>Provincia de Buenos Aires</p>
               
-              <h3>Horarios</h3>
-              <p>Miércoles a Domingo<br/>19:00 - 02:00 hs</p>
-              
-              <h3>Contacto</h3>
-              <div className="contacto-buttons">
-                <a href="https://wa.me/5491166864692" target="_blank" rel="noopener noreferrer" className="btn-whatsapp">
-                  WhatsApp
-                </a>
-                <a href="https://www.instagram.com/selvaggio.ba?igsh=MW1lbnVkcjdzcWUyeQ==" target="_blank" rel="noopener noreferrer" className="btn-instagram">
-                  Instagram
-                </a>
-                <a href="https://share.google/rIt9wQZcOADUj5LSJ" target="_blank" rel="noopener noreferrer" className="btn-google-reviews">
-                  ⭐ Dejanos tu Reseña
-                </a>
+              <div className="info-block">
+                <div className="info-block-header">
+                  <HiOutlineLocationMarker className="info-icon" />
+                  <h3>Dirección</h3>
+                </div>
+                <p className="direccion-text">Av. Fondo de la Legua 59<br/>Las Lomas de San Isidro<br/>Provincia de Buenos Aires</p>
               </div>
+
+              <div className="info-block">
+                <div className="info-block-header">
+                  <HiOutlineClock className="info-icon" />
+                  <h3>Horarios</h3>
+                </div>
+                <p>Miércoles a Domingo<br/>19:00 - 02:00 hs</p>
+              </div>
+
+              <div className="info-block">
+                <div className="info-block-header">
+                  <HiOutlineMail className="info-icon" />
+                  <h3>Contacto</h3>
+                </div>
+                <div className="contacto-buttons">
+                  <a href="https://wa.me/5491166864692" target="_blank" rel="noopener noreferrer" className="btn-whatsapp">
+                    <FaWhatsapp /> WhatsApp
+                  </a>
+                  <a href="https://www.instagram.com/selvaggio.ba?igsh=MW1lbnVkcjdzcWUyeQ==" target="_blank" rel="noopener noreferrer" className="btn-instagram">
+                    <FaInstagram /> Instagram
+                  </a>
+                  <a href="https://share.google/rIt9wQZcOADUj5LSJ" target="_blank" rel="noopener noreferrer" className="btn-google-reviews">
+                    <FaStar /> Dejanos tu Reseña
+                  </a>
+                </div>
+              </div>
+
             </div>
             
             <div className="ubicacion-mapa animate-on-scroll">

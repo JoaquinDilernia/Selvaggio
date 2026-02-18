@@ -15,7 +15,7 @@
 }
 
 .reserva-cava-content h1 {
-  color: #d4af37;
+  color: #b794c7;
   text-align: center;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
@@ -29,12 +29,12 @@
 }
 
 .reserva-info-destacada {
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
   padding: 1.5rem;
   border-radius: 12px;
   text-align: center;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 20px rgba(183, 148, 199, 0.3);
 }
 
 .reserva-info-destacada h3 {
@@ -75,7 +75,7 @@
 }
 
 .form-group label {
-  color: #d4af37;
+  color: #b794c7;
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -99,7 +99,7 @@
 .form-group input[type="number"]:focus,
 .form-group input[type="date"]:focus {
   outline: none;
-  border-color: #d4af37;
+  border-color: #b794c7;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -121,7 +121,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #d4af37;
+  accent-color: #b794c7;
 }
 
 .fecha-no-disponible {
@@ -133,7 +133,7 @@
 /* CALENDARIO VISUAL */
 .calendario-visual {
   background: rgba(26, 26, 26, 0.6);
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid rgba(183, 148, 199, 0.3);
   border-radius: 12px;
   padding: 1.5rem;
   margin-top: 0.5rem;
@@ -145,20 +145,20 @@
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+  border-bottom: 1px solid rgba(183, 148, 199, 0.3);
 }
 
 .calendario-header h3 {
   margin: 0;
-  color: #d4af37;
+  color: #b794c7;
   font-size: 1.2rem;
   text-transform: capitalize;
 }
 
 .btn-mes {
-  background: rgba(212, 175, 55, 0.2);
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  color: #d4af37;
+  background: rgba(183, 148, 199, 0.2);
+  border: 1px solid rgba(183, 148, 199, 0.4);
+  color: #b794c7;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -171,8 +171,8 @@
 }
 
 .btn-mes:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.3);
-  border-color: #d4af37;
+  background: rgba(183, 148, 199, 0.3);
+  border-color: #b794c7;
 }
 
 .btn-mes:disabled {
@@ -190,7 +190,7 @@
 .calendario-dias-semana div {
   text-align: center;
   font-weight: 600;
-  color: #d4af37;
+  color: #b794c7;
   font-size: 0.85rem;
   padding: 0.5rem 0;
 }
@@ -225,17 +225,17 @@
 }
 
 .calendario-dia:not(.disabled):not(.empty):hover {
-  background: rgba(212, 175, 55, 0.2);
-  border-color: #d4af37;
+  background: rgba(183, 148, 199, 0.2);
+  border-color: #b794c7;
   transform: scale(1.05);
 }
 
 .calendario-dia.selected {
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
-  border-color: #d4af37;
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
+  border-color: #b794c7;
   color: #1a1a1a;
   font-weight: 700;
-  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.4);
 }
 
 .calendario-dia.disabled {
@@ -294,8 +294,8 @@
 }
 
 .leyenda-cuadro.seleccionado {
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
-  border-color: #d4af37;
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
+  border-color: #b794c7;
 }
 
 .fecha-seleccionada {
@@ -311,15 +311,15 @@
 }
 
 .total-preview {
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(183, 148, 199, 0.1);
   padding: 1rem;
   border-radius: 8px;
   text-align: center;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  border: 1px solid rgba(183, 148, 199, 0.3);
 }
 
 .total-preview strong {
-  color: #d4af37;
+  color: #b794c7;
   font-size: 1.5rem;
 }
 
@@ -327,11 +327,11 @@
   background: rgba(255, 255, 255, 0.03);
   padding: 1rem;
   border-radius: 8px;
-  border-left: 3px solid #d4af37;
+  border-left: 3px solid #b794c7;
 }
 
 .datos-transferencia h4 {
-  color: #d4af37;
+  color: #b794c7;
   margin: 0 0 0.75rem 0;
   font-size: 1rem;
 }
@@ -349,7 +349,7 @@
 }
 
 .btn-submit-reserva {
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
   color: #1a1a1a;
   padding: 1rem 2rem;
   border: none;
@@ -363,7 +363,7 @@
 
 .btn-submit-reserva:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.4);
+  box-shadow: 0 6px 25px rgba(183, 148, 199, 0.4);
 }
 
 .btn-submit-reserva:disabled {
@@ -506,7 +506,7 @@
 .btn-volver-home {
   display: inline-block;
   padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #d4af37 0%, #c19a2e 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
   color: #1a1a1a;
   text-decoration: none;
   border-radius: 8px;
@@ -517,5 +517,5 @@
 
 .btn-volver-home:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 6px 25px rgba(183, 148, 199, 0.5);
 }

@@ -23,7 +23,7 @@
 .filtro-btn {
   padding: 10px 24px;
   background: rgba(26, 26, 26, 0.8);
-  border: 1px solid rgba(172, 152, 127, 0.3);
+  border: 1px solid rgba(168, 140, 181, 0.3);
   border-radius: 50px;
   color: #d4d4d4;
   font-size: 14px;
@@ -34,15 +34,15 @@
 }
 
 .filtro-btn:hover {
-  border-color: #d4af37;
-  color: #d4af37;
-  background: rgba(212, 175, 55, 0.1);
+  border-color: #b794c7;
+  color: #b794c7;
+  background: rgba(183, 148, 199, 0.1);
 }
 
 .filtro-btn.active {
-  background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
+  background: linear-gradient(135deg, #b794c7 0%, #b8941f 100%);
   color: #000;
-  border-color: #d4af37;
+  border-color: #b794c7;
   font-weight: 600;
 }
 
@@ -58,15 +58,15 @@
   background: #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(172, 152, 127, 0.2);
+  border: 1px solid rgba(168, 140, 181, 0.2);
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .galeria-item:hover {
   transform: translateY(-5px);
-  border-color: #d4af37;
-  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+  border-color: #b794c7;
+  box-shadow: 0 10px 30px rgba(183, 148, 199, 0.2);
 }
 
 .galeria-image {
