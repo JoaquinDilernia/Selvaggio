@@ -97,13 +97,8 @@ function ReservaMesas() {
     if (dayOfWeek === 5 || dayOfWeek === 6) {
       return [...horariosFinDeSemana, '00:30', '01:00', '01:30', '02:00'];
     }
-
-    // Domingo (0): hasta 00:00
-    if (dayOfWeek === 0) {
-      return horariosFinDeSemana;
-    }
     
-    // Martes, Miércoles, Jueves: hasta 22:00
+    // Martes, Miércoles, Jueves y Domingo: hasta 22:00
     return horariosSemana;
   };
 
@@ -311,9 +306,7 @@ function ReservaMesas() {
               <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 {new Date(formData.fecha + 'T00:00:00').getDay() === 5 || new Date(formData.fecha + 'T00:00:00').getDay() === 6
                   ? 'Viernes y sábado: hasta 2:00 AM'
-                  : new Date(formData.fecha + 'T00:00:00').getDay() === 0
-                    ? 'Domingo: hasta 00:00 hs'
-                    : 'Martes a jueves: último horario 22:00 hs'}
+                  : 'Último horario: 22:00 hs'}
               </p>
             )}
           </div>
