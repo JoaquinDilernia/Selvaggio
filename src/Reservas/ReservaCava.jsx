@@ -231,7 +231,7 @@ function ReservaCava() {
 
         <div className="reserva-info-destacada">
           <h3>$50.000 por persona</h3>
-          <p>Degustación completa con maridaje libre, panera artesanal y agua.</p>
+          <p>Degustación completa con maridaje libre hasta las 00:00hs, panera artesanal y agua.</p>
           <p className="degustacion-detalle">Una selección de charcuterie premium, quesos especialmente curados, conservas seleccionadas y acompañamientos pensados para realzar cada copa.</p>
           <p className="seña-info">Seña de reserva: $100.000 (por transferencia)</p>
         </div>
@@ -296,13 +296,6 @@ function ReservaCava() {
               required
             >
               <option value="">Seleccionar horario</option>
-              <option value="12:00">12:00</option>
-              <option value="12:30">12:30</option>
-              <option value="13:00">13:00</option>
-              <option value="13:30">13:30</option>
-              <option value="14:00">14:00</option>
-              <option value="18:00">18:00</option>
-              <option value="18:30">18:30</option>
               <option value="19:00">19:00</option>
               <option value="19:30">19:30</option>
               <option value="20:00">20:00</option>
