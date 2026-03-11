@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import Toast from '../components/Toast';
@@ -16,158 +16,97 @@ function ReservaCava() {
     horario: '',
     comprobante: null
   });
-  
+
   const [reservedDates, setReservedDates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState(null);
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  useEffect(() => {
-    fetchReservedDates();
-  }, []);
+  useEffect(() => { fetchReservedDates(); }, []);
 
   const fetchReservedDates = async () => {
     try {
-      const q = query(collection(db, 'selvaggio_reservas_cava'));
-      const snapshot = await getDocs(q);
-      const dates = snapshot.docs.map(doc => doc.data().fecha);
-      setReservedDates(dates);
-    } catch (error) {
-      console.error('Error al cargar fechas reservadas:', error);
-    }
+      const snap = await getDocs(collection(db, 'selvaggio_reservas_cava'));
+      setReservedDates(snap.docs.map(d => d.data().fecha));
+    } catch {}
   };
 
-  const isDateReserved = (dateString) => {
-    return reservedDates.includes(dateString);
-  };
+  const isReserved = (d) => reservedDates.includes(d);
 
-  const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  // Generar días del calendario
-  const generateCalendarDays = () => {
+  const generateDays = () => {
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-    
-    const days = [];
-    
-    // Días vacíos al inicio
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
+    const firstDow = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = Array(firstDow).fill(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const date = new Date(year, month, d);
+      days.push({ d, dateStr, isPast: date < today, isReserved: isReserved(dateStr) });
     }
-    
-    // Días del mes
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const date = new Date(year, month, day);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      days.push({
-        day,
-        dateStr,
-        isPast: date < today,
-        isReserved: isDateReserved(dateStr)
-      });
-    }
-    
     return days;
   };
 
-  const changeMonth = (direction) => {
-    const newMonth = new Date(selectedMonth);
-    newMonth.setMonth(newMonth.getMonth() + direction);
-    setSelectedMonth(newMonth);
-  };
-
-  const selectDate = (dateStr) => {
-    if (!isDateReserved(dateStr)) {
-      setFormData(prev => ({ ...prev, fecha: dateStr }));
-    }
+  const changeMonth = (dir) => {
+    const m = new Date(selectedMonth);
+    m.setMonth(m.getMonth() + dir);
+    setSelectedMonth(m);
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    
-    if (type === 'file') {
-      setFormData(prev => ({ ...prev, [name]: files[0] }));
-    } else if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (name === 'cantidadPersonas') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    if (type === 'file') setFormData(p => ({ ...p, [name]: files[0] }));
+    else if (type === 'checkbox') setFormData(p => ({ ...p, [name]: checked }));
+    else if (name === 'cantidadPersonas') setFormData(p => ({ ...p, [name]: parseInt(value) || 10 }));
+    else setFormData(p => ({ ...p, [name]: value }));
+  };
+
+  const changePersonas = (delta) => {
+    setFormData(p => ({ ...p, cantidadPersonas: Math.max(10, p.cantidadPersonas + delta) }));
   };
 
   const uploadComprobante = async (file) => {
+    setUploading(true);
     try {
-      setUploading(true);
-      const timestamp = Date.now();
-      const fileName = `comprobantes/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
-      
+      const storageRef = ref(storage, `comprobantes/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-      
       setUploading(false);
       return url;
-    } catch (error) {
+    } catch (err) {
       setUploading(false);
-      throw error;
+      throw err;
     }
   };
 
+  const horarios = ['19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validaciones
     if (formData.cantidadPersonas < 10) {
-      setToast({ message: 'La cantidad mínima de personas es 10', type: 'error' });
-      return;
+      setToast({ message: 'Mínimo 10 personas', type: 'error' }); return;
     }
-
     if (!formData.fecha) {
-      setToast({ message: 'Debes seleccionar una fecha', type: 'error' });
-      return;
+      setToast({ message: 'Seleccioná una fecha', type: 'error' }); return;
     }
-    
-    // Validar que la fecha no sea pasada
-    const fechaSeleccionada = new Date(formData.fecha + 'T00:00:00');
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    if (fechaSeleccionada < hoy) {
-      setToast({ message: 'No puedes reservar una fecha pasada', type: 'error' });
-      return;
+    if (isReserved(formData.fecha)) {
+      setToast({ message: 'Esa fecha ya está reservada', type: 'error' }); return;
     }
-
-    if (isDateReserved(formData.fecha)) {
-      setToast({ message: 'Esta fecha ya está reservada. Por favor selecciona otra.', type: 'error' });
-      return;
+    const fechaSel = new Date(formData.fecha + 'T00:00:00');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    if (fechaSel < hoy) {
+      setToast({ message: 'No podés reservar una fecha pasada', type: 'error' }); return;
     }
-
     if (!formData.comprobante) {
-      setToast({ message: 'Debes cargar el comprobante de la seña', type: 'error' });
-      return;
+      setToast({ message: 'Adjuntá el comprobante de la seña', type: 'error' }); return;
     }
-
     setLoading(true);
-
     try {
-      // Subir comprobante
       const comprobanteUrl = await uploadComprobante(formData.comprobante);
-
-      // Guardar reserva
-      const reservaData = {
+      await addDoc(collection(db, 'selvaggio_reservas_cava'), {
         nombre: formData.nombre,
         telefono: formData.telefono,
         cantidadPersonas: formData.cantidadPersonas,
@@ -175,260 +114,231 @@ function ReservaCava() {
         fecha: formData.fecha,
         horario: formData.horario,
         comprobanteUrl,
-        estado: 'confirmada', // Se confirma automáticamente con el comprobante
+        estado: 'confirmada',
         precioPersona: 50000,
         seña: 100000,
         total: formData.cantidadPersonas * 50000,
         createdAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'selvaggio_reservas_cava'), reservaData);
-
-      // Mostrar pantalla de éxito
+      });
       setReservaExitosa(true);
-      
-      // Actualizar fechas reservadas
       fetchReservedDates();
-
-    } catch (error) {
-      console.error('Error al crear reserva:', error);
-      setToast({ message: 'Error al procesar la reserva. Intenta nuevamente', type: 'error' });
+    } catch {
+      setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  const totalAPagar = formData.cantidadPersonas * 50000;
+  const total = formData.cantidadPersonas * 50000;
+  const now = new Date();
+  const isCurrentMonth = selectedMonth.getMonth() === now.getMonth() && selectedMonth.getFullYear() === now.getFullYear();
 
-  // Si la reserva fue exitosa, mostrar pantalla de confirmación
+  /* ── Success ── */
   if (reservaExitosa) {
     return (
-      <div className="reserva-cava-container">
-        <div className="reserva-exitosa-content">
-          <div className="exito-icon">✓</div>
-          <h1>¡Reserva Confirmada!</h1>
-          <p className="exito-mensaje">
-            Tu reserva de la cava ha sido confirmada exitosamente.
-            <br />
-            ¡Te esperamos!
-          </p>
-          <div className="exito-info">
-            <p>✅ Reserva confirmada</p>
+      <div className="rf-page">
+        <div className="rf-success">
+          <div className="rf-success__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </div>
-          <Link to="/" className="btn-volver-home">
-            Volver al Inicio
-          </Link>
+          <h1 className="rf-success__title">Reserva confirmada</h1>
+          <p className="rf-success__sub">Recibimos tu reserva y el comprobante de la seña. ¡Nos vemos pronto!</p>
+          <div className="rf-success__detail">
+            {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-AR', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            })}
+          </div>
+          <Link to="/" className="rf-success__btn">Volver al inicio</Link>
         </div>
       </div>
     );
   }
 
+  /* ── Form ── */
   return (
-    <div className="reserva-cava-container">
-      <div className="reserva-cava-content">
-        <h1>Reservá la Cava</h1>
-        <p className="reserva-subtitle">Eventos y Cumpleaños</p>
+    <div className="rf-page">
+      <nav className="rf-nav">
+        <Link to="/" className="rf-nav__logo">Selvaggio</Link>
+        <span className="rf-nav__title">Reservar La Cava</span>
+        <Link to="/" className="rf-nav__back">← Inicio</Link>
+      </nav>
 
-        <div className="reserva-info-destacada">
-          <h3>$50.000 por persona</h3>
-          <p>Degustación completa con maridaje libre hasta las 00:00hs, panera artesanal y agua.</p>
-          <p className="degustacion-detalle">Una selección de charcuterie premium, quesos especialmente curados, conservas seleccionadas y acompañamientos pensados para realzar cada copa.</p>
-          <p className="seña-info">Seña de reserva: $100.000 (por transferencia)</p>
+      <main className="rf-main">
+        <div className="rf-header">
+          <p className="rf-eyebrow">Selvaggio · Eventos privados</p>
+          <h1 className="rf-title">Reservá La Cava</h1>
+          <p className="rf-subtitle">Eventos, cumpleaños y celebraciones privadas</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="reserva-form">
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre completo *</label>
-            <input
-              type="text"
-              id="nombre"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              required
-            />
+        {/* Info precio */}
+        <div className="rf-cava-info">
+          <p className="rf-cava-info__price"><span>$</span>50.000<span> / persona</span></p>
+          <p className="rf-cava-info__desc">Degustación completa con maridaje libre hasta las 00:00 hs, panera artesanal y agua.</p>
+          <p className="rf-cava-info__detail">Selección de charcuterie premium, quesos especialmente curados, conservas y acompañamientos.</p>
+          <span className="rf-cava-info__seña">Seña de $100.000 por transferencia</span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="rf-form">
+
+          {/* Nombre + Teléfono */}
+          <div className="rf-row">
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">Nombre completo</label>
+              <input className="rf-input" type="text" name="nombre" value={formData.nombre}
+                onChange={handleChange} required placeholder="Tu nombre" />
+            </div>
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">WhatsApp</label>
+              <input className="rf-input" type="tel" name="telefono" value={formData.telefono}
+                onChange={handleChange} required placeholder="11 6686 4692" />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="telefono">Teléfono *</label>
-            <input
-              type="tel"
-              id="telefono"
-              name="telefono"
-              value={formData.telefono}
-              onChange={handleChange}
-              required
-            />
+          {/* Personas */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Cantidad de personas (mínimo 10)</label>
+            <div className="rf-number-ctrl">
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(-1)}
+                disabled={formData.cantidadPersonas <= 10}>−</button>
+              <span className="rf-number-val">{formData.cantidadPersonas}</span>
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}>+</button>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="cantidadPersonas">Cantidad de personas (mínimo 10) *</label>
-            <input
-              type="number"
-              id="cantidadPersonas"
-              name="cantidadPersonas"
-              value={formData.cantidadPersonas}
-              onChange={handleChange}
-              min="10"
-              required
-            />
-          </div>
-
-          <div className="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                name="traeTorta"
-                checked={formData.traeTorta}
-                onChange={handleChange}
-              />
-              ¿Traerás torta?
+          {/* Trae torta */}
+          <div className="rf-field">
+            <label className="rf-label">¿Traerás torta?</label>
+            <label className="rf-checkbox" onClick={() => setFormData(p => ({ ...p, traeTorta: !p.traeTorta }))}>
+              <span className={`rf-checkbox__box${formData.traeTorta ? ' rf-checkbox__box--on' : ''}`}>
+                {formData.traeTorta && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="2 6 5 9 10 3" />
+                  </svg>
+                )}
+              </span>
+              <span className="rf-checkbox__text">Sí, trae torta</span>
             </label>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="horario">Horario *</label>
-            <select
-              id="horario"
-              name="horario"
-              value={formData.horario}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Seleccionar horario</option>
-              <option value="19:00">19:00</option>
-              <option value="19:30">19:30</option>
-              <option value="20:00">20:00</option>
-              <option value="20:30">20:30</option>
-              <option value="21:00">21:00</option>
-              <option value="21:30">21:30</option>
-              <option value="22:00">22:00</option>
-            </select>
+          {/* Horario */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Horario de ingreso</label>
+            <div className="rf-horarios-grid">
+              {horarios.map(h => (
+                <button key={h} type="button"
+                  className={`rf-chip${formData.horario === h ? ' rf-chip--on' : ''}`}
+                  onClick={() => setFormData(p => ({ ...p, horario: h }))}>
+                  {h}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Fecha del evento *</label>
-            
-            <div className="calendario-visual">
-              <div className="calendario-header">
-                <button 
-                  type="button"
-                  onClick={() => changeMonth(-1)} 
-                  className="btn-mes"
-                  disabled={selectedMonth.getMonth() === new Date().getMonth() && selectedMonth.getFullYear() === new Date().getFullYear()}
-                >
-                  ‹
-                </button>
-                <h3>
+          {/* Fecha */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Fecha del evento</label>
+            <div className="rf-cal">
+              {/* Header */}
+              <div className="rf-cal-head">
+                <button type="button" className="rf-cal-nav" onClick={() => changeMonth(-1)} disabled={isCurrentMonth}>‹</button>
+                <span className="rf-cal-month">
                   {selectedMonth.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}
-                </h3>
-                <button type="button" onClick={() => changeMonth(1)} className="btn-mes">›</button>
+                </span>
+                <button type="button" className="rf-cal-nav" onClick={() => changeMonth(1)}>›</button>
               </div>
-
-              <div className="calendario-dias-semana">
-                <div>Dom</div>
-                <div>Lun</div>
-                <div>Mar</div>
-                <div>Mié</div>
-                <div>Jue</div>
-                <div>Vie</div>
-                <div>Sáb</div>
+              {/* Weekdays */}
+              <div className="rf-cal-weekdays">
+                {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(d => (
+                  <div key={d} className="rf-cal-wd">{d}</div>
+                ))}
               </div>
-
-              <div className="calendario-grid">
-                {generateCalendarDays().map((dayInfo, index) => {
-                  if (!dayInfo) {
-                    return <div key={`empty-${index}`} className="calendario-dia empty"></div>;
-                  }
-
-                  const isSelected = formData.fecha === dayInfo.dateStr;
-                  const isDisabled = dayInfo.isPast || dayInfo.isReserved;
-
+              {/* Days */}
+              <div className="rf-cal-grid">
+                {generateDays().map((info, i) => {
+                  if (!info) return <div key={`e-${i}`} className="rf-cal-day is-empty" />;
+                  const disabled = info.isPast || info.isReserved;
+                  const cls = [
+                    'rf-cal-day',
+                    info.isPast ? 'is-past' : '',
+                    info.isReserved ? 'is-reserved' : '',
+                    formData.fecha === info.dateStr ? 'is-selected' : ''
+                  ].filter(Boolean).join(' ');
                   return (
-                    <button
-                      key={dayInfo.dateStr}
-                      type="button"
-                      className={`calendario-dia ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''} ${dayInfo.isReserved ? 'reserved' : ''}`}
-                      onClick={() => !isDisabled && selectDate(dayInfo.dateStr)}
-                      disabled={isDisabled}
-                      title={dayInfo.isReserved ? 'Ya reservado' : dayInfo.isPast ? 'Fecha pasada' : 'Disponible'}
-                    >
-                      {dayInfo.day}
-                      {dayInfo.isReserved && <span className="reservado-badge">✕</span>}
+                    <button key={info.dateStr} type="button" className={cls}
+                      disabled={disabled}
+                      title={info.isReserved ? 'Ya reservado' : info.isPast ? 'Fecha pasada' : 'Disponible'}
+                      onClick={() => !disabled && setFormData(p => ({ ...p, fecha: info.dateStr }))}>
+                      {info.d}
                     </button>
                   );
                 })}
               </div>
-
-              <div className="calendario-leyenda">
-                <div className="leyenda-item">
-                  <span className="leyenda-cuadro disponible"></span>
-                  <span>Disponible</span>
-                </div>
-                <div className="leyenda-item">
-                  <span className="leyenda-cuadro reservado"></span>
-                  <span>Reservado</span>
-                </div>
-                <div className="leyenda-item">
-                  <span className="leyenda-cuadro seleccionado"></span>
-                  <span>Seleccionado</span>
-                </div>
+              {/* Legend */}
+              <div className="rf-cal-legend">
+                <span className="rf-cal-legend-item"><span className="rf-cal-dot rf-cal-dot--avail" />Disponible</span>
+                <span className="rf-cal-legend-item"><span className="rf-cal-dot rf-cal-dot--rsvd" />Reservado</span>
+                <span className="rf-cal-legend-item"><span className="rf-cal-dot rf-cal-dot--sel" />Seleccionado</span>
               </div>
             </div>
-
             {formData.fecha && (
-              <p className="fecha-seleccionada">
-                Fecha seleccionada: {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-AR', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+              <p className="rf-date-selected">
+                📅 {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-AR', {
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 })}
               </p>
             )}
           </div>
 
-          <div className="total-preview">
-            <strong>Total: ${totalAPagar.toLocaleString('es-AR')}</strong>
+          {/* Total */}
+          <div className="rf-total">
+            <span className="rf-total__label">Total estimado</span>
+            <span className="rf-total__amount">${total.toLocaleString('es-AR')}</span>
           </div>
 
-          <div className="datos-transferencia">
-            <h4>Datos para transferencia de seña ($100.000)</h4>
-            <p><strong>Alias:</strong> selvaggio.ba</p>
-            <p><strong>CVU:</strong> 0000003100080434358834</p>
-            <p><strong>Titular:</strong> Tomas Laureano Molina</p>
+          {/* Datos transferencia */}
+          <div className="rf-transfer">
+            <p className="rf-transfer__title">Seña · $100.000 por transferencia</p>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">Alias</span>
+              <span className="rf-transfer__val">selvaggio.ba</span>
+            </div>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">CVU</span>
+              <span className="rf-transfer__val">0000003100080434358834</span>
+            </div>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">Titular</span>
+              <span className="rf-transfer__val">Tomas Laureano Molina</span>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="comprobante">Comprobante de transferencia *</label>
-            <input
-              type="file"
-              id="comprobante"
-              name="comprobante"
-              onChange={handleChange}
-              accept="image/*,.pdf"
-              required
-            />
-            {uploading && <span className="uploading-text">Subiendo archivo...</span>}
+          {/* Comprobante */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Comprobante de transferencia</label>
+            <div className="rf-file-wrap">
+              <input className="rf-file-input" type="file" name="comprobante"
+                onChange={handleChange} accept="image/*,.pdf" required />
+              <div className="rf-file-trigger">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b635a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>{formData.comprobante ? formData.comprobante.name : 'Adjuntar imagen o PDF'}</span>
+              </div>
+            </div>
+            {uploading && <p className="rf-uploading">Subiendo archivo…</p>}
           </div>
 
-          <button 
-            type="submit" 
-            className="btn-submit-reserva"
-            disabled={loading || uploading}
-          >
-            {loading ? 'Procesando...' : 'Confirmar Reserva'}
+          <button type="submit" className="rf-submit" disabled={loading || uploading}>
+            {loading ? 'Procesando…' : 'Confirmar reserva'}
           </button>
         </form>
-      </div>
+      </main>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

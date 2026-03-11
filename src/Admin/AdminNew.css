@@ -1,171 +1,177 @@
-.admin-new-container {
+/* ============================================================
+   SELVAGGIO — Admin Panel
+   Cormorant Garant (brand) + Inter (UI)
+   Ivory #f7f4ef · Ink #1c1a17 · Accent #7a1c1c
+   ============================================================ */
+
+/* ── Root ─────────────────────────────────────────────────── */
+.adm-root {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f6f3 0%, #ece7e0 100%);
+  background: #f7f4ef;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1c1a17;
+  -webkit-font-smoothing: antialiased;
 }
+.adm-root * { box-sizing: border-box; }
 
-/* Estilos globales para inputs en todos los tabs */
-.admin-new-container input,
-.admin-new-container textarea,
-.admin-new-container select {
-  background: white !important;
-  color: #333 !important;
+/* Force white backgrounds on inputs inside admin */
+.adm-root input,
+.adm-root textarea,
+.adm-root select {
+  background: #fff !important;
+  color: #1c1a17 !important;
+  font-family: 'Inter', sans-serif !important;
 }
+.adm-root input::placeholder,
+.adm-root textarea::placeholder { color: rgba(28,26,23,0.35) !important; }
+.adm-root select option { background: #fff; color: #1c1a17; }
 
-.admin-new-container input::placeholder,
-.admin-new-container textarea::placeholder {
-  color: #999 !important;
+/* ── Header ───────────────────────────────────────────────── */
+.adm-header {
+  background: #fff;
+  border-bottom: 1px solid rgba(28,26,23,0.1);
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
 }
-
-.admin-new-container select option {
-  background: white;
-  color: #333;
-}
-
-.admin-new-header {
-  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
-  padding: 30px 40px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.header-content h1 {
-  color: white;
-  font-size: 36px;
-  margin: 0 0 5px 0;
-  font-weight: 700;
-}
-
-.subtitle {
-  color: #a88cb5;
-  font-size: 16px;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.btn-contenidos {
-  background: linear-gradient(135deg, #a88cb5 0%, #07382b 100%);
-  color: #000;
-  padding: 12px 24px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(183, 148, 199, 0.3);
-}
-
-.btn-contenidos:hover {
-  background: linear-gradient(135deg, #07382b 0%, #9a7a1a 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(183, 148, 199, 0.4);
-}
-
-.btn-volver {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.btn-volver:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.tabs-container {
+.adm-header__inner {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 40px 20px;
+  height: 100%;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.adm-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.adm-header__logo {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 500;
+  color: #1c1a17;
+  letter-spacing: 0.04em;
+}
+.adm-header__sep {
+  color: rgba(28,26,23,0.22);
+  font-size: 14px;
+}
+.adm-header__title {
+  font-size: 13px;
+  font-weight: 400;
+  color: #a09890;
+  letter-spacing: 0.02em;
+}
+.adm-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.tabs-nav {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 30px;
-  background: white;
-  padding: 10px;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+/* ── Buttons ──────────────────────────────────────────────── */
+.adm-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  line-height: 1;
+}
+.adm-btn--outline {
+  background: transparent;
+  color: #1c1a17;
+  border: 1px solid rgba(28,26,23,0.22);
+}
+.adm-btn--outline:hover { background: rgba(28,26,23,0.05); border-color: rgba(28,26,23,0.45); }
+.adm-btn--ghost {
+  background: transparent;
+  color: #6b635a;
+}
+.adm-btn--ghost:hover { color: #1c1a17; background: rgba(28,26,23,0.05); }
+.adm-btn--dark {
+  background: #1c1a17;
+  color: #fff;
+}
+.adm-btn--dark:hover { background: #0e0c0a; }
+.adm-btn--accent {
+  background: #7a1c1c;
+  color: #fff;
+}
+.adm-btn--accent:hover { background: #641717; }
+
+/* ── Tabs nav ─────────────────────────────────────────────── */
+.adm-tabs {
+  background: #fff;
+  border-bottom: 1px solid rgba(28,26,23,0.1);
+  position: sticky;
+  top: 56px;
+  z-index: 190;
   overflow-x: auto;
 }
-
-.tab-btn {
-  flex: 1;
-  min-width: 150px;
-  padding: 15px 20px;
-  background: transparent;
+.adm-tabs::-webkit-scrollbar { display: none; }
+.adm-tabs__inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+}
+.adm-tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #6b635a;
+  background: none;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #666;
+  border-bottom: 2px solid transparent;
+  padding: 14px 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
   white-space: nowrap;
+  transition: color 0.16s, border-color 0.16s;
+  letter-spacing: 0.01em;
+}
+.adm-tab:hover { color: #1c1a17; }
+.adm-tab--on {
+  color: #1c1a17;
+  font-weight: 500;
+  border-bottom-color: #7a1c1c;
 }
 
-.tab-btn:hover {
-  background: #f8f6f3;
-  color: #430a33;
+/* ── Main content ─────────────────────────────────────────── */
+.adm-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 32px 80px;
+}
+.adm-main__inner {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.08);
+  border-radius: 4px;
+  padding: 36px;
+  min-height: 480px;
 }
 
-.tab-btn.active {
-  background: linear-gradient(135deg, #430a33 0%, #07382b 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(67, 10, 51, 0.3);
-}
-
-.tab-content {
-  background: white;
-  border-radius: 20px;
-  padding: 40px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  min-height: 500px;
-}
-
-/* Responsive */
+/* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .admin-new-header {
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-  }
-
-  .header-content h1 {
-    font-size: 28px;
-  }
-
-  .header-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .btn-contenidos,
-  .btn-volver {
-    width: 100%;
-    text-align: center;
-  }
-
-  .tabs-nav {
-    flex-direction: column;
-  }
-
-  .tab-btn {
-    width: 100%;
-  }
-
-  .tab-content {
-    padding: 20px;
-  }
+  .adm-header__inner { padding: 0 16px; }
+  .adm-header__title,
+  .adm-header__sep   { display: none; }
+  .adm-tabs__inner   { padding: 0 10px; }
+  .adm-tab           { padding: 12px 12px; font-size: 12.5px; }
+  .adm-main          { padding: 16px 12px 60px; }
+  .adm-main__inner   { padding: 18px 14px; }
+  .adm-btn--ghost    { display: none; }
 }
-

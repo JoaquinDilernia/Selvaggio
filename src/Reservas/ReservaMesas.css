@@ -1,161 +1,759 @@
-.reserva-mesas-container {
+/* ============================================================
+   SELVAGGIO — Formularios de Reserva — Apple Style
+   Cormorant Garant (display) + Inter (UI)
+   Ivory #f7f4ef · Ink #1c1a17 · Accent #7a1c1c
+   ============================================================ */
+
+/* ── Page ─────────────────────────────────────────────────── */
+.rf-page {
   min-height: 100vh;
-  padding: 2rem 1rem;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d1810 100%);
+  background: #f7f4ef;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1c1a17;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+.rf-page *, .rf-page *::before, .rf-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Navbar ───────────────────────────────────────────────── */
+.rf-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 54px;
+  background: rgba(247,244,239,0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(28,26,23,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
 }
 
-.reserva-mesas-content {
-  max-width: 600px;
+.rf-nav__logo {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 500;
+  color: #1c1a17;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.rf-nav__title {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #a09890;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.rf-nav__back {
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b635a;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+.rf-nav__back:hover { color: #1c1a17; }
+
+/* ── Main ─────────────────────────────────────────────────── */
+.rf-main {
+  max-width: 620px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 52px 24px 88px;
 }
 
-.reserva-mesas-content h1 {
-  color: #b794c7;
+/* ── Header ───────────────────────────────────────────────── */
+.rf-header {
   text-align: center;
-  margin-bottom: 0.5rem;
-  font-size: 2.5rem;
+  margin-bottom: 44px;
 }
 
-.reserva-info {
-  background: rgba(183, 148, 199, 0.1);
-  padding: 1rem;
-  border-radius: 8px;
+.rf-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a09890;
+  margin-bottom: 14px;
+}
+
+.rf-title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: clamp(34px, 5vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.06;
+  color: #1c1a17;
+  margin-bottom: 12px;
+}
+
+.rf-subtitle {
+  font-size: 15px;
+  font-weight: 300;
+  color: #6b635a;
+  line-height: 1.6;
+}
+
+/* ── Info card ────────────────────────────────────────────── */
+.rf-info-card {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin-bottom: 36px;
+  font-size: 14px;
+  color: #6b635a;
+  line-height: 1.6;
   text-align: center;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(183, 148, 199, 0.3);
 }
 
-.reserva-info p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.95rem;
+/* ── Cava info ────────────────────────────────────────────── */
+.rf-cava-info {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  padding: 28px 32px;
+  margin-bottom: 36px;
+  text-align: center;
 }
 
-.form-group select,
-.form-group textarea {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: all 0.3s ease;
+.rf-cava-info__price {
+  font-family: 'Cormorant Garant', serif;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #1c1a17;
+  line-height: 1;
+  margin-bottom: 10px;
 }
 
-.form-group select:focus,
-.form-group textarea:focus {
+.rf-cava-info__price span {
+  font-size: 22px;
+  vertical-align: super;
+  font-weight: 300;
+  color: #6b635a;
+}
+
+.rf-cava-info__desc {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b635a;
+  line-height: 1.65;
+  margin-bottom: 4px;
+}
+
+.rf-cava-info__detail {
+  font-size: 13px;
+  font-style: italic;
+  color: #a09890;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.rf-cava-info__seña {
+  display: inline-block;
+  padding: 7px 16px;
+  background: rgba(122,28,28,0.06);
+  border: 1px solid rgba(122,28,28,0.15);
+  border-radius: 980px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #7a1c1c;
+  letter-spacing: 0.01em;
+}
+
+/* ── Form ─────────────────────────────────────────────────── */
+.rf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Row 2-col ────────────────────────────────────────────── */
+.rf-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .rf-row { grid-template-columns: 1fr; }
+}
+
+/* ── Field ────────────────────────────────────────────────── */
+.rf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rf-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #6b635a;
+}
+
+.rf-label--req::after {
+  content: ' *';
+  color: #7a1c1c;
+  font-weight: 400;
+}
+
+/* ── Inputs ───────────────────────────────────────────────── */
+.rf-input,
+.rf-select,
+.rf-textarea {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #1c1a17;
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.18);
+  border-radius: 4px;
+  padding: 11px 14px;
+  transition: border-color 0.2s;
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.rf-input::placeholder,
+.rf-textarea::placeholder { color: rgba(28,26,23,0.28); }
+
+.rf-input:focus,
+.rf-select:focus,
+.rf-textarea:focus {
   outline: none;
-  border-color: #b794c7;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: #7a1c1c;
 }
 
-.form-group select option {
-  background: #1a1a1a;
-  color: white;
+.rf-input:disabled,
+.rf-select:disabled {
+  background: rgba(28,26,23,0.04);
+  color: #a09890;
+  cursor: not-allowed;
 }
 
-.form-group textarea {
+/* Custom select arrow */
+.rf-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%236b635a' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.rf-select option { color: #1c1a17; background: #fff; }
+
+.rf-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 88px;
+  line-height: 1.55;
 }
 
-@media (max-width: 768px) {
-  .reserva-mesas-content {
-    padding: 1.5rem;
-  }
-
-  .reserva-mesas-content h1 {
-    font-size: 2rem;
-  }
+/* ── Number control ───────────────────────────────────────── */
+.rf-number-ctrl {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(28,26,23,0.18);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
 }
 
-/* PANTALLA DE ÉXITO */
-.reserva-exitosa-content {
-  max-width: 600px;
-  margin: 0 auto;
-  background: rgba(26, 26, 26, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 3rem 2rem;
-  border: 2px solid #4CAF50;
+.rf-number-btn {
+  background: none;
+  border: none;
+  width: 40px;
+  height: 44px;
+  font-size: 20px;
+  font-weight: 300;
+  color: #1c1a17;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.rf-number-btn:hover { background: rgba(28,26,23,0.06); }
+.rf-number-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.rf-number-val {
+  min-width: 52px;
   text-align: center;
-  box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+  font-size: 16px;
+  font-weight: 500;
+  color: #1c1a17;
+  border-left: 1px solid rgba(28,26,23,0.1);
+  border-right: 1px solid rgba(28,26,23,0.1);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.exito-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+/* ── Horario chips ────────────────────────────────────────── */
+.rf-horarios-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+}
+
+@media (max-width: 400px) {
+  .rf-horarios-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.rf-chip {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.16);
+  border-radius: 4px;
+  padding: 9px 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #1c1a17;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.14s;
+}
+.rf-chip:hover:not(.rf-chip--lleno) {
+  border-color: #7a1c1c;
+  color: #7a1c1c;
+}
+.rf-chip--on {
+  background: #1c1a17;
+  border-color: #1c1a17;
+  color: #fff;
+  font-weight: 500;
+}
+.rf-chip--lleno {
+  opacity: 0.3;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.rf-horarios-hint {
+  font-size: 12px;
+  color: #a09890;
+  margin-top: 4px;
+}
+
+/* ── Closed notice ────────────────────────────────────────── */
+.rf-closed-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: rgba(122,28,28,0.05);
+  border: 1px solid rgba(122,28,28,0.13);
+  border-radius: 4px;
+  font-size: 13.5px;
+  color: #7a1c1c;
+}
+
+/* ── Preference tabs ──────────────────────────────────────── */
+.rf-pref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rf-pref-btn {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.16);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1c1a17;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.14s;
+  line-height: 1.3;
+}
+.rf-pref-btn:hover { border-color: rgba(28,26,23,0.38); }
+.rf-pref-btn--on {
+  background: #1c1a17;
+  border-color: #1c1a17;
+  color: #fff;
+}
+
+/* ── Section divider ──────────────────────────────────────── */
+.rf-section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a09890;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0;
+}
+.rf-section-label::before,
+.rf-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(28,26,23,0.08);
+}
+
+/* ── Submit ───────────────────────────────────────────────── */
+.rf-submit {
+  background: #1c1a17;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 15px 32px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s, opacity 0.2s;
+  margin-top: 8px;
+}
+.rf-submit:hover:not(:disabled) { background: #0e0c0a; }
+.rf-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Success ──────────────────────────────────────────────── */
+.rf-success {
+  min-height: 100vh;
+  background: #f7f4ef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+}
+
+.rf-success__icon {
+  width: 60px;
+  height: 60px;
+  background: #1c1a17;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
-  color: white;
-  font-weight: bold;
-  animation: scaleIn 0.5s ease;
+  margin-bottom: 28px;
+  animation: rfPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes rfPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
-@keyframes scaleIn {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
+.rf-success__title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: #1c1a17;
+  margin-bottom: 12px;
 }
 
-.reserva-exitosa-content h1 {
-  color: #4CAF50;
-  margin-bottom: 1rem;
-  font-size: 2.5rem;
+.rf-success__sub {
+  font-size: 15px;
+  font-weight: 300;
+  color: #6b635a;
+  line-height: 1.65;
+  margin-bottom: 8px;
+  max-width: 360px;
 }
 
-.exito-mensaje {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin-bottom: 2rem;
-}
-
-.exito-info {
-  background: rgba(76, 175, 80, 0.1);
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.exito-info p {
-  margin: 0.5rem 0;
-  color: #4CAF50;
-  font-size: 1rem;
+.rf-success__detail {
+  font-size: 14px;
   font-weight: 500;
+  color: #1c1a17;
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  padding: 12px 22px;
+  margin: 18px 0 32px;
 }
 
-.btn-volver-home {
-  display: inline-block;
-  padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
-  color: #1a1a1a;
+.rf-success__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 28px;
+  background: #1c1a17;
+  color: #fff;
   text-decoration: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  border-radius: 980px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.rf-success__btn:hover { background: #0e0c0a; }
+
+/* ── Checkbox ─────────────────────────────────────────────── */
+.rf-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+.rf-checkbox__box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(28,26,23,0.25);
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.14s;
+  background: #fff;
+}
+.rf-checkbox__box--on {
+  background: #1c1a17;
+  border-color: #1c1a17;
+}
+.rf-checkbox__text {
+  font-size: 14px;
+  color: #1c1a17;
+  font-weight: 400;
 }
 
-.btn-volver-home:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(183, 148, 199, 0.5);
+/* ── Calendar ─────────────────────────────────────────────── */
+.rf-cal {
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  margin-top: 4px;
+}
+.rf-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(28,26,23,0.08);
+}
+.rf-cal-month {
+  font-family: 'Cormorant Garant', serif;
+  font-size: 19px;
+  font-weight: 500;
+  color: #1c1a17;
+  text-transform: capitalize;
+  letter-spacing: -0.01em;
+}
+.rf-cal-nav {
+  background: none;
+  border: 1px solid rgba(28,26,23,0.14);
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: #6b635a;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.14s;
+}
+.rf-cal-nav:hover:not(:disabled) { border-color: #1c1a17; color: #1c1a17; }
+.rf-cal-nav:disabled { opacity: 0.22; cursor: not-allowed; }
+
+.rf-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: rgba(28,26,23,0.03);
+  border-bottom: 1px solid rgba(28,26,23,0.07);
+}
+.rf-cal-wd {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a09890;
+}
+
+.rf-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px;
+  gap: 2px;
+}
+.rf-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 400;
+  color: #1c1a17;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.14s;
+  border: none;
+  background: none;
+  position: relative;
+}
+.rf-cal-day:hover:not([disabled]):not(.is-reserved) {
+  background: rgba(28,26,23,0.07);
+}
+.rf-cal-day.is-selected {
+  background: #1c1a17 !important;
+  color: #fff;
+  font-weight: 600;
+}
+.rf-cal-day.is-past { opacity: 0.22; cursor: not-allowed; }
+.rf-cal-day.is-reserved { opacity: 0.35; cursor: not-allowed; color: #7a1c1c; }
+.rf-cal-day.is-empty { cursor: default; }
+
+.rf-cal-legend {
+  display: flex;
+  gap: 18px;
+  padding: 10px 18px;
+  border-top: 1px solid rgba(28,26,23,0.07);
+  flex-wrap: wrap;
+}
+.rf-cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #a09890;
+}
+.rf-cal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.rf-cal-dot--avail  { border: 1px solid rgba(28,26,23,0.22); }
+.rf-cal-dot--rsvd   { background: rgba(122,28,28,0.3); }
+.rf-cal-dot--sel    { background: #1c1a17; }
+
+.rf-date-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(28,26,23,0.04);
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1c1a17;
+  text-transform: capitalize;
+}
+
+/* ── Total ────────────────────────────────────────────────── */
+.rf-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid rgba(28,26,23,0.1);
+  border-bottom: 1px solid rgba(28,26,23,0.1);
+}
+.rf-total__label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a09890;
+}
+.rf-total__amount {
+  font-family: 'Cormorant Garant', serif;
+  font-size: 32px;
+  font-weight: 400;
+  color: #1c1a17;
+  letter-spacing: -0.01em;
+}
+
+/* ── Transfer data ────────────────────────────────────────── */
+.rf-transfer {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-left: 3px solid #7a1c1c;
+  border-radius: 4px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rf-transfer__title {
+  font-family: 'Cormorant Garant', serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: #1c1a17;
+  margin-bottom: 6px;
+}
+.rf-transfer__row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.rf-transfer__key {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a09890;
+  min-width: 56px;
+  flex-shrink: 0;
+}
+.rf-transfer__val {
+  font-family: 'Cormorant Garant', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1c1a17;
+  word-break: break-all;
+}
+
+/* ── File upload ──────────────────────────────────────────── */
+.rf-file-wrap { position: relative; }
+.rf-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.rf-file-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1.5px dashed rgba(28,26,23,0.2);
+  border-radius: 4px;
+  background: #fff;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.rf-file-trigger:hover { border-color: #7a1c1c; }
+.rf-file-trigger span  { font-size: 13.5px; color: #6b635a; }
+.rf-file-name   { font-size: 12.5px; color: #1c1a17; font-weight: 500; margin-top: 5px; }
+.rf-uploading   { font-size: 13px; color: #6b635a; font-style: italic; margin-top: 5px; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .rf-main { padding: 36px 18px 72px; }
+  .rf-cava-info { padding: 22px 20px; }
+  .rf-horarios-grid { grid-template-columns: repeat(4, 1fr); }
+  .rf-pref-grid { grid-template-columns: 1fr; }
+  .rf-nav__title { display: none; }
 }

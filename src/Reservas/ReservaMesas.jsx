@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import './ReservaMesas.css';
 
-const LIMITE_MESAS_POR_SLOT = 4; // Máximo 4 mesas cada 15 minutos
-
-// Agrupar horarios en slots de 15 minutos
-const getSlotKey = (horario) => {
-  // Cada horario ya viene en intervalos de 30 min, así que mapeamos a su slot de 15 min
-  return horario; // Usamos el horario directo como slot key
-};
+const LIMITE_POR_SLOT = 4;
 
 function ReservaMesas() {
   const [formData, setFormData] = useState({
@@ -25,348 +19,235 @@ function ReservaMesas() {
     restricciones: '',
     comentarios: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
 
-  // Cargar reservas existentes cuando cambia la fecha
   useEffect(() => {
-    if (formData.fecha) {
-      fetchReservasPorFecha(formData.fecha);
-    }
+    if (formData.fecha) fetchDisponibilidad(formData.fecha);
   }, [formData.fecha]);
 
-  const fetchReservasPorFecha = async (fecha) => {
+  const fetchDisponibilidad = async (fecha) => {
     try {
       const snapshot = await getDocs(collection(db, 'selvaggio_reservas_mesas'));
-      const reservas = snapshot.docs
-        .map(doc => doc.data())
-        .filter(r => r.fecha === fecha && r.estado !== 'cancelada');
-      
-      // Contar reservas por horario
       const conteo = {};
-      reservas.forEach(r => {
-        if (r.horario) {
-          conteo[r.horario] = (conteo[r.horario] || 0) + 1;
-        }
-      });
+      snapshot.docs
+        .map(d => d.data())
+        .filter(r => r.fecha === fecha && r.estado !== 'cancelada')
+        .forEach(r => { if (r.horario) conteo[r.horario] = (conteo[r.horario] || 0) + 1; });
       setReservasPorHorario(conteo);
-    } catch (error) {
-      console.error('Error al cargar disponibilidad:', error);
-    }
+    } catch {}
   };
 
-  const isHorarioLleno = (horario) => {
-    return (reservasPorHorario[horario] || 0) >= LIMITE_MESAS_POR_SLOT;
-  };
+  const isLleno = (h) => (reservasPorHorario[h] || 0) >= LIMITE_POR_SLOT;
 
-  const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
+  const getMinDate = () => new Date().toISOString().split('T')[0];
 
-  const getAvailableHorarios = () => {
-    if (!formData.fecha) {
-      return [];
-    }
-    
-    const selectedDate = new Date(formData.fecha + 'T00:00:00');
-    const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, 5 = Viernes, 6 = Sábado
-    
-    // No se acepta reservas los lunes
-    if (dayOfWeek === 1) {
-      return [];
-    }
-    
-    // Martes (2), Miércoles (3) y Jueves (4): último horario 22:00
-    const horariosSemana = [
-      '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-      '21:00', '21:30', '22:00'
-    ];
-
-    // Viernes (5), Sábado (6) y Domingo (0): horarios hasta 00:00
-    const horariosFinDeSemana = [
-      '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
-      '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00'
-    ];
-    
-    // Viernes (5) y Sábado (6) tienen horarios extendidos hasta 2:00 AM
-    if (dayOfWeek === 5 || dayOfWeek === 6) {
-      return [...horariosFinDeSemana, '00:30', '01:00', '01:30', '02:00'];
-    }
-    
-    // Martes, Miércoles, Jueves y Domingo: hasta 22:00
-    return horariosSemana;
+  const getHorarios = () => {
+    if (!formData.fecha) return [];
+    const dow = new Date(formData.fecha + 'T00:00:00').getDay();
+    if (dow === 1) return [];
+    const base = ['18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
+    if (dow === 5 || dow === 6)
+      return [...base, '22:30','23:00','23:30','00:00','00:30','01:00','01:30','02:00'];
+    return base;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'cantidadPersonas') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: name === 'cantidadPersonas' ? parseInt(value) || 1 : value }));
+  };
+
+  const changePersonas = (delta) => {
+    setFormData(prev => ({ ...prev, cantidadPersonas: Math.max(1, prev.cantidadPersonas + delta) }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.cantidadPersonas < 1) {
-      setToast({ message: 'Debe haber al menos 1 persona', type: 'error' });
-      return;
+    if (!formData.preferencia) {
+      setToast({ message: 'Seleccioná una preferencia de ubicación', type: 'error' }); return;
     }
-    
-    // Validar que la fecha no sea pasada
-    const fechaSeleccionada = new Date(formData.fecha + 'T00:00:00');
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    if (fechaSeleccionada < hoy) {
-      setToast({ message: 'No puedes reservar una fecha pasada', type: 'error' });
-      return;
+    if (!formData.horario) {
+      setToast({ message: 'Seleccioná un horario', type: 'error' }); return;
     }
-
-    // Validar límite de reservas por horario
-    if (isHorarioLleno(formData.horario)) {
-      setToast({ message: 'Este horario ya está completo. Por favor elegí otro.', type: 'error' });
-      return;
+    const fechaSel = new Date(formData.fecha + 'T00:00:00');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    if (fechaSel < hoy) {
+      setToast({ message: 'No podés reservar una fecha pasada', type: 'error' }); return;
     }
-
+    if (isLleno(formData.horario)) {
+      setToast({ message: 'Ese horario ya está completo. Elegí otro.', type: 'error' }); return;
+    }
     setLoading(true);
-
     try {
-      const reservaData = {
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        telefono: formData.telefono,
-        cantidadPersonas: formData.cantidadPersonas,
-        fecha: formData.fecha,
-        horario: formData.horario,
-        preferencia: formData.preferencia,
-        restricciones: formData.restricciones,
-        comentarios: formData.comentarios,
-        estado: 'pendiente',
-        createdAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'selvaggio_reservas_mesas'), reservaData);
-
+      await addDoc(collection(db, 'selvaggio_reservas_mesas'), {
+        ...formData, estado: 'pendiente', createdAt: new Date().toISOString()
+      });
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
-      
-      // Reset form
-      setFormData({
-        nombre: '',
-        apellido: '',
-        telefono: '',
-        cantidadPersonas: 2,
-        fecha: '',
-        horario: '',
-        preferencia: '',
-        restricciones: '',
-        comentarios: ''
-      });
-
-    } catch (error) {
-      console.error('Error al crear reserva:', error);
-      setToast({ message: 'Error al procesar la reserva. Intenta nuevamente', type: 'error' });
+    } catch {
+      setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  // Si la reserva fue exitosa, mostrar pantalla de confirmación
+  const dow = formData.fecha ? new Date(formData.fecha + 'T00:00:00').getDay() : null;
+  const horarios = getHorarios();
+  const esFinde = dow === 5 || dow === 6;
+
+  /* ── Success ── */
   if (reservaExitosa) {
     return (
-      <div className="reserva-mesas-container">
-        <div className="reserva-exitosa-content">
-          <div className="exito-icon">✓</div>
-          <h1>¡Reserva Confirmada!</h1>
-          <p className="exito-mensaje">
-            Tu reserva ha sido confirmada exitosamente.
-            <br />
-            ¡Te esperamos!
-          </p>
-          <div className="exito-info">
-            <p>✅ Reserva confirmada</p>
-            <p>📅 Fecha: {new Date(fechaReservada + 'T00:00:00').toLocaleDateString('es-AR')}</p>
+      <div className="rf-page">
+        <div className="rf-success">
+          <div className="rf-success__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </div>
-          <Link to="/" className="btn-volver-home">
-            Volver al Inicio
-          </Link>
+          <h1 className="rf-success__title">Reserva recibida</h1>
+          <p className="rf-success__sub">Gracias, {formData.nombre || ''}. Te confirmamos por WhatsApp a la brevedad.</p>
+          {fechaReservada && (
+            <div className="rf-success__detail">
+              {new Date(fechaReservada + 'T00:00:00').toLocaleDateString('es-AR', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+              })}
+            </div>
+          )}
+          <Link to="/" className="rf-success__btn">Volver al inicio</Link>
         </div>
       </div>
     );
   }
 
+  /* ── Form ── */
   return (
-    <div className="reserva-mesas-container">
-      <div className="reserva-mesas-content">
-        <h1>Reservá tu Mesa</h1>
-        <p className="reserva-subtitle">Anticipá tu visita</p>
+    <div className="rf-page">
+      <nav className="rf-nav">
+        <Link to="/" className="rf-nav__logo">Selvaggio</Link>
+        <span className="rf-nav__title">Reservar mesa</span>
+        <Link to="/" className="rf-nav__back">← Inicio</Link>
+      </nav>
 
-        <div className="reserva-info">
-          <p>Completá el formulario para confirmar tu reserva</p>
+      <main className="rf-main">
+        <div className="rf-header">
+          <p className="rf-eyebrow">Selvaggio · Wine Bar</p>
+          <h1 className="rf-title">Reservá tu mesa</h1>
+          <p className="rf-subtitle">Miércoles a domingo desde las 18:00 hs</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="reserva-form">
-          <div className="form-group">
-            <label htmlFor="nombre">Nombre *</label>
-            <input
-              type="text"
-              id="nombre"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              required
-            />
+        <form onSubmit={handleSubmit} className="rf-form">
+
+          {/* Nombre + Apellido */}
+          <div className="rf-row">
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">Nombre</label>
+              <input className="rf-input" type="text" name="nombre" value={formData.nombre}
+                onChange={handleChange} required placeholder="Tu nombre" />
+            </div>
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">Apellido</label>
+              <input className="rf-input" type="text" name="apellido" value={formData.apellido}
+                onChange={handleChange} required placeholder="Tu apellido" />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="apellido">Apellido *</label>
-            <input
-              type="text"
-              id="apellido"
-              name="apellido"
-              value={formData.apellido}
-              onChange={handleChange}
-              required
-            />
+          {/* Teléfono */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">WhatsApp / Teléfono</label>
+            <input className="rf-input" type="tel" name="telefono" value={formData.telefono}
+              onChange={handleChange} required placeholder="Ej: 11 6686 4692" />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="telefono">Teléfono *</label>
-            <input
-              type="tel"
-              id="telefono"
-              name="telefono"
-              value={formData.telefono}
-              onChange={handleChange}
-              required
-            />
+          {/* Personas */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Cantidad de personas</label>
+            <div className="rf-number-ctrl">
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(-1)}
+                disabled={formData.cantidadPersonas <= 1}>−</button>
+              <span className="rf-number-val">{formData.cantidadPersonas}</span>
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}>+</button>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="cantidadPersonas">Cantidad de personas *</label>
-            <input
-              type="number"
-              id="cantidadPersonas"
-              name="cantidadPersonas"
-              value={formData.cantidadPersonas}
-              onChange={handleChange}
-              min="1"
-              required
-            />
+          {/* Fecha */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Fecha</label>
+            <input className="rf-input" type="date" name="fecha" value={formData.fecha}
+              onChange={handleChange} min={getMinDate()} required />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="fecha">Fecha deseada *</label>
-            <input
-              type="date"
-              id="fecha"
-              name="fecha"
-              value={formData.fecha}
-              onChange={handleChange}
-              min={getMinDate()}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="horario">Horario aproximado *</label>
-            <select
-              id="horario"
-              name="horario"
-              value={formData.horario}
-              onChange={handleChange}
-              required
-              disabled={!formData.fecha || (formData.fecha && new Date(formData.fecha + 'T00:00:00').getDay() === 1)}
-            >
-              <option value="">Seleccionar horario</option>
-              {getAvailableHorarios().map(horario => {
-                const lleno = isHorarioLleno(horario);
-                const disponibles = LIMITE_MESAS_POR_SLOT - (reservasPorHorario[horario] || 0);
-                return (
-                  <option key={horario} value={horario} disabled={lleno}>
-                    {horario} {lleno ? '(completo)' : `(${disponibles} ${disponibles === 1 ? 'mesa disponible' : 'mesas disponibles'})`}
-                  </option>
-                );
-              })}
-            </select>
-            {formData.fecha && new Date(formData.fecha + 'T00:00:00').getDay() === 1 && (
-              <p style={{ color: '#ff6b6b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                Los lunes no atendemos. Por favor elegí otro día.
-              </p>
-            )}
-            {formData.fecha && getAvailableHorarios().length > 0 && (
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                {new Date(formData.fecha + 'T00:00:00').getDay() === 5 || new Date(formData.fecha + 'T00:00:00').getDay() === 6
-                  ? 'Viernes y sábado: hasta 2:00 AM'
-                  : 'Último horario: 22:00 hs'}
-              </p>
+          {/* Horario */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Horario</label>
+            {!formData.fecha ? (
+              <p className="rf-horarios-hint">Seleccioná una fecha para ver los horarios disponibles</p>
+            ) : dow === 1 ? (
+              <div className="rf-closed-note">Los lunes estamos cerrados — elegí otro día.</div>
+            ) : (
+              <>
+                <div className="rf-horarios-grid">
+                  {horarios.map(h => {
+                    const lleno = isLleno(h);
+                    const disp = LIMITE_POR_SLOT - (reservasPorHorario[h] || 0);
+                    return (
+                      <button key={h} type="button"
+                        className={`rf-chip${formData.horario === h ? ' rf-chip--on' : ''}${lleno ? ' rf-chip--lleno' : ''}`}
+                        onClick={() => !lleno && setFormData(p => ({ ...p, horario: h }))}
+                        title={lleno ? 'Completo' : `${disp} ${disp === 1 ? 'lugar' : 'lugares'}`}>
+                        {h}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="rf-horarios-hint">
+                  {esFinde ? 'Viernes y sábado: hasta las 02:00 hs' : 'Último horario: 22:00 hs'}
+                </p>
+              </>
             )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="preferencia">Preferencia de ubicación *</label>
-            <select
-              id="preferencia"
-              name="preferencia"
-              value={formData.preferencia}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Seleccionar preferencia</option>
-              <option value="Adentro / Living">Adentro / Living</option>
-              <option value="Pérgola / La Galería">Pérgola / La Galería</option>
-            </select>
+          {/* Preferencia */}
+          <div className="rf-field">
+            <label className="rf-label rf-label--req">Preferencia de ubicación</label>
+            <div className="rf-pref-grid">
+              {['Adentro / Living', 'Pérgola / La Galería'].map(op => (
+                <button key={op} type="button"
+                  className={`rf-pref-btn${formData.preferencia === op ? ' rf-pref-btn--on' : ''}`}
+                  onClick={() => setFormData(p => ({ ...p, preferencia: op }))}>
+                  {op}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="comentarios">Comentarios o solicitudes especiales</label>
-            <textarea
-              id="comentarios"
-              name="comentarios"
-              value={formData.comentarios}
-              onChange={handleChange}
-              rows="3"
-              placeholder="Ocasión especial, etc."
-            />
+          <p className="rf-section-label">Opcional</p>
+
+          {/* Comentarios */}
+          <div className="rf-field">
+            <label className="rf-label">Comentarios o solicitudes especiales</label>
+            <textarea className="rf-textarea" name="comentarios" value={formData.comentarios}
+              onChange={handleChange} rows="3" placeholder="Celebración, cumpleaños, etc." />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="restricciones">¿Tienen restricciones alimentarias o alergias?</label>
-            <textarea
-              id="restricciones"
-              name="restricciones"
-              value={formData.restricciones}
-              onChange={handleChange}
-              rows="2"
-              placeholder="Celíaco, vegetariano, alergia a frutos secos, etc."
-            />
+          {/* Restricciones */}
+          <div className="rf-field">
+            <label className="rf-label">Restricciones alimentarias o alergias</label>
+            <textarea className="rf-textarea" name="restricciones" value={formData.restricciones}
+              onChange={handleChange} rows="2" placeholder="Celíaco, vegetariano, alergia frutos secos, etc." />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn-submit-reserva"
-            disabled={loading}
-          >
-            {loading ? 'Enviando...' : 'Solicitar Reserva'}
+          <button type="submit" className="rf-submit" disabled={loading}>
+            {loading ? 'Enviando…' : 'Solicitar reserva'}
           </button>
         </form>
-      </div>
+      </main>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 }

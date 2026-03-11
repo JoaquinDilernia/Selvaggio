@@ -9,51 +9,61 @@ import PostulacionesTab from './tabs/PostulacionesTab';
 import AdminReservas from './AdminReservas';
 
 function AdminNew() {
-  const [tabActiva, setTabActiva] = useState('feedback');
+  const [tabActiva, setTabActiva] = useState('reservas');
 
   const tabs = [
-    { id: 'reservas', nombre: '📅 Reservas', componente: AdminReservas },
-    { id: 'feedback', nombre: '📝 Feedback', componente: FeedbackTab },
-    { id: 'newsletter', nombre: '📧 Newsletter', componente: NewsletterTab },
-    { id: 'contacto', nombre: '📩 Mensajes', componente: ContactoTab },
-    { id: 'pedidos', nombre: '🍽️ Pedidos', componente: PedidosTab },
-    { id: 'postulaciones', nombre: '💼 Postulaciones', componente: PostulacionesTab }
+    { id: 'reservas',      nombre: 'Reservas',      componente: AdminReservas },
+    { id: 'feedback',      nombre: 'Feedback',       componente: FeedbackTab },
+    { id: 'newsletter',    nombre: 'Newsletter',     componente: NewsletterTab },
+    { id: 'contacto',      nombre: 'Mensajes',       componente: ContactoTab },
+    { id: 'pedidos',       nombre: 'Pedidos',        componente: PedidosTab },
+    { id: 'postulaciones', nombre: 'Postulaciones',  componente: PostulacionesTab }
   ];
 
   const TabActual = tabs.find(t => t.id === tabActiva)?.componente;
 
   return (
-    <div className="admin-new-container">
-      <div className="admin-new-header">
-        <div className="header-content">
-          <h1>📊 Panel de Administración</h1>
-          <p className="subtitle">Selvaggio Wine Bar - Datos & Estadísticas</p>
-        </div>
-        <div className="header-actions">
-          <Link to="/admin-contenidos" className="btn-contenidos">
-            🍷 Gestión de Contenidos
-          </Link>
-          <a href="/#/landing" className="btn-volver">← Volver al sitio</a>
-        </div>
-      </div>
+    <div className="adm-root">
 
-      <div className="tabs-container">
-        <div className="tabs-nav">
+      {/* Header */}
+      <header className="adm-header">
+        <div className="adm-header__inner">
+          <div className="adm-header__brand">
+            <span className="adm-header__logo">Selvaggio</span>
+            <span className="adm-header__sep">·</span>
+            <span className="adm-header__title">Panel de administración</span>
+          </div>
+          <div className="adm-header__actions">
+            <Link to="/admin-contenidos" className="adm-btn adm-btn--outline">
+              Gestión de contenidos
+            </Link>
+            <a href="/#/" className="adm-btn adm-btn--ghost">← Sitio</a>
+          </div>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <nav className="adm-tabs">
+        <div className="adm-tabs__inner">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              className={`tab-btn ${tabActiva === tab.id ? 'active' : ''}`}
+              className={`adm-tab${tabActiva === tab.id ? ' adm-tab--on' : ''}`}
               onClick={() => setTabActiva(tab.id)}
             >
               {tab.nombre}
             </button>
           ))}
         </div>
+      </nav>
 
-        <div className="tab-content">
+      {/* Content */}
+      <main className="adm-main">
+        <div className="adm-main__inner">
           {TabActual && <TabActual />}
         </div>
-      </div>
+      </main>
+
     </div>
   );
 }

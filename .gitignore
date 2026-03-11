@@ -30,3 +30,10 @@ dist-ssr
 
 # Excel files temporales
 products-today.xlsx
+
+# Videos grandes (superan límite GitHub 100MB)
+public/demo-video.mp4
+public/*.mp4
+
+# Archivos temporales de Claude
+tmpclaude-*

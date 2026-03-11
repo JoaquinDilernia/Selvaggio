@@ -13,69 +13,68 @@ function AdminContenidos() {
   const [tabActiva, setTabActiva] = useState('carta');
 
   const tabs = [
-    { id: 'carta', label: 'Carta PDF', icon: '📝' },
-    { id: 'maridajes', label: 'Maridajes', icon: '✨' },
-    { id: 'galeria', label: 'Galería', icon: '📸' },
-    { id: 'reseñas', label: 'Reseñas', icon: '⭐' },
-    { id: 'prensa', label: 'Prensa', icon: '📰' },
-    { id: 'configuracion', label: 'Configuración', icon: '⚙️' }
+    { id: 'carta',         label: 'Carta PDF' },
+    { id: 'maridajes',     label: 'Maridajes' },
+    { id: 'galeria',       label: 'Galería' },
+    { id: 'reseñas',       label: 'Reseñas' },
+    { id: 'prensa',        label: 'Prensa' },
+    { id: 'configuracion', label: 'Configuración' }
   ];
 
   const renderContenido = () => {
     switch (tabActiva) {
-      case 'carta':
-        return <AdminCarta />;
-      case 'maridajes':
-        return <AdminMaridajes />;
-      case 'galeria':
-        return <AdminGaleria />;
-      case 'reseñas':
-        return <AdminReseñas />;
-      case 'prensa':
-        return <AdminPrensa />;
-      case 'configuracion':
-        return <AdminConfiguracion />;
-      default:
-        return null;
+      case 'carta':         return <AdminCarta />;
+      case 'maridajes':     return <AdminMaridajes />;
+      case 'galeria':       return <AdminGaleria />;
+      case 'reseñas':       return <AdminReseñas />;
+      case 'prensa':        return <AdminPrensa />;
+      case 'configuracion': return <AdminConfiguracion />;
+      default:              return null;
     }
   };
 
   return (
-    <div className="admin-contenidos">
+    <div className="adm-root">
+
       {/* Header */}
-      <div className="admin-contenidos-header">
-        <div className="header-info">
-          <h1>Gestión de Contenidos</h1>
-          <p>Administra la carta PDF, maridajes, galería y contenido de la landing</p>
+      <header className="adm-header">
+        <div className="adm-header__inner">
+          <div className="adm-header__brand">
+            <span className="adm-header__logo">Selvaggio</span>
+            <span className="adm-header__sep">·</span>
+            <span className="adm-header__title">Gestión de contenidos</span>
+          </div>
+          <div className="adm-header__actions">
+            <Link to="/admin" className="adm-btn adm-btn--outline">
+              Panel principal
+            </Link>
+            <a href="/#/" className="adm-btn adm-btn--ghost">← Sitio</a>
+          </div>
         </div>
-        <div className="header-nav-buttons">
-          <Link to="/admin" className="btn-panel-principal">
-            📊 Panel Principal
-          </Link>
-          <a href="/#/landing" className="btn-volver-contenidos">
-            ← Volver al sitio
-          </a>
+      </header>
+
+      {/* Tabs */}
+      <nav className="adm-tabs">
+        <div className="adm-tabs__inner">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`adm-tab${tabActiva === tab.id ? ' adm-tab--on' : ''}`}
+              onClick={() => setTabActiva(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </nav>
 
-      {/* Tabs Navigation */}
-      <div className="tabs-navigation">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            className={`tab-button ${tabActiva === tab.id ? 'active' : ''}`}
-            onClick={() => setTabActiva(tab.id)}
-          >
-            <span className="tab-icon">{tab.icon}</span>
-            <span className="tab-label">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Content */}
+      <main className="adm-main">
+        <div className="adm-main__inner">
+          {renderContenido()}
+        </div>
+      </main>
 
-      {/* Tab Content */}
-      <div className="tab-content">
-        {renderContenido()}
-      </div>
     </div>
   );
 }

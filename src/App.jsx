@@ -25,8 +25,8 @@ function App() {
     <ToastProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/demo" element={<LandingDemo />} />
+          <Route path="/" element={<LandingDemo />} />
+          <Route path="/landing-v1" element={<Landing />} />
           <Route path="/admin" element={<AdminNew />} />
           <Route path="/admin-contenidos" element={<AdminContenidos />} />
           <Route path="/importar-productos" element={<ImportarProductosExcel />} />

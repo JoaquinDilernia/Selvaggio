@@ -8,7 +8,7 @@ export const updatePageTitle = (title) => {
   if (title) {
     document.title = `${title} | Selvaggio`;
   } else {
-    document.title = 'Selvaggio - Wine Bar & Delicatessen | Quesos, Vinos y Fiambres Premium';
+    document.title = 'Selvaggio | Wine Bar';
   }
 };
 
