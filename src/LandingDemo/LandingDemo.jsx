@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './LandingDemo.css';
 
@@ -15,6 +15,36 @@ function LandingDemo() {
   const [prensa, setPrensa] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
+
+  // Trabajá con nosotros
+  const [trabajaForm, setTrabajaForm] = useState({ nombre: '', email: '', telefono: '', puesto: '', mensaje: '' });
+  const [trabajaEnviando, setTrabajaEnviando] = useState(false);
+  const [trabajaExito, setTrabajaExito] = useState(false);
+
+  const handleTrabajaChange = (e) => {
+    const { name, value } = e.target;
+    setTrabajaForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleTrabajaSubmit = async (e) => {
+    e.preventDefault();
+    if (!trabajaForm.nombre || !trabajaForm.email || !trabajaForm.puesto) return;
+    setTrabajaEnviando(true);
+    try {
+      await addDoc(collection(db, 'selvaggio_postulaciones'), {
+        ...trabajaForm,
+        fecha: Timestamp.now(),
+        estado: 'pendiente'
+      });
+      setTrabajaExito(true);
+      setTrabajaForm({ nombre: '', email: '', telefono: '', puesto: '', mensaje: '' });
+      setTimeout(() => setTrabajaExito(false), 5000);
+    } catch (err) {
+      console.error('Error postulación:', err);
+    } finally {
+      setTrabajaEnviando(false);
+    }
+  };
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -118,7 +148,7 @@ function LandingDemo() {
       <header className={`ap-nav ${scrolled ? 'ap-nav--scrolled' : ''}`}>
         <div className="ap-nav__inner">
           <div className="ap-nav__logo-wrap">
-            <span className="ap-nav__logo-text">Selvaggio</span>
+            <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="ap-nav__logo-img" />
           </div>
 
           <nav className={`ap-nav__links ${menuOpen ? 'ap-nav__links--open' : ''}`}>
@@ -127,6 +157,7 @@ function LandingDemo() {
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
             <button onClick={() => scrollTo('contacto')}>Contacto</button>
+            <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
           </nav>
 
           <div className="ap-nav__right">
@@ -153,7 +184,7 @@ function LandingDemo() {
         </video>
         <div className="ap-hero__overlay" />
         <div className="ap-hero__content">
-          <p className="ap-hero__eyebrow">Las Lomas de San Isidro · Wine Bar &amp; Delicatessen</p>
+          <p className="ap-hero__eyebrow">Las Lomas de San Isidro · Wine Bar</p>
           <h1 className="ap-hero__title">
             Elegí tu vino.<br />
             <em>Armá tu momento.</em>
@@ -181,18 +212,22 @@ function LandingDemo() {
           </div>
           <div className="ap-stats__divider" />
           <div className="ap-stats__item ap-reveal">
-            <span className="ap-stats__number">100%</span>
-            <span className="ap-stats__label">autoservicio premium</span>
+            <span className="ap-stats__number">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" style={{display:'inline',verticalAlign:'middle',marginRight:6}}><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" /></svg>
+            </span>
+            <span className="ap-stats__label">vinos importados</span>
           </div>
           <div className="ap-stats__divider" />
           <div className="ap-stats__item ap-reveal">
-            <span className="ap-stats__number">25</span>
+            <span className="ap-stats__number">35</span>
             <span className="ap-stats__label">personas en La Cava</span>
           </div>
           <div className="ap-stats__divider" />
           <div className="ap-stats__item ap-reveal">
-            <span className="ap-stats__number">Mar–Dom</span>
-            <span className="ap-stats__label">Vie y Sáb hasta las 02:00</span>
+            <span className="ap-stats__number">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" style={{display:'inline',verticalAlign:'middle',marginRight:6}}><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            <span className="ap-stats__label">eventos privados</span>
           </div>
         </div>
       </section>
@@ -201,7 +236,7 @@ function LandingDemo() {
       <section id="concepto" className="ap-section ap-section--white">
         <div className="ap-section__inner ap-grid-2">
           <div className="ap-col ap-reveal">
-            <p className="ap-eyebrow">El concepto</p>
+            <p className="ap-eyebrow">Concepto</p>
             <h2 className="ap-heading">
               Una experiencia nueva.<br />
               <em>A tu ritmo.</em>
@@ -231,7 +266,7 @@ function LandingDemo() {
       <section id="propuesta" className="ap-section ap-section--light">
         <div className="ap-section__inner ap-grid-2 ap-grid-2--reverse">
           <div className="ap-col ap-reveal">
-            <p className="ap-eyebrow">La oferta</p>
+            <p className="ap-eyebrow">Propuesta</p>
             <h2 className="ap-heading">
               Todo lo que<br />
               <em>necesitás.</em>
@@ -323,7 +358,7 @@ function LandingDemo() {
       <section className="ap-gallery">
         <div className="ap-gallery__inner">
           <div className="ap-gallery__header ap-reveal">
-            <p className="ap-eyebrow ap-eyebrow--center">El espacio</p>
+            <p className="ap-eyebrow ap-eyebrow--center">Selvaggio Wine</p>
             <h2 className="ap-heading ap-heading--center">Viví la experiencia.</h2>
           </div>
           <div className={`ap-gallery__grid ap-gallery__grid--${Math.min(galeriaItems.length, 6) >= 4 ? '3col' : '2col'}`}>
@@ -346,7 +381,7 @@ function LandingDemo() {
             <p className="ap-eyebrow ap-eyebrow--muted">Espacio privado</p>
             <h2 className="ap-heading ap-heading--white">La Cava.</h2>
             <p className="ap-body ap-body--muted">
-              Un espacio exclusivo para hasta 25 personas. Ideal para cumpleaños,
+              Un espacio exclusivo para hasta 40 personas. Ideal para cumpleaños,
               despedidas, reuniones corporativas o cualquier celebración que merezca
               un ambiente diferente.
             </p>
@@ -533,10 +568,70 @@ function LandingDemo() {
           </div>
         </div>
       </section>
+      {/* ── TRABAJÁ CON NOSOTROS ── */}
+      <section id="trabaja" className="ap-section ap-section--dark">
+        <div className="ap-section__inner">
+          <div className="ap-section__header ap-reveal">
+            <span className="ap-eyebrow ap-eyebrow--muted">Sumate al equipo</span>
+            <h2 className="ap-heading" style={{ color: '#fff' }}>Trabajá con nosotros</h2>
+            <p className="ap-body" style={{ color: 'rgba(255,255,255,0.55)', maxWidth: 600, margin: '0 auto' }}>
+              Buscamos personas apasionadas por el vino, la gastronomía y la atención al cliente.
+              Si querés ser parte del equipo Selvaggio, dejanos tus datos.
+            </p>
+          </div>
+
+          {trabajaExito ? (
+            <div className="ap-trabaja-exito ap-reveal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="48" height="48"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+              <h3>¡Postulación enviada!</h3>
+              <p>Nos contactaremos pronto con vos.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleTrabajaSubmit} className="ap-trabaja-form ap-reveal">
+              <div className="ap-trabaja-row">
+                <div className="ap-trabaja-field">
+                  <label>Nombre completo *</label>
+                  <input type="text" name="nombre" value={trabajaForm.nombre} onChange={handleTrabajaChange} required placeholder="Tu nombre y apellido" />
+                </div>
+                <div className="ap-trabaja-field">
+                  <label>Email *</label>
+                  <input type="email" name="email" value={trabajaForm.email} onChange={handleTrabajaChange} required placeholder="tu@email.com" />
+                </div>
+              </div>
+              <div className="ap-trabaja-row">
+                <div className="ap-trabaja-field">
+                  <label>Teléfono</label>
+                  <input type="tel" name="telefono" value={trabajaForm.telefono} onChange={handleTrabajaChange} placeholder="+54 9 11 1234-5678" />
+                </div>
+                <div className="ap-trabaja-field">
+                  <label>Puesto de interés *</label>
+                  <select name="puesto" value={trabajaForm.puesto} onChange={handleTrabajaChange} required>
+                    <option value="">Seleccioná un puesto</option>
+                    <option value="Sommelier/Bartender">Sommelier / Bartender</option>
+                    <option value="Cocina">Cocina</option>
+                    <option value="Atención al público">Atención al público</option>
+                    <option value="Limpieza">Limpieza</option>
+                    <option value="Administración">Administración</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+              <div className="ap-trabaja-field">
+                <label>Mensaje / Experiencia</label>
+                <textarea name="mensaje" value={trabajaForm.mensaje} onChange={handleTrabajaChange} rows="5" placeholder="Contanos sobre tu experiencia, disponibilidad horaria, y por qué te gustaría trabajar con nosotros..."></textarea>
+              </div>
+              <button type="submit" className="ap-btn ap-btn--pill ap-trabaja-submit" disabled={trabajaEnviando}>
+                {trabajaEnviando ? 'Enviando...' : 'Enviar postulación'}
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
       <footer className="ap-footer">
         <div className="ap-footer__inner">
           <div className="ap-footer__brand">
-            <span className="ap-footer__logo-text">Selvaggio</span>
+            <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="ap-footer__logo-img" />
             <p className="ap-footer__tagline">Wine Bar &amp; Delicatessen</p>
           </div>
           <nav className="ap-footer__nav">
@@ -544,6 +639,7 @@ function LandingDemo() {
             <button onClick={() => scrollTo('propuesta')}>La Propuesta</button>
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
+            <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
             <Link to="/reserva-mesas">Reservas</Link>
           </nav>
           <div className="ap-footer__social">
@@ -555,6 +651,7 @@ function LandingDemo() {
           <span>© 2025 Selvaggio. Todos los derechos reservados.</span>
           <Link to="/terminos">Términos</Link>
           <Link to="/privacidad">Privacidad</Link>
+          <a href="https://techdi.com.ar" target="_blank" rel="noopener noreferrer" style={{ opacity: 0.5 }}>Desarrollado por TechDi</a>
         </div>
       </footer>
 

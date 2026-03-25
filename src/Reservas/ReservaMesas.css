@@ -32,13 +32,15 @@
 }
 
 .rf-nav__logo {
-  font-family: 'Cormorant Garant', Georgia, serif;
-  font-size: 20px;
-  font-style: italic;
-  font-weight: 500;
-  color: #1c1a17;
   text-decoration: none;
-  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+}
+
+.rf-nav__logo-img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
 }
 
 .rf-nav__title {

@@ -6,6 +6,7 @@ import NewsletterTab from './tabs/NewsletterTab';
 import ContactoTab from './tabs/ContactoTab';
 import PedidosTab from './tabs/PedidosTab';
 import PostulacionesTab from './tabs/PostulacionesTab';
+import CalendarioTab from './tabs/CalendarioTab';
 import AdminReservas from './AdminReservas';
 
 function AdminNew() {
@@ -13,6 +14,7 @@ function AdminNew() {
 
   const tabs = [
     { id: 'reservas',      nombre: 'Reservas',      componente: AdminReservas },
+    { id: 'calendario',    nombre: 'Calendario',    componente: CalendarioTab },
     { id: 'feedback',      nombre: 'Feedback',       componente: FeedbackTab },
     { id: 'newsletter',    nombre: 'Newsletter',     componente: NewsletterTab },
     { id: 'contacto',      nombre: 'Mensajes',       componente: ContactoTab },

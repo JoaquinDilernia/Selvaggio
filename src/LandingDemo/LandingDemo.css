@@ -70,20 +70,17 @@
   align-items: center;
 }
 
-.ap-nav__logo-text {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  color: #fff;
-  transition: color 0.35s ease;
-  white-space: nowrap;
+.ap-nav__logo-img {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  transition: filter 0.35s ease;
   user-select: none;
 }
 
-.ap-nav--scrolled .ap-nav__logo-text {
-  color: var(--ap-ink);
+.ap-nav--scrolled .ap-nav__logo-img {
+  filter: none;
 }
 
 .ap-nav__links {
@@ -1059,13 +1056,11 @@
 }
 
 /* ── FOOTER LOGO ─────────────────────────────────────────── */
-.ap-footer__logo-text {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  color: #fff;
+.ap-footer__logo-img {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
   display: block;
 }
 
@@ -1258,6 +1253,147 @@
   color: var(--ap-ink);
 }
 
+.ap-prensa-desc {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* ── TRABAJÁ CON NOSOTROS ────────────────────────────────── */
+.ap-trabaja-form {
+  max-width: 740px;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 48px 44px;
+  backdrop-filter: blur(12px);
+}
+
+.ap-trabaja-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.ap-trabaja-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+.ap-trabaja-field label {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 8px;
+}
+
+.ap-trabaja-field input,
+.ap-trabaja-field select,
+.ap-trabaja-field textarea {
+  padding: 13px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  transition: border-color 0.25s, background 0.25s;
+}
+
+.ap-trabaja-field input::placeholder,
+.ap-trabaja-field textarea::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+.ap-trabaja-field input:focus,
+.ap-trabaja-field select:focus,
+.ap-trabaja-field textarea:focus {
+  outline: none;
+  border-color: var(--ap-accent);
+  background: rgba(255,255,255,0.09);
+}
+
+.ap-trabaja-field select {
+  cursor: pointer;
+}
+
+.ap-trabaja-field select option {
+  background: var(--ap-dark);
+  color: #fff;
+}
+
+.ap-trabaja-field textarea {
+  resize: vertical;
+  min-height: 110px;
+  line-height: 1.55;
+}
+
+.ap-trabaja-submit {
+  width: 100%;
+  margin-top: 28px;
+  padding: 16px 32px;
+  background: #fff;
+  color: var(--ap-dark);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.ap-trabaja-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.ap-trabaja-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ap-trabaja-exito {
+  text-align: center;
+  color: #fff;
+  padding: 60px 20px;
+}
+
+.ap-trabaja-exito svg {
+  color: var(--ap-accent);
+  margin-bottom: 20px;
+}
+
+.ap-trabaja-exito h3 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.ap-trabaja-exito p {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  color: rgba(255,255,255,0.5);
+}
+
+@media (max-width: 768px) {
+  .ap-trabaja-form {
+    padding: 32px 20px;
+  }
+  .ap-trabaja-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+}
+
+/* ── PRENSA continued ─── */
 .ap-prensa-desc {
   font-family: var(--font-ui);
   font-size: 14px;

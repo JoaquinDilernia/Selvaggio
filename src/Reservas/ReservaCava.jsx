@@ -160,7 +160,7 @@ function ReservaCava() {
   return (
     <div className="rf-page">
       <nav className="rf-nav">
-        <Link to="/" className="rf-nav__logo">Selvaggio</Link>
+        <Link to="/" className="rf-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="rf-nav__logo-img" /></Link>
         <span className="rf-nav__title">Reservar La Cava</span>
         <Link to="/" className="rf-nav__back">← Inicio</Link>
       </nav>

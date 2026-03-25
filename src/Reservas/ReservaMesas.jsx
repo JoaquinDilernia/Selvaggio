@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import './ReservaMesas.css';
@@ -25,10 +25,21 @@ function ReservaMesas() {
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
+  const [excepcionDia, setExcepcionDia] = useState(null);
 
   useEffect(() => {
-    if (formData.fecha) fetchDisponibilidad(formData.fecha);
+    if (formData.fecha) {
+      fetchDisponibilidad(formData.fecha);
+      fetchExcepcion(formData.fecha);
+    }
   }, [formData.fecha]);
+
+  const fetchExcepcion = async (fecha) => {
+    try {
+      const snap = await getDoc(doc(db, 'selvaggio_calendario', fecha));
+      setExcepcionDia(snap.exists() ? snap.data() : null);
+    } catch { setExcepcionDia(null); }
+  };
 
   const fetchDisponibilidad = async (fecha) => {
     try {
@@ -49,7 +60,14 @@ function ReservaMesas() {
   const getHorarios = () => {
     if (!formData.fecha) return [];
     const dow = new Date(formData.fecha + 'T00:00:00').getDay();
-    if (dow === 1) return [];
+
+    // Si hay excepción para este día
+    if (excepcionDia) {
+      if (excepcionDia.tipo === 'cerrar') return [];
+      if (excepcionDia.tipo === 'abrir' && excepcionDia.horarios) return excepcionDia.horarios;
+    }
+
+    if (dow === 1) return [];  // Lunes cerrado por defecto
     const base = ['18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
     if (dow === 5 || dow === 6)
       return [...base, '22:30','23:00','23:30','00:00','00:30','01:00','01:30','02:00'];
@@ -98,6 +116,7 @@ function ReservaMesas() {
   const dow = formData.fecha ? new Date(formData.fecha + 'T00:00:00').getDay() : null;
   const horarios = getHorarios();
   const esFinde = dow === 5 || dow === 6;
+  const diaCerrado = horarios.length === 0 && formData.fecha;
 
   /* ── Success ── */
   if (reservaExitosa) {
@@ -109,8 +128,8 @@ function ReservaMesas() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h1 className="rf-success__title">Reserva recibida</h1>
-          <p className="rf-success__sub">Gracias, {formData.nombre || ''}. Te confirmamos por WhatsApp a la brevedad.</p>
+          <h1 className="rf-success__title">¡Reserva confirmada!</h1>
+          <p className="rf-success__sub">Gracias, {formData.nombre || ''}. ¡Te esperamos!</p>
           {fechaReservada && (
             <div className="rf-success__detail">
               {new Date(fechaReservada + 'T00:00:00').toLocaleDateString('es-AR', {
@@ -128,7 +147,7 @@ function ReservaMesas() {
   return (
     <div className="rf-page">
       <nav className="rf-nav">
-        <Link to="/" className="rf-nav__logo">Selvaggio</Link>
+        <Link to="/" className="rf-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="rf-nav__logo-img" /></Link>
         <span className="rf-nav__title">Reservar mesa</span>
         <Link to="/" className="rf-nav__back">← Inicio</Link>
       </nav>
@@ -137,7 +156,7 @@ function ReservaMesas() {
         <div className="rf-header">
           <p className="rf-eyebrow">Selvaggio · Wine Bar</p>
           <h1 className="rf-title">Reservá tu mesa</h1>
-          <p className="rf-subtitle">Miércoles a domingo desde las 18:00 hs</p>
+          <p className="rf-subtitle">Martes a domingos desde las 18:00 hs</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rf-form">
@@ -186,8 +205,12 @@ function ReservaMesas() {
             <label className="rf-label rf-label--req">Horario</label>
             {!formData.fecha ? (
               <p className="rf-horarios-hint">Seleccioná una fecha para ver los horarios disponibles</p>
-            ) : dow === 1 ? (
-              <div className="rf-closed-note">Los lunes estamos cerrados — elegí otro día.</div>
+            ) : diaCerrado ? (
+              <div className="rf-closed-note">
+                {excepcionDia?.motivo
+                  ? `Cerrado: ${excepcionDia.motivo}`
+                  : 'Este día estamos cerrados — elegí otro día.'}
+              </div>
             ) : (
               <>
                 <div className="rf-horarios-grid">
@@ -215,7 +238,7 @@ function ReservaMesas() {
           <div className="rf-field">
             <label className="rf-label rf-label--req">Preferencia de ubicación</label>
             <div className="rf-pref-grid">
-              {['Adentro / Living', 'Pérgola / La Galería'].map(op => (
+              {['Pérgola', 'Jardín', 'Living'].map(op => (
                 <button key={op} type="button"
                   className={`rf-pref-btn${formData.preferencia === op ? ' rf-pref-btn--on' : ''}`}
                   onClick={() => setFormData(p => ({ ...p, preferencia: op }))}>
