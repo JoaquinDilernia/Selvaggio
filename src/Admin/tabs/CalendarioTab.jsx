@@ -10,6 +10,7 @@ const HORARIOS_EXTENDIDOS = [...HORARIOS_BASE, '22:30','23:00','23:30','00:00','
 
 function CalendarioTab() {
   const [excepciones, setExcepciones] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [mes, setMes] = useState(() => {
     const hoy = new Date();
@@ -31,9 +32,12 @@ function CalendarioTab() {
   const cargar = async () => {
     setCargando(true);
     try {
-      const snap = await getDocs(collection(db, 'selvaggio_calendario'));
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setExcepciones(items);
+      const [excSnap, evSnap] = await Promise.all([
+        getDocs(collection(db, 'selvaggio_calendario')),
+        getDocs(collection(db, 'selvaggio_eventos'))
+      ]);
+      setExcepciones(excSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setEventos(evSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error('Error cargando calendario:', err);
     } finally {
@@ -144,6 +148,7 @@ function CalendarioTab() {
         <span className="cal-leyenda__item"><span className="cal-dot cal-dot--cerrado" /> Cerrado (lunes)</span>
         <span className="cal-leyenda__item"><span className="cal-dot cal-dot--exc-abierto" /> Excepción: abierto</span>
         <span className="cal-leyenda__item"><span className="cal-dot cal-dot--exc-cerrado" /> Excepción: cerrado</span>
+        <span className="cal-leyenda__item">🎉 Evento</span>
       </div>
 
       {/* Calendario */}
@@ -190,6 +195,9 @@ function CalendarioTab() {
               >
                 <span className="cal-cell__num">{dia.d}</span>
                 {dia.exc && <span className="cal-cell__badge">{dia.exc.tipo === 'abrir' ? '✓' : '✕'}</span>}
+                {eventos.find(ev => ev.fecha === dia.dateStr) && (
+                  <span className="cal-cell__evento" title={eventos.find(ev => ev.fecha === dia.dateStr).titulo}>🎉</span>
+                )}
               </div>
             );
           })}

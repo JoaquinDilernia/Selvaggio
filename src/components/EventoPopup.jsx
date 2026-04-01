@@ -1,21 +1,36 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import './EventoPopup.css';
 
 function EventoPopup() {
   const [isVisible, setIsVisible] = useState(false);
+  const [evento, setEvento] = useState(null);
 
   useEffect(() => {
-    // Verificar si el popup ya se mostró en esta sesión
     const popupShown = sessionStorage.getItem('eventoPopupShown');
-    
-    if (!popupShown) {
-      // Mostrar el popup después de un pequeño delay para mejor UX
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 800);
-      
-      return () => clearTimeout(timer);
-    }
+    if (popupShown) return;
+
+    const cargar = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'selvaggio_eventos'));
+        const popupEvento = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .find(e => e.esPopup);
+        
+        if (!popupEvento) return;
+        
+        setEvento(popupEvento);
+        const timer = setTimeout(() => {
+          setIsVisible(true);
+        }, 800);
+        return () => clearTimeout(timer);
+      } catch (err) {
+        console.error('Error cargando popup:', err);
+      }
+    };
+    cargar();
   }, []);
 
   const handleClose = () => {
@@ -23,11 +38,13 @@ function EventoPopup() {
     sessionStorage.setItem('eventoPopupShown', 'true');
   };
 
-  const handleComprar = () => {
-    window.open('https://astrovinito.com/event/59342-edicion-aire-selvaggio-wine-san-isidro?eventDateId=106760', '_blank');
-  };
+  if (!isVisible || !evento) return null;
 
-  if (!isVisible) return null;
+  const imagenPopup = evento.popupImagen || evento.imagen;
+  const ctaTexto = evento.ctaTexto || 'Reservar mesa';
+  const ctaLink = evento.ctaLink || '/reserva-mesas';
+
+  if (!imagenPopup) return null;
 
   return (
     <div className="evento-popup-overlay" onClick={handleClose}>
@@ -37,14 +54,16 @@ function EventoPopup() {
         </button>
         <div className="evento-popup-image-container">
           <img 
-            src="/evento.jpeg" 
-            alt="Edición Aire - Evento especial en Selvaggio Wine"
+            src={imagenPopup} 
+            alt={evento.titulo || 'Evento Selvaggio Wine'}
             className="evento-popup-image"
           />
         </div>
-        <button className="evento-popup-cta" onClick={handleComprar}>
-          🎟️ Comprar Entrada
-        </button>
+        {ctaLink && (
+          <Link to={ctaLink} className="evento-popup-cta" onClick={handleClose}>
+            {ctaTexto}
+          </Link>
+        )}
       </div>
     </div>
   );

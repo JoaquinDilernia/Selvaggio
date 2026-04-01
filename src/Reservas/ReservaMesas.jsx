@@ -12,6 +12,8 @@ function ReservaMesas() {
     nombre: '',
     apellido: '',
     telefono: '',
+    email: '',
+    fechaNacimiento: '',
     cantidadPersonas: 2,
     fecha: '',
     horario: '',
@@ -26,6 +28,16 @@ function ReservaMesas() {
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
   const [excepcionDia, setExcepcionDia] = useState(null);
+  const [eventos, setEventos] = useState([]);
+
+  useEffect(() => {
+    // Cargar eventos una vez
+    getDocs(collection(db, 'selvaggio_eventos')).then(snap => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.visible !== false);
+      console.log('[ReservaMesas] Eventos cargados:', items.length, items.map(e => e.fecha));
+      setEventos(items);
+    }).catch(err => console.error('[ReservaMesas] Error cargando eventos:', err));
+  }, []);
 
   useEffect(() => {
     if (formData.fecha) {
@@ -117,6 +129,8 @@ function ReservaMesas() {
   const horarios = getHorarios();
   const esFinde = dow === 5 || dow === 6;
   const diaCerrado = horarios.length === 0 && formData.fecha;
+  const eventoDia = formData.fecha ? eventos.find(e => e.fecha === formData.fecha) : null;
+  if (formData.fecha) console.log('[ReservaMesas] fecha seleccionada:', formData.fecha, '| eventos:', eventos.length, '| match:', eventoDia?.titulo || 'ninguno');
 
   /* ── Success ── */
   if (reservaExitosa) {
@@ -182,6 +196,20 @@ function ReservaMesas() {
               onChange={handleChange} required placeholder="Ej: 11 6686 4692" />
           </div>
 
+          {/* Email + Fecha nacimiento */}
+          <div className="rf-row">
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">Email</label>
+              <input className="rf-input" type="email" name="email" value={formData.email}
+                onChange={handleChange} required placeholder="tu@email.com" />
+            </div>
+            <div className="rf-field">
+              <label className="rf-label">Fecha de nacimiento</label>
+              <input className="rf-input" type="date" name="fechaNacimiento" value={formData.fechaNacimiento}
+                onChange={handleChange} />
+            </div>
+          </div>
+
           {/* Personas */}
           <div className="rf-field">
             <label className="rf-label rf-label--req">Cantidad de personas</label>
@@ -199,6 +227,17 @@ function ReservaMesas() {
             <input className="rf-input" type="date" name="fecha" value={formData.fecha}
               onChange={handleChange} min={getMinDate()} required />
           </div>
+
+          {/* Aviso de evento */}
+          {eventoDia && (
+            <div className="rf-evento-notice">
+              <span className="rf-evento-notice__icon">🎉</span>
+              <div>
+                <strong>{eventoDia.titulo}</strong>
+                <p>{eventoDia.horaInicio}{eventoDia.horaFin ? ` – ${eventoDia.horaFin}` : ''}{eventoDia.descripcion ? ` · ${eventoDia.descripcion}` : ''}</p>
+              </div>
+            </div>
+          )}
 
           {/* Horario */}
           <div className="rf-field">

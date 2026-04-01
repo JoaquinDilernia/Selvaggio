@@ -365,7 +365,34 @@
   font-size: 13.5px;
   color: #7a1c1c;
 }
-
+/* ── Evento notice ─────────────────────────────────────── */
+.rf-evento-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,193,7,0.08), rgba(255,152,0,0.06));
+  border: 1px solid rgba(255,152,0,0.2);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+.rf-evento-notice__icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.rf-evento-notice strong {
+  font-size: 14px;
+  color: #1c1a17;
+  display: block;
+  margin-bottom: 2px;
+}
+.rf-evento-notice p {
+  font-size: 13px;
+  color: #6b635a;
+  margin: 0;
+  line-height: 1.4;
+}
 /* ── Preference tabs ──────────────────────────────────────── */
 .rf-pref-grid {
   display: grid;

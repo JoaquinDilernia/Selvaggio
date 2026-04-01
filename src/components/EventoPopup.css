@@ -27,7 +27,7 @@
 /* Contenedor del popup */
 .evento-popup-content {
   position: relative;
-  max-width: 900px;
+  max-width: 480px;
   width: 100%;
   background: transparent;
   animation: slideUp 0.4s ease-out;
@@ -102,10 +102,13 @@
 
 /* Botón de Call to Action */
 .evento-popup-cta {
+  display: block;
   width: 100%;
   margin-top: 20px;
   padding: 18px 32px;
   font-size: 18px;
+  text-align: center;
+  text-decoration: none;
   font-weight: 600;
   color: white;
   background: linear-gradient(135deg, #8b5a3c 0%, #6d4428 100%);

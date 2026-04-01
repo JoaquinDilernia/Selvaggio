@@ -10,6 +10,8 @@ function ReservaCava() {
   const [formData, setFormData] = useState({
     nombre: '',
     telefono: '',
+    email: '',
+    fechaNacimiento: '',
     cantidadPersonas: 10,
     traeTorta: false,
     fecha: '',
@@ -109,6 +111,8 @@ function ReservaCava() {
       await addDoc(collection(db, 'selvaggio_reservas_cava'), {
         nombre: formData.nombre,
         telefono: formData.telefono,
+        email: formData.email,
+        fechaNacimiento: formData.fechaNacimiento,
         cantidadPersonas: formData.cantidadPersonas,
         traeTorta: formData.traeTorta,
         fecha: formData.fecha,
@@ -193,6 +197,20 @@ function ReservaCava() {
               <label className="rf-label rf-label--req">WhatsApp</label>
               <input className="rf-input" type="tel" name="telefono" value={formData.telefono}
                 onChange={handleChange} required placeholder="11 6686 4692" />
+            </div>
+          </div>
+
+          {/* Email + Fecha nacimiento */}
+          <div className="rf-row">
+            <div className="rf-field">
+              <label className="rf-label rf-label--req">Email</label>
+              <input className="rf-input" type="email" name="email" value={formData.email}
+                onChange={handleChange} required placeholder="tu@email.com" />
+            </div>
+            <div className="rf-field">
+              <label className="rf-label">Fecha de nacimiento</label>
+              <input className="rf-input" type="date" name="fechaNacimiento" value={formData.fechaNacimiento}
+                onChange={handleChange} />
             </div>
           </div>
 

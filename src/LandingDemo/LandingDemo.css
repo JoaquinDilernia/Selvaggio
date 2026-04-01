@@ -552,6 +552,114 @@
   color: var(--ap-mid);
 }
 
+/* ── EVENTOS ─────────────────────────────────────────────── */
+.ap-eventos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.ap-evento-card {
+  background: var(--ap-white);
+  border: 1px solid var(--ap-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ap-evento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(28,26,23,0.1);
+}
+
+.ap-evento-img-wrap {
+  position: relative;
+  overflow: hidden;
+  height: 200px;
+}
+
+.ap-evento-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.ap-evento-card:hover .ap-evento-img {
+  transform: scale(1.04);
+}
+
+.ap-evento-body {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  align-items: flex-start;
+}
+
+.ap-evento-fecha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 8px 0;
+  border-right: 1px solid var(--ap-border);
+  padding-right: 16px;
+}
+
+.ap-evento-fecha__dia {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--ap-ink);
+  line-height: 1;
+}
+
+.ap-evento-fecha__mes {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ap-mid);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.ap-evento-info {
+  flex: 1;
+}
+
+.ap-evento-titulo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ap-ink);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.ap-evento-hora {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ap-mid);
+  margin-bottom: 8px;
+}
+
+.ap-evento-desc {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--ap-muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .ap-eventos-grid { grid-template-columns: 1fr; }
+  .ap-evento-img-wrap { height: 160px; }
+}
+
 /* ── CTA ─────────────────────────────────────────────────── */
 .ap-cta {
   padding: 130px 28px;

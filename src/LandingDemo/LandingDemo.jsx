@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './LandingDemo.css';
+import EventoPopup from '../components/EventoPopup';
 
 function LandingDemo() {
   const [scrolled, setScrolled] = useState(false);
@@ -15,6 +16,7 @@ function LandingDemo() {
   const [prensa, setPrensa] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
+  const [eventos, setEventos] = useState([]);
 
   // Trabajá con nosotros
   const [trabajaForm, setTrabajaForm] = useState({ nombre: '', email: '', telefono: '', puesto: '', mensaje: '' });
@@ -80,7 +82,7 @@ function LandingDemo() {
       const items = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((p) => p.visible !== false)
-        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        .sort((a, b) => (Number(a.orden) || 999) - (Number(b.orden) || 999));
       setPrensa(items);
     }).catch(() => {});
 
@@ -90,6 +92,16 @@ function LandingDemo() {
         const data = snap.data();
         if (data.url && !data.eliminada) setCartaUrl(data.url);
       }
+    }).catch(() => {});
+
+    // Fetch eventos
+    getDocs(collection(db, 'selvaggio_eventos')).then((snap) => {
+      const hoy = new Date().toISOString().split('T')[0];
+      const items = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(e => e.visible !== false && e.fecha >= hoy)
+        .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+      setEventos(items);
     }).catch(() => {});
 
     const handleScroll = () => {
@@ -143,6 +155,7 @@ function LandingDemo() {
 
   return (
     <div className="ap-root">
+      <EventoPopup />
 
       {/* ── NAVBAR ── */}
       <header className={`ap-nav ${scrolled ? 'ap-nav--scrolled' : ''}`}>
@@ -153,9 +166,10 @@ function LandingDemo() {
 
           <nav className={`ap-nav__links ${menuOpen ? 'ap-nav__links--open' : ''}`}>
             <button onClick={() => scrollTo('concepto')}>Concepto</button>
-            <button onClick={() => scrollTo('propuesta')}>La Propuesta</button>
+            <button onClick={() => scrollTo('propuesta')}>Propuesta</button>
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
+            <button onClick={() => scrollTo('eventos')}>Eventos</button>
             <button onClick={() => scrollTo('contacto')}>Contacto</button>
             <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
           </nav>
@@ -219,7 +233,7 @@ function LandingDemo() {
           </div>
           <div className="ap-stats__divider" />
           <div className="ap-stats__item ap-reveal">
-            <span className="ap-stats__number">35</span>
+            <span className="ap-stats__number">40</span>
             <span className="ap-stats__label">personas en La Cava</span>
           </div>
           <div className="ap-stats__divider" />
@@ -256,7 +270,7 @@ function LandingDemo() {
           </div>
           <div className="ap-col ap-reveal ap-reveal--delay">
             <div className="ap-img-frame">
-              <img src="/foto1.jpeg" alt="Interior Selvaggio" className="ap-img" />
+              <img src="/propuesta.jpg" alt="Concepto Selvaggio" className="ap-img" />
             </div>
           </div>
         </div>
@@ -395,7 +409,7 @@ function LandingDemo() {
           </div>
           <div className="ap-col ap-reveal ap-reveal--delay">
             <div className="ap-img-frame ap-img-frame--dark">
-              <img src="/demo5.png" alt="La Cava Selvaggio" className="ap-img" />
+              <img src="/cava3.jpeg" alt="La Cava Selvaggio" className="ap-img" style={{ filter: 'brightness(0.85)' }} />
             </div>
           </div>
         </div>
@@ -406,7 +420,7 @@ function LandingDemo() {
         <section id="prensa" className="ap-section ap-section--light">
           <div className="ap-section__inner">
             <div className="ap-section__header ap-reveal">
-              <p className="ap-eyebrow">Medios</p>
+              <p className="ap-eyebrow">Prensa</p>
               <h2 className="ap-heading ap-heading--center">En los medios.</h2>
             </div>
             <div className="ap-prensa-grid">
@@ -468,6 +482,55 @@ function LandingDemo() {
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── EVENTOS ── */}
+      {eventos.length > 0 && (
+        <section id="eventos" className="ap-section ap-section--light">
+          <div className="ap-section__inner">
+            <div className="ap-section__header ap-reveal">
+              <p className="ap-eyebrow">Agenda</p>
+              <h2 className="ap-heading ap-heading--center">Próximos eventos.</h2>
+            </div>
+            <div className="ap-eventos-grid">
+              {eventos.slice(0, 4).map((ev, i) => (
+                <article
+                  key={ev.id}
+                  className={`ap-evento-card ap-reveal${i === 0 ? '' : i % 2 === 0 ? ' ap-reveal--delay2' : ' ap-reveal--delay'}`}
+                >
+                  {ev.imagen && (
+                    <div className="ap-evento-img-wrap">
+                      <img src={ev.imagen} alt={ev.titulo} className="ap-evento-img" loading="lazy" />
+                    </div>
+                  )}
+                  <div className="ap-evento-body">
+                    <div className="ap-evento-fecha">
+                      <span className="ap-evento-fecha__dia">
+                        {new Date(ev.fecha + 'T00:00:00').getDate()}
+                      </span>
+                      <span className="ap-evento-fecha__mes">
+                        {new Date(ev.fecha + 'T00:00:00').toLocaleDateString('es-AR', { month: 'short' }).replace('.', '')}
+                      </span>
+                    </div>
+                    <div className="ap-evento-info">
+                      <h3 className="ap-evento-titulo">{ev.titulo}</h3>
+                      {ev.horaInicio && (
+                        <span className="ap-evento-hora">
+                          {ev.horaInicio}{ev.horaFin ? ` – ${ev.horaFin}` : ''} hs
+                        </span>
+                      )}
+                      {ev.descripcion && (
+                        <p className="ap-evento-desc">
+                          {ev.descripcion.length > 120 ? ev.descripcion.slice(0, 120) + '…' : ev.descripcion}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           </div>
@@ -636,9 +699,10 @@ function LandingDemo() {
           </div>
           <nav className="ap-footer__nav">
             <button onClick={() => scrollTo('concepto')}>Concepto</button>
-            <button onClick={() => scrollTo('propuesta')}>La Propuesta</button>
+            <button onClick={() => scrollTo('propuesta')}>Propuesta</button>
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
+            <button onClick={() => scrollTo('eventos')}>Eventos</button>
             <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
             <Link to="/reserva-mesas">Reservas</Link>
           </nav>
