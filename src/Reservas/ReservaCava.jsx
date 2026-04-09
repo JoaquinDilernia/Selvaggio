@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import Toast from '../components/Toast';
@@ -124,6 +124,34 @@ function ReservaCava() {
         total: formData.cantidadPersonas * 50000,
         createdAt: new Date().toISOString()
       });
+
+      // Upsert cliente
+      if (formData.email) {
+        const clienteId = formData.email.toLowerCase().trim();
+        const clienteRef = doc(db, 'selvaggio_clientes', clienteId);
+        const clienteSnap = await getDoc(clienteRef);
+        if (clienteSnap.exists()) {
+          await setDoc(clienteRef, {
+            nombre: formData.nombre || clienteSnap.data().nombre || '',
+            telefono: formData.telefono || clienteSnap.data().telefono || '',
+            ...(formData.fechaNacimiento ? { fechaNacimiento: formData.fechaNacimiento } : {}),
+            totalReservas: increment(1),
+            ultimaReserva: new Date().toISOString()
+          }, { merge: true });
+        } else {
+          await setDoc(clienteRef, {
+            nombre: formData.nombre || '',
+            email: clienteId,
+            telefono: formData.telefono || '',
+            fechaNacimiento: formData.fechaNacimiento || '',
+            totalReservas: 1,
+            totalPedidos: 0,
+            ultimaReserva: new Date().toISOString(),
+            creado: new Date().toISOString()
+          });
+        }
+      }
+
       setReservaExitosa(true);
       fetchReservedDates();
     } catch {

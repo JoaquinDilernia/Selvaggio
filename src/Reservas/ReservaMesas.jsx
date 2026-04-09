@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import './ReservaMesas.css';
@@ -11,8 +11,8 @@ function ReservaMesas() {
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    telefono: '',
     email: '',
+    telefono: '',
     fechaNacimiento: '',
     cantidadPersonas: 2,
     fecha: '',
@@ -28,16 +28,6 @@ function ReservaMesas() {
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
   const [excepcionDia, setExcepcionDia] = useState(null);
-  const [eventos, setEventos] = useState([]);
-
-  useEffect(() => {
-    // Cargar eventos una vez
-    getDocs(collection(db, 'selvaggio_eventos')).then(snap => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.visible !== false);
-      console.log('[ReservaMesas] Eventos cargados:', items.length, items.map(e => e.fecha));
-      setEventos(items);
-    }).catch(err => console.error('[ReservaMesas] Error cargando eventos:', err));
-  }, []);
 
   useEffect(() => {
     if (formData.fecha) {
@@ -116,6 +106,34 @@ function ReservaMesas() {
       await addDoc(collection(db, 'selvaggio_reservas_mesas'), {
         ...formData, estado: 'pendiente', createdAt: new Date().toISOString()
       });
+
+      // Upsert cliente
+      if (formData.email) {
+        const clienteId = formData.email.toLowerCase().trim();
+        const clienteRef = doc(db, 'selvaggio_clientes', clienteId);
+        const clienteSnap = await getDoc(clienteRef);
+        if (clienteSnap.exists()) {
+          await setDoc(clienteRef, {
+            nombre: formData.nombre + (formData.apellido ? ' ' + formData.apellido : ''),
+            telefono: formData.telefono || clienteSnap.data().telefono || '',
+            ...(formData.fechaNacimiento ? { fechaNacimiento: formData.fechaNacimiento } : {}),
+            totalReservas: increment(1),
+            ultimaReserva: new Date().toISOString()
+          }, { merge: true });
+        } else {
+          await setDoc(clienteRef, {
+            nombre: formData.nombre + (formData.apellido ? ' ' + formData.apellido : ''),
+            email: clienteId,
+            telefono: formData.telefono || '',
+            fechaNacimiento: formData.fechaNacimiento || '',
+            totalReservas: 1,
+            totalPedidos: 0,
+            ultimaReserva: new Date().toISOString(),
+            creado: new Date().toISOString()
+          });
+        }
+      }
+
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
     } catch {
@@ -129,8 +147,6 @@ function ReservaMesas() {
   const horarios = getHorarios();
   const esFinde = dow === 5 || dow === 6;
   const diaCerrado = horarios.length === 0 && formData.fecha;
-  const eventoDia = formData.fecha ? eventos.find(e => e.fecha === formData.fecha) : null;
-  if (formData.fecha) console.log('[ReservaMesas] fecha seleccionada:', formData.fecha, '| eventos:', eventos.length, '| match:', eventoDia?.titulo || 'ninguno');
 
   /* ── Success ── */
   if (reservaExitosa) {
@@ -189,14 +205,7 @@ function ReservaMesas() {
             </div>
           </div>
 
-          {/* Teléfono */}
-          <div className="rf-field">
-            <label className="rf-label rf-label--req">WhatsApp / Teléfono</label>
-            <input className="rf-input" type="tel" name="telefono" value={formData.telefono}
-              onChange={handleChange} required placeholder="Ej: 11 6686 4692" />
-          </div>
-
-          {/* Email + Fecha nacimiento */}
+          {/* Email + Teléfono */}
           <div className="rf-row">
             <div className="rf-field">
               <label className="rf-label rf-label--req">Email</label>
@@ -204,10 +213,17 @@ function ReservaMesas() {
                 onChange={handleChange} required placeholder="tu@email.com" />
             </div>
             <div className="rf-field">
-              <label className="rf-label">Fecha de nacimiento</label>
-              <input className="rf-input" type="date" name="fechaNacimiento" value={formData.fechaNacimiento}
-                onChange={handleChange} />
+              <label className="rf-label rf-label--req">WhatsApp / Teléfono</label>
+              <input className="rf-input" type="tel" name="telefono" value={formData.telefono}
+                onChange={handleChange} required placeholder="Ej: 11 6686 4692" />
             </div>
+          </div>
+
+          {/* Fecha de nacimiento */}
+          <div className="rf-field">
+            <label className="rf-label">Fecha de nacimiento</label>
+            <input className="rf-input" type="date" name="fechaNacimiento" value={formData.fechaNacimiento}
+              onChange={handleChange} />
           </div>
 
           {/* Personas */}
@@ -227,17 +243,6 @@ function ReservaMesas() {
             <input className="rf-input" type="date" name="fecha" value={formData.fecha}
               onChange={handleChange} min={getMinDate()} required />
           </div>
-
-          {/* Aviso de evento */}
-          {eventoDia && (
-            <div className="rf-evento-notice">
-              <span className="rf-evento-notice__icon">🎉</span>
-              <div>
-                <strong>{eventoDia.titulo}</strong>
-                <p>{eventoDia.horaInicio}{eventoDia.horaFin ? ` – ${eventoDia.horaFin}` : ''}{eventoDia.descripcion ? ` · ${eventoDia.descripcion}` : ''}</p>
-              </div>
-            </div>
-          )}
 
           {/* Horario */}
           <div className="rf-field">

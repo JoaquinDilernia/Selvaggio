@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './LandingDemo.css';
-import EventoPopup from '../components/EventoPopup';
 
 function LandingDemo() {
   const [scrolled, setScrolled] = useState(false);
@@ -14,9 +13,9 @@ function LandingDemo() {
   const [galeria, setGaleria] = useState([]);
   const [reseñas, setReseñas] = useState([]);
   const [prensa, setPrensa] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
-  const [eventos, setEventos] = useState([]);
 
   // Trabajá con nosotros
   const [trabajaForm, setTrabajaForm] = useState({ nombre: '', email: '', telefono: '', puesto: '', mensaje: '' });
@@ -82,8 +81,18 @@ function LandingDemo() {
       const items = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((p) => p.visible !== false)
-        .sort((a, b) => (Number(a.orden) || 999) - (Number(b.orden) || 999));
+        .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
       setPrensa(items);
+    }).catch(() => {});
+
+    // Fetch eventos
+    getDocs(collection(db, 'selvaggio_eventos')).then((snap) => {
+      const hoy = new Date().toISOString().slice(0, 10);
+      const items = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((ev) => ev.visible !== false && ev.fecha >= hoy)
+        .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+      setEventos(items);
     }).catch(() => {});
 
     // Fetch carta PDF URL (stored by AdminCarta at selvaggio_configuracion/carta)
@@ -92,16 +101,6 @@ function LandingDemo() {
         const data = snap.data();
         if (data.url && !data.eliminada) setCartaUrl(data.url);
       }
-    }).catch(() => {});
-
-    // Fetch eventos
-    getDocs(collection(db, 'selvaggio_eventos')).then((snap) => {
-      const hoy = new Date().toISOString().split('T')[0];
-      const items = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(e => e.visible !== false && e.fecha >= hoy)
-        .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
-      setEventos(items);
     }).catch(() => {});
 
     const handleScroll = () => {
@@ -155,7 +154,6 @@ function LandingDemo() {
 
   return (
     <div className="ap-root">
-      <EventoPopup />
 
       {/* ── NAVBAR ── */}
       <header className={`ap-nav ${scrolled ? 'ap-nav--scrolled' : ''}`}>
@@ -167,9 +165,9 @@ function LandingDemo() {
           <nav className={`ap-nav__links ${menuOpen ? 'ap-nav__links--open' : ''}`}>
             <button onClick={() => scrollTo('concepto')}>Concepto</button>
             <button onClick={() => scrollTo('propuesta')}>Propuesta</button>
+            {eventos.length > 0 && <button onClick={() => scrollTo('eventos')}>Eventos</button>}
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
-            <button onClick={() => scrollTo('eventos')}>Eventos</button>
             <button onClick={() => scrollTo('contacto')}>Contacto</button>
             <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
           </nav>
@@ -335,6 +333,54 @@ function LandingDemo() {
         </div>
       </section>
 
+      {/* ── PRÓXIMOS EVENTOS ── */}
+      {eventos.length > 0 && (
+        <section id="eventos" className="ap-section ap-section--white">
+          <div className="ap-section__inner">
+            <div className="ap-section__header ap-reveal">
+              <p className="ap-eyebrow">Agenda</p>
+              <h2 className="ap-heading ap-heading--center">Próximos eventos</h2>
+            </div>
+            <div className="ap-eventos-grid ap-reveal">
+              {eventos.slice(0, 4).map((ev) => {
+                const d = ev.fecha ? new Date(ev.fecha + 'T12:00:00') : null;
+                const dia = d ? d.getDate() : '';
+                const mes = d ? d.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase() : '';
+                return (
+                  <article key={ev.id} className="ap-evento-card">
+                    {ev.imagen && (
+                      <div className="ap-evento-img-wrap">
+                        <img src={ev.imagen} alt={ev.titulo} className="ap-evento-img" loading="lazy" />
+                      </div>
+                    )}
+                    <div className="ap-evento-body">
+                      <div className="ap-evento-fecha">
+                        <span className="ap-evento-fecha__dia">{dia}</span>
+                        <span className="ap-evento-fecha__mes">{mes}</span>
+                      </div>
+                      <div className="ap-evento-info">
+                        <h3 className="ap-evento-titulo">{ev.titulo}</h3>
+                        {(ev.horaInicio || ev.horaFin) && (
+                          <span className="ap-evento-hora">
+                            {ev.horaInicio}{ev.horaFin ? ` – ${ev.horaFin}` : ''}
+                          </span>
+                        )}
+                        {ev.descripcion && <p className="ap-evento-desc">{ev.descripcion}</p>}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="ap-eventos-cta ap-reveal">
+              <a href="https://wa.me/5491166864692?text=Hola!%20Quiero%20cotizar%20un%20evento%20privado%20en%20Selvaggio" target="_blank" rel="noopener noreferrer" className="ap-btn ap-btn--pill ap-btn--dark ap-btn--large">
+                Cotizar evento
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── CÓMO FUNCIONA ── */}
       <section id="como-funciona" className="ap-section ap-section--white">
         <div className="ap-section__inner">
@@ -482,55 +528,6 @@ function LandingDemo() {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── EVENTOS ── */}
-      {eventos.length > 0 && (
-        <section id="eventos" className="ap-section ap-section--light">
-          <div className="ap-section__inner">
-            <div className="ap-section__header ap-reveal">
-              <p className="ap-eyebrow">Agenda</p>
-              <h2 className="ap-heading ap-heading--center">Próximos eventos.</h2>
-            </div>
-            <div className="ap-eventos-grid">
-              {eventos.slice(0, 4).map((ev, i) => (
-                <article
-                  key={ev.id}
-                  className={`ap-evento-card ap-reveal${i === 0 ? '' : i % 2 === 0 ? ' ap-reveal--delay2' : ' ap-reveal--delay'}`}
-                >
-                  {ev.imagen && (
-                    <div className="ap-evento-img-wrap">
-                      <img src={ev.imagen} alt={ev.titulo} className="ap-evento-img" loading="lazy" />
-                    </div>
-                  )}
-                  <div className="ap-evento-body">
-                    <div className="ap-evento-fecha">
-                      <span className="ap-evento-fecha__dia">
-                        {new Date(ev.fecha + 'T00:00:00').getDate()}
-                      </span>
-                      <span className="ap-evento-fecha__mes">
-                        {new Date(ev.fecha + 'T00:00:00').toLocaleDateString('es-AR', { month: 'short' }).replace('.', '')}
-                      </span>
-                    </div>
-                    <div className="ap-evento-info">
-                      <h3 className="ap-evento-titulo">{ev.titulo}</h3>
-                      {ev.horaInicio && (
-                        <span className="ap-evento-hora">
-                          {ev.horaInicio}{ev.horaFin ? ` – ${ev.horaFin}` : ''} hs
-                        </span>
-                      )}
-                      {ev.descripcion && (
-                        <p className="ap-evento-desc">
-                          {ev.descripcion.length > 120 ? ev.descripcion.slice(0, 120) + '…' : ev.descripcion}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </article>
               ))}
             </div>
           </div>
@@ -700,9 +697,9 @@ function LandingDemo() {
           <nav className="ap-footer__nav">
             <button onClick={() => scrollTo('concepto')}>Concepto</button>
             <button onClick={() => scrollTo('propuesta')}>Propuesta</button>
+            {eventos.length > 0 && <button onClick={() => scrollTo('eventos')}>Eventos</button>}
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
-            <button onClick={() => scrollTo('eventos')}>Eventos</button>
             <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
             <Link to="/reserva-mesas">Reservas</Link>
           </nav>

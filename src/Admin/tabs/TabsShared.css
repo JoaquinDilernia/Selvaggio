@@ -498,13 +498,6 @@
   line-height: 1;
   margin-top: 2px;
 }
-.cal-cell__evento {
-  font-size: 10px;
-  line-height: 1;
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-}
 
 /* ── Calendar Form ── */
 .cal-form {

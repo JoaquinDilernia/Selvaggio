@@ -660,6 +660,11 @@
   .ap-evento-img-wrap { height: 160px; }
 }
 
+.ap-eventos-cta {
+  text-align: center;
+  margin-top: 40px;
+}
+
 /* ── CTA ─────────────────────────────────────────────────── */
 .ap-cta {
   padding: 130px 28px;
