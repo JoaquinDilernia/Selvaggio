@@ -119,9 +119,7 @@ function ReservaCava() {
         horario: formData.horario,
         comprobanteUrl,
         estado: 'confirmada',
-        precioPersona: 50000,
         seña: 100000,
-        total: formData.cantidadPersonas * 50000,
         createdAt: new Date().toISOString()
       });
 
@@ -161,7 +159,6 @@ function ReservaCava() {
     }
   };
 
-  const total = formData.cantidadPersonas * 50000;
   const now = new Date();
   const isCurrentMonth = selectedMonth.getMonth() === now.getMonth() && selectedMonth.getFullYear() === now.getFullYear();
 
@@ -335,12 +332,6 @@ function ReservaCava() {
                 })}
               </p>
             )}
-          </div>
-
-          {/* Total */}
-          <div className="rf-total">
-            <span className="rf-total__label">Total estimado</span>
-            <span className="rf-total__amount">${total.toLocaleString('es-AR')}</span>
           </div>
 
           {/* Datos transferencia */}
