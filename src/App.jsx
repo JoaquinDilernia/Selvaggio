@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { ToastProvider } from './components/Toast'
+import ProtectedRoute from './components/ProtectedRoute'
 import LandingDemo from './LandingDemo/LandingDemo'
 import './theme.css'
 import './App.css'
@@ -30,11 +31,11 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingDemo />} />
           <Route path="/landing-v1" element={<Landing />} />
-          <Route path="/admin" element={<AdminNew />} />
-          <Route path="/admin-contenidos" element={<AdminContenidos />} />
-          <Route path="/importar-productos" element={<ImportarProductosExcel />} />
-          <Route path="/caja" element={<Caja />} />
-          <Route path="/cocina" element={<Cocina />} />
+          <Route path="/admin" element={<ProtectedRoute><AdminNew /></ProtectedRoute>} />
+          <Route path="/admin-contenidos" element={<ProtectedRoute><AdminContenidos /></ProtectedRoute>} />
+          <Route path="/importar-productos" element={<ProtectedRoute><ImportarProductosExcel /></ProtectedRoute>} />
+          <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
+          <Route path="/cocina" element={<ProtectedRoute><Cocina /></ProtectedRoute>} />
           <Route path="/cargar-datos" element={<CargarDatosPrueba />} />
           <Route path="/limpiar-duplicados" element={<LimpiarDuplicados />} />
           <Route path="/organizar-fotos" element={<OrganizadorFotos />} />
