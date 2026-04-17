@@ -1,358 +1,455 @@
-.admin-reservas-container {
-  padding: 2rem;
-  background: rgba(10, 10, 10, 0.5);
-  min-height: 100vh;
+/* ===== ADMIN RESERVAS — Light theme (matches AdminNew) ===== */
+.ar {
+  width: 100%;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: #1c1a17;
 }
 
-.admin-reservas-container h2 {
-  color: #b794c7;
-  margin-bottom: 1.5rem;
-}
-
-.tabs-reservas {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.tabs-reservas button {
-  padding: 1rem 1.5rem;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
-}
-
-.tabs-reservas button:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.tabs-reservas button.active {
-  color: #b794c7;
-  border-bottom-color: #b794c7;
-}
-
-.loading-reservas {
-  text-align: center;
-  padding: 3rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-}
-
-.no-data {
-  text-align: center;
-  padding: 3rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-}
-
-.reservas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-.reserva-card {
-  background: rgba(26, 26, 26, 0.8);
-  border: 1px solid rgba(183, 148, 199, 0.3);
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.reserva-card:hover {
-  background: rgba(26, 26, 26, 0.95);
-  border-color: rgba(183, 148, 199, 0.5);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.cava-card {
-  border-left: 4px solid #b794c7;
-}
-
-.mesa-card {
-  border-left: 4px solid #4CAF50;
-}
-
-.influ-card {
-  border-left: 4px solid #9C27B0;
-}
-
-.reserva-header {
+/* Header */
+.ar__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(28, 26, 23, 0.1);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.reserva-header h3 {
+.ar__title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  color: #1c1a17;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   margin: 0;
-  color: white;
-  font-size: 1.2rem;
 }
 
-.badge {
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge.confirmada {
-  background: #4CAF50;
-  color: white;
-}
-
-.badge.pendiente {
-  background: #FF9800;
-  color: white;
-  cursor: pointer;
-  border: none;
-}
-
-.badge.cancelada {
-  background: #f44336;
-  color: white;
-}
-
-.badge.tipo-prensa {
-  background: #2196F3;
-  color: white;
-}
-
-.badge.tipo-creadora-de-contenido {
-  background: #E91E63;
-  color: white;
-}
-
-.badge.tipo-influencer {
-  background: #9C27B0;
-  color: white;
-}
-
-.badge.tipo-tiktoker {
-  background: #00BCD4;
-  color: white;
-}
-
-.reserva-details {
+.ar__actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 16px;
 }
 
-.reserva-details p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.95rem;
-}
-
-.reserva-details strong {
-  color: #b794c7;
-}
-
-.btn-ver-comprobante {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.6rem 1.2rem;
-  background: #2196F3;
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-}
-
-.btn-ver-comprobante:hover {
-  background: #1976D2;
-  transform: translateY(-2px);
-}
-
-.btn-delete {
-  width: 100%;
-  margin-top: 1rem;
-  padding: 0.6rem;
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
+.ar__btn-refresh {
+  background: transparent;
+  border: 1px solid rgba(28, 26, 23, 0.18);
+  color: #6b635a;
+  padding: 7px 14px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.16s;
 }
 
-.btn-delete:hover {
-  background: #d32f2f;
+.ar__btn-refresh:hover {
+  border-color: rgba(28, 26, 23, 0.4);
+  color: #1c1a17;
 }
 
-/* FORMULARIO INFLUENCERS */
-
-.btn-add-influ {
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
-  color: #1a1a1a;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+.ar__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 1.5rem;
+  color: #6b635a;
+  font-size: 13px;
 }
 
-.btn-add-influ:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(183, 148, 199, 0.4);
+.ar__check input {
+  accent-color: #7a1c1c;
+  cursor: pointer;
 }
 
-.influ-form {
-  background: rgba(26, 26, 26, 0.95);
-  padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(183, 148, 199, 0.3);
-  margin-bottom: 2rem;
+/* Tabs */
+.ar__tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(28, 26, 23, 0.1);
 }
 
-.form-row {
+.ar__tab {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: #6b635a;
+  font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.16s;
+}
+
+.ar__tab:hover {
+  color: #1c1a17;
+}
+
+.ar__tab--active {
+  color: #1c1a17;
+  font-weight: 500;
+  border-bottom-color: #7a1c1c;
+}
+
+.ar__tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f4ef;
+  color: #6b635a;
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  padding: 0 6px;
+  margin-left: 6px;
+}
+
+.ar__tab--active .ar__tab-count {
+  background: rgba(122, 28, 28, 0.1);
+  color: #7a1c1c;
+}
+
+/* States */
+.ar__loading,
+.ar__empty {
+  text-align: center;
+  padding: 3rem;
+  color: #a09890;
+  font-size: 14px;
+}
+
+/* Grid */
+.ar__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
 }
 
-.form-group {
+/* Card */
+.ar__card {
+  background: #fff;
+  border: 1px solid rgba(28, 26, 23, 0.1);
+  border-radius: 4px;
+  padding: 20px;
+  transition: box-shadow 0.18s;
+}
+
+.ar__card:hover {
+  box-shadow: 0 4px 16px rgba(28, 26, 23, 0.08);
+}
+
+.ar__card--archived {
+  opacity: 0.45;
+}
+
+.ar__card-top {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(28, 26, 23, 0.08);
 }
 
-.form-group label {
-  color: #b794c7;
-  font-size: 0.9rem;
+.ar__card-name {
+  margin: 0;
+  color: #1c1a17;
+  font-size: 15px;
   font-weight: 500;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(183, 148, 199, 0.3);
-  border-radius: 6px;
-  color: white;
-  font-size: 1rem;
-  font-family: inherit;
+.ar__card-date {
+  margin: 3px 0 0;
+  color: #a09890;
+  font-size: 12.5px;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #b794c7;
-  background: rgba(255, 255, 255, 0.08);
+/* Badges */
+.ar__badge {
+  padding: 4px 10px;
+  border-radius: 980px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.form-group select option {
-  background: #1a1a1a;
-  color: white;
+.ar__badge--cava {
+  background: rgba(122, 28, 28, 0.1);
+  color: #7a1c1c;
 }
 
-.form-group textarea {
-  resize: vertical;
-  min-height: 100px;
+.ar__badge--mesa {
+  background: rgba(30, 120, 60, 0.1);
+  color: #1a6635;
 }
 
-.btn-submit-influ {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #b794c7 0%, #916faa 100%);
-  color: #1a1a1a;
+.ar__badge--influencer,
+.ar__badge--influ {
+  background: rgba(120, 40, 140, 0.1);
+  color: #6a248c;
+}
+
+.ar__badge--prensa {
+  background: rgba(20, 90, 160, 0.1);
+  color: #145aa0;
+}
+
+.ar__badge--creadora-de-contenido {
+  background: rgba(180, 30, 80, 0.1);
+  color: #a01c4a;
+}
+
+.ar__badge--tiktoker {
+  background: rgba(0, 130, 150, 0.1);
+  color: #007a8a;
+}
+
+/* Card body */
+.ar__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ar__card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13.5px;
+  color: #1c1a17;
+}
+
+.ar__card-label {
+  color: #a09890;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Link */
+.ar__link {
+  display: inline-block;
+  margin-top: 12px;
+  color: #7a1c1c;
+  font-size: 13px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.16s;
+}
+
+.ar__link:hover {
+  text-decoration: underline;
+}
+
+/* Card actions */
+.ar__card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(28, 26, 23, 0.08);
+}
+
+/* Buttons */
+.ar__btn {
+  flex: 1;
+  padding: 8px 12px;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.16s;
+}
+
+.ar__btn--edit {
+  background: #1c1a17;
+  color: #fff;
+}
+
+.ar__btn--edit:hover {
+  background: #0e0c0a;
+}
+
+.ar__btn--archive {
+  background: #f7f4ef;
+  color: #6b635a;
+  border: 1px solid rgba(28, 26, 23, 0.12);
+}
+
+.ar__btn--archive:hover {
+  background: #eee9e1;
+  color: #1c1a17;
+}
+
+.ar__btn--delete {
+  background: transparent;
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}
+
+.ar__btn--delete:hover {
+  background: rgba(192, 57, 43, 0.06);
+}
+
+.ar__btn--save {
+  flex: 1;
+  padding: 10px;
+  background: #1c1a17;
+  color: #fff;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
 }
 
-.btn-submit-influ:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(183, 148, 199, 0.4);
+.ar__btn--save:hover {
+  background: #0e0c0a;
 }
 
-@media (max-width: 768px) {
-  .tabs-reservas {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .tabs-reservas button {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .reservas-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .influ-form {
-    padding: 1.5rem;
-  }
-}
-
-/* BOTONES EDITAR / DESARCHIVAR */
-.btn-editar {
+.ar__btn--cancel {
   flex: 1;
-  background: #2196F3;
-  color: white;
+  padding: 10px;
+  background: transparent;
+  color: #6b635a;
+  border: 1px solid rgba(28, 26, 23, 0.18);
+}
+
+.ar__btn--cancel:hover {
+  background: #f7f4ef;
+}
+
+/* New button */
+.ar__btn-new {
+  padding: 10px 20px;
+  background: #1c1a17;
+  color: #fff;
   border: none;
-  padding: 8px;
-  border-radius: 5px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+  transition: background 0.16s;
 }
 
-.btn-editar:hover {
-  background: #1976D2;
+.ar__btn-new:hover {
+  background: #0e0c0a;
 }
 
-.btn-desarchivar {
-  flex: 1;
-  background: #4CAF50;
-  color: white;
+.ar__btn-submit {
+  width: 100%;
+  padding: 11px;
+  background: #1c1a17;
+  color: #fff;
   border: none;
-  padding: 8px;
-  border-radius: 5px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.3s ease;
+  margin-top: 8px;
+  transition: background 0.16s;
 }
 
-.btn-desarchivar:hover {
-  background: #388E3C;
+.ar__btn-submit:hover {
+  background: #0e0c0a;
 }
 
-/* MODAL DE EDICIÓN */
-.edit-modal-overlay {
+.ar__btn-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Form */
+.ar__form {
+  background: #f7f4ef;
+  padding: 24px;
+  border-radius: 4px;
+  border: 1px solid rgba(28, 26, 23, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.ar__form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ar__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ar__form-group label {
+  color: #6b635a;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ar__form-group input,
+.ar__form-group select,
+.ar__form-group textarea {
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid rgba(28, 26, 23, 0.18);
+  border-radius: 4px;
+  color: #1c1a17;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.16s;
+}
+
+.ar__form-group input:focus,
+.ar__form-group select:focus,
+.ar__form-group textarea:focus {
+  outline: none;
+  border-color: #7a1c1c;
+}
+
+.ar__form-group select option {
+  background: #fff;
+  color: #1c1a17;
+}
+
+.ar__form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Checkbox */
+.ar__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1c1a17;
+  font-size: 14px;
+  cursor: pointer;
+  margin: 8px 0;
+}
+
+.ar__checkbox input {
+  accent-color: #7a1c1c;
+}
+
+/* Modal */
+.ar__overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(28, 26, 23, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -360,121 +457,81 @@
   padding: 1rem;
 }
 
-.edit-modal {
-  background: #1a1a1a;
-  border: 1px solid rgba(183, 148, 199, 0.4);
-  border-radius: 12px;
-  padding: 2rem;
-  max-width: 500px;
+.ar__modal {
+  background: #fff;
+  border: 1px solid rgba(28, 26, 23, 0.12);
+  border-radius: 6px;
+  padding: 28px;
+  max-width: 480px;
   width: 100%;
   max-height: 85vh;
   overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(28, 26, 23, 0.2);
 }
 
-.edit-modal h3 {
-  color: #b794c7;
-  margin: 0 0 1.5rem 0;
-  font-size: 1.3rem;
+.ar__modal-title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  color: #1c1a17;
+  margin: 0 0 20px;
+  font-size: 22px;
+  font-weight: 400;
 }
 
-.edit-form .form-group {
-  margin-bottom: 1rem;
+.ar__modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.edit-form .form-group label {
-  color: #b794c7;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: block;
-  margin-bottom: 0.4rem;
+.ar__modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
 }
 
-.edit-form .form-group input,
-.edit-form .form-group select,
-.edit-form .form-group textarea {
-  width: 100%;
-  padding: 0.7rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(183, 148, 199, 0.3);
-  border-radius: 6px;
+/* Toast */
+.ar-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 18px;
+  border-radius: 4px;
   color: white;
-  font-size: 0.95rem;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-.edit-form .form-group input:focus,
-.edit-form .form-group select:focus,
-.edit-form .form-group textarea:focus {
-  outline: none;
-  border-color: #b794c7;
-}
-
-.edit-form .form-group select option {
-  background: #1a1a1a;
-  color: white;
-}
-
-.edit-form .checkbox-group label {
+  cursor: pointer;
+  z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: white;
-  cursor: pointer;
+  gap: 10px;
+  font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 16px rgba(28, 26, 23, 0.2);
 }
 
-.edit-form .checkbox-group input[type="checkbox"] {
-  width: auto;
-  accent-color: #b794c7;
+.ar-toast--success {
+  background: #1a6635;
 }
 
-.edit-total-preview {
-  padding: 0.75rem;
-  background: rgba(183, 148, 199, 0.15);
-  border: 1px solid rgba(183, 148, 199, 0.3);
-  border-radius: 6px;
-  text-align: center;
-  color: #b794c7;
-  font-size: 1.1rem;
-  margin-top: 0.5rem;
+.ar-toast--error {
+  background: #c0392b;
 }
 
-.btn-save-edit {
-  flex: 1;
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #b794c7, #916faa);
-  color: #1a1a1a;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+/* Responsive */
+@media (max-width: 768px) {
+  .ar__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 
-.btn-save-edit:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(183, 148, 199, 0.4);
-}
+  .ar__grid {
+    grid-template-columns: 1fr;
+  }
 
-.btn-cancel-edit {
-  flex: 1;
-  padding: 0.75rem;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+  .ar__form-row {
+    grid-template-columns: 1fr;
+  }
 
-.btn-cancel-edit:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* NUEVA RESERVA (resaltada) */
-.nueva-reserva {
-  border-color: #4CAF50 !important;
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+  .ar__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
