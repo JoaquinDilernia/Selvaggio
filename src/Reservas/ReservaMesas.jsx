@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
+import { enviarConfirmacionMesas } from '../utils/emailService';
 import './ReservaMesas.css';
 
 const LIMITE_POR_SLOT = 4;
@@ -136,6 +137,7 @@ function ReservaMesas() {
 
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
+      enviarConfirmacionMesas(formData);
     } catch {
       setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });
     } finally {

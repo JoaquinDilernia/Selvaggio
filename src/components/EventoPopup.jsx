@@ -4,11 +4,21 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import './EventoPopup.css';
 
-function EventoPopup() {
+function EventoPopup({ evento: eventoProp, onClose }) {
   const [isVisible, setIsVisible] = useState(false);
   const [evento, setEvento] = useState(null);
 
+  // Mode 1: manual trigger via prop
   useEffect(() => {
+    if (eventoProp) {
+      setEvento(eventoProp);
+      setIsVisible(true);
+    }
+  }, [eventoProp]);
+
+  // Mode 2: auto popup on page load
+  useEffect(() => {
+    if (eventoProp) return; // skip auto if manual
     const popupShown = sessionStorage.getItem('eventoPopupShown');
     if (popupShown) return;
 
@@ -31,11 +41,12 @@ function EventoPopup() {
       }
     };
     cargar();
-  }, []);
+  }, [eventoProp]);
 
   const handleClose = () => {
     setIsVisible(false);
-    sessionStorage.setItem('eventoPopupShown', 'true');
+    if (!eventoProp) sessionStorage.setItem('eventoPopupShown', 'true');
+    if (onClose) onClose();
   };
 
   if (!isVisible || !evento) return null;

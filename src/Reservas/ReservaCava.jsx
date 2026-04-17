@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
+import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
 import './ReservaCava.css';
 
@@ -151,6 +152,7 @@ function ReservaCava() {
       }
 
       setReservaExitosa(true);
+      enviarConfirmacionCava(formData);
       fetchReservedDates();
     } catch {
       setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });

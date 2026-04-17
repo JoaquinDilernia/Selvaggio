@@ -1,29 +1,32 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
+import { Suspense, lazy } from 'react'
 import { ToastProvider } from './components/Toast'
-import Landing from './Landing/Landing'
 import LandingDemo from './LandingDemo/LandingDemo'
-import AdminNew from './Admin/AdminNew'
-import AdminContenidos from './Admin/AdminContenidos'
-import ImportarProductosExcel from './Admin/ImportarProductosExcel'
-import Caja from './Caja/Caja'
-import Cocina from './Cocina/Cocina'
-import CargarDatosPrueba from './CargarDatosPrueba'
-import LimpiarDuplicados from './LimpiarDuplicados'
-import OrganizadorFotos from './OrganizadorFotos'
-import ReservaCava from './Reservas/ReservaCava'
-import ReservaMesas from './Reservas/ReservaMesas'
-import Page404 from './pages/Page404'
-import Terminos from './pages/Terminos'
-import Privacidad from './pages/Privacidad'
-import Gracias from './pages/Gracias'
-import Formulario from './Formulario'
 import './theme.css'
 import './App.css'
+
+const Landing = lazy(() => import('./Landing/Landing'))
+const AdminNew = lazy(() => import('./Admin/AdminNew'))
+const AdminContenidos = lazy(() => import('./Admin/AdminContenidos'))
+const ImportarProductosExcel = lazy(() => import('./Admin/ImportarProductosExcel'))
+const Caja = lazy(() => import('./Caja/Caja'))
+const Cocina = lazy(() => import('./Cocina/Cocina'))
+const CargarDatosPrueba = lazy(() => import('./CargarDatosPrueba'))
+const LimpiarDuplicados = lazy(() => import('./LimpiarDuplicados'))
+const OrganizadorFotos = lazy(() => import('./OrganizadorFotos'))
+const ReservaCava = lazy(() => import('./Reservas/ReservaCava'))
+const ReservaMesas = lazy(() => import('./Reservas/ReservaMesas'))
+const Page404 = lazy(() => import('./pages/Page404'))
+const Terminos = lazy(() => import('./pages/Terminos'))
+const Privacidad = lazy(() => import('./pages/Privacidad'))
+const Gracias = lazy(() => import('./pages/Gracias'))
+const Formulario = lazy(() => import('./Formulario'))
 
 function App() {
   return (
     <ToastProvider>
       <Router>
+        <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<LandingDemo />} />
           <Route path="/landing-v1" element={<Landing />} />
@@ -43,6 +46,7 @@ function App() {
           <Route path="/formulario" element={<Formulario />} />
           <Route path="*" element={<Page404 />} />
         </Routes>
+        </Suspense>
       </Router>
     </ToastProvider>
   )

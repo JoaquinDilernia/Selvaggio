@@ -21,6 +21,57 @@
   --font-ui:      'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* ── Loading Screen ──────────────────────────────────────── */
+.ap-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0e0c0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+.ap-loader--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.ap-loader__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+.ap-loader__logo {
+  width: 180px;
+  height: auto;
+  animation: ap-loader-pulse 1.8s ease-in-out infinite;
+  filter: brightness(0.9);
+}
+@keyframes ap-loader-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.ap-loader__bar {
+  width: 120px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ap-loader__progress {
+  height: 100%;
+  background: rgba(255,255,255,0.5);
+  border-radius: 2px;
+  animation: ap-loader-slide 1.2s ease-in-out infinite;
+}
+@keyframes ap-loader-slide {
+  0% { width: 0; margin-left: 0; }
+  50% { width: 60%; margin-left: 20%; }
+  100% { width: 0; margin-left: 100%; }
+}
+
 /* ── Reset scoped ── */
 .ap-root,
 .ap-root * {
@@ -567,6 +618,7 @@
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+.ap-evento-card--clickable { cursor: pointer; }
 
 .ap-evento-card:hover {
   transform: translateY(-4px);
@@ -1077,6 +1129,56 @@
 .ap-gallery__item:hover .ap-gallery__img {
   transform: scale(1.04);
   filter: brightness(1);
+}
+.ap-gallery__item--clickable { cursor: pointer; }
+
+/* ── Lightbox ────────────────────────────────────────────── */
+.ap-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: ap-lb-in 0.25s ease-out;
+  backdrop-filter: blur(4px);
+}
+@keyframes ap-lb-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ap-lightbox__img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 6px;
+  animation: ap-lb-scale 0.3s ease-out;
+}
+@keyframes ap-lb-scale {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.ap-lightbox__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.ap-lightbox__close:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 /* ── CONTACTO actualizado ────────────────────────────────────*/

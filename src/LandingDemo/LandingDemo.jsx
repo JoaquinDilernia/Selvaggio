@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import EventoPopup from '../components/EventoPopup';
 import './LandingDemo.css';
 
 function LandingDemo() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const videoRef = useRef(null);
 
   // Datos reales de Firebase
@@ -16,6 +18,8 @@ function LandingDemo() {
   const [eventos, setEventos] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
+  const [popupEvento, setPopupEvento] = useState(null);
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   // Trabajá con nosotros
   const [trabajaForm, setTrabajaForm] = useState({ nombre: '', email: '', telefono: '', puesto: '', mensaje: '' });
@@ -53,6 +57,22 @@ function LandingDemo() {
       'https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600;700&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
+
+    // Loading: wait for video or max 4s
+    const vid = videoRef.current;
+    const hideLoader = () => setCargando(false);
+    let fallbackTimer = setTimeout(hideLoader, 4000);
+    if (vid) {
+      const onReady = () => {
+        clearTimeout(fallbackTimer);
+        hideLoader();
+      };
+      if (vid.readyState >= 3) {
+        onReady();
+      } else {
+        vid.addEventListener('canplay', onReady, { once: true });
+      }
+    }
 
     // Fetch galería
     getDocs(collection(db, 'selvaggio_galeria')).then((snap) => {
@@ -155,6 +175,16 @@ function LandingDemo() {
   return (
     <div className="ap-root">
 
+      {/* ── LOADING SCREEN ── */}
+      <div className={`ap-loader${cargando ? '' : ' ap-loader--hidden'}`}>
+        <div className="ap-loader__inner">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="ap-loader__logo" />
+          <div className="ap-loader__bar">
+            <div className="ap-loader__progress" />
+          </div>
+        </div>
+      </div>
+
       {/* ── NAVBAR ── */}
       <header className={`ap-nav ${scrolled ? 'ap-nav--scrolled' : ''}`}>
         <div className="ap-nav__inner">
@@ -243,6 +273,59 @@ function LandingDemo() {
           </div>
         </div>
       </section>
+
+      {/* ── PRÓXIMOS EVENTOS ── */}
+      {eventos.length > 0 && (
+        <section id="eventos" className="ap-section ap-section--white">
+          <div className="ap-section__inner">
+            <div className="ap-section__header ap-reveal">
+              <p className="ap-eyebrow">Agenda</p>
+              <h2 className="ap-heading ap-heading--center">Próximos eventos</h2>
+            </div>
+            <div className="ap-eventos-grid ap-reveal">
+              {eventos.slice(0, 4).map((ev) => {
+                const d = ev.fecha ? new Date(ev.fecha + 'T12:00:00') : null;
+                const dia = d ? d.getDate() : '';
+                const mes = d ? d.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase() : '';
+                const tienePopup = ev.popupImagen || ev.imagen;
+                return (
+                  <article
+                    key={ev.id}
+                    className={`ap-evento-card${tienePopup ? ' ap-evento-card--clickable' : ''}`}
+                    onClick={() => tienePopup && setPopupEvento(ev)}
+                  >
+                    {ev.imagen && (
+                      <div className="ap-evento-img-wrap">
+                        <img src={ev.imagen} alt={ev.titulo} className="ap-evento-img" loading="lazy" />
+                      </div>
+                    )}
+                    <div className="ap-evento-body">
+                      <div className="ap-evento-fecha">
+                        <span className="ap-evento-fecha__dia">{dia}</span>
+                        <span className="ap-evento-fecha__mes">{mes}</span>
+                      </div>
+                      <div className="ap-evento-info">
+                        <h3 className="ap-evento-titulo">{ev.titulo}</h3>
+                        {(ev.horaInicio || ev.horaFin) && (
+                          <span className="ap-evento-hora">
+                            {ev.horaInicio}{ev.horaFin ? ` – ${ev.horaFin}` : ''}
+                          </span>
+                        )}
+                        {ev.descripcion && <p className="ap-evento-desc">{ev.descripcion}</p>}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="ap-eventos-cta ap-reveal">
+              <a href="https://wa.me/5491166864692?text=Hola!%20Quiero%20cotizar%20un%20evento%20privado%20en%20Selvaggio" target="_blank" rel="noopener noreferrer" className="ap-btn ap-btn--pill ap-btn--dark ap-btn--large">
+                Cotizar evento
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── CONCEPTO ── */}
       <section id="concepto" className="ap-section ap-section--white">
@@ -333,54 +416,6 @@ function LandingDemo() {
         </div>
       </section>
 
-      {/* ── PRÓXIMOS EVENTOS ── */}
-      {eventos.length > 0 && (
-        <section id="eventos" className="ap-section ap-section--white">
-          <div className="ap-section__inner">
-            <div className="ap-section__header ap-reveal">
-              <p className="ap-eyebrow">Agenda</p>
-              <h2 className="ap-heading ap-heading--center">Próximos eventos</h2>
-            </div>
-            <div className="ap-eventos-grid ap-reveal">
-              {eventos.slice(0, 4).map((ev) => {
-                const d = ev.fecha ? new Date(ev.fecha + 'T12:00:00') : null;
-                const dia = d ? d.getDate() : '';
-                const mes = d ? d.toLocaleDateString('es-AR', { month: 'short' }).toUpperCase() : '';
-                return (
-                  <article key={ev.id} className="ap-evento-card">
-                    {ev.imagen && (
-                      <div className="ap-evento-img-wrap">
-                        <img src={ev.imagen} alt={ev.titulo} className="ap-evento-img" loading="lazy" />
-                      </div>
-                    )}
-                    <div className="ap-evento-body">
-                      <div className="ap-evento-fecha">
-                        <span className="ap-evento-fecha__dia">{dia}</span>
-                        <span className="ap-evento-fecha__mes">{mes}</span>
-                      </div>
-                      <div className="ap-evento-info">
-                        <h3 className="ap-evento-titulo">{ev.titulo}</h3>
-                        {(ev.horaInicio || ev.horaFin) && (
-                          <span className="ap-evento-hora">
-                            {ev.horaInicio}{ev.horaFin ? ` – ${ev.horaFin}` : ''}
-                          </span>
-                        )}
-                        {ev.descripcion && <p className="ap-evento-desc">{ev.descripcion}</p>}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <div className="ap-eventos-cta ap-reveal">
-              <a href="https://wa.me/5491166864692?text=Hola!%20Quiero%20cotizar%20un%20evento%20privado%20en%20Selvaggio" target="_blank" rel="noopener noreferrer" className="ap-btn ap-btn--pill ap-btn--dark ap-btn--large">
-                Cotizar evento
-              </a>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── CÓMO FUNCIONA ── */}
       <section id="como-funciona" className="ap-section ap-section--white">
         <div className="ap-section__inner">
@@ -423,7 +458,11 @@ function LandingDemo() {
           </div>
           <div className={`ap-gallery__grid ap-gallery__grid--${Math.min(galeriaItems.length, 6) >= 4 ? '3col' : '2col'}`}>
             {galeriaItems.slice(0, 6).map((foto, i) => (
-              <div key={foto.id} className={`ap-gallery__item ap-reveal${i === 0 ? '' : i % 3 === 0 ? ' ap-reveal--delay' : ' ap-reveal--delay2'}`}>
+              <div
+                key={foto.id}
+                className={`ap-gallery__item ap-gallery__item--clickable ap-reveal${i === 0 ? '' : i % 3 === 0 ? ' ap-reveal--delay' : ' ap-reveal--delay2'}`}
+                onClick={() => setLightboxImg(foto)}
+              >
                 <img src={foto.url} alt={foto.titulo} className="ap-gallery__img" loading="lazy" />
                 {foto.titulo && (
                   <div className="ap-gallery__caption">{foto.titulo}</div>
@@ -736,6 +775,20 @@ function LandingDemo() {
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
         </svg>
       </a>
+
+      {/* Popup de evento (auto + click en card) */}
+      <EventoPopup />
+      {popupEvento && (
+        <EventoPopup evento={popupEvento} onClose={() => setPopupEvento(null)} />
+      )}
+
+      {/* Lightbox galería */}
+      {lightboxImg && (
+        <div className="ap-lightbox" onClick={() => setLightboxImg(null)}>
+          <button className="ap-lightbox__close" onClick={() => setLightboxImg(null)} aria-label="Cerrar">✕</button>
+          <img src={lightboxImg.url} alt={lightboxImg.titulo || ''} className="ap-lightbox__img" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
 
     </div>
   );
