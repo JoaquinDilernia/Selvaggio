@@ -425,7 +425,6 @@ function AdminReservas() {
                     <select name="preferencia" value={editForm.preferencia} onChange={handleEditFormChange}>
                       <option value="">Sin preferencia</option>
                       <option value="Adentro / Living">Adentro / Living</option>
-                      <option value="Pérgola / La Galería">Pérgola / La Galería</option>
                     </select>
                   </div>
                   <div className="ar__form-group"><label>Restricciones</label><textarea name="restricciones" value={editForm.restricciones} onChange={handleEditFormChange} rows="2" /></div>
