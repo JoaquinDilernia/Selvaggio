@@ -205,7 +205,7 @@ function ReservaCava() {
 
         {/* Info precio */}
         <div className="rf-cava-info">
-          <p className="rf-cava-info__price"><span>$</span>50.000<span> / persona</span></p>
+          <p className="rf-cava-info__price"><span>$</span>60.000<span> / persona</span></p>
           <p className="rf-cava-info__desc">Degustación completa con maridaje libre hasta las 00:00 hs, panera artesanal y agua.</p>
           <p className="rf-cava-info__detail">Selección de charcuterie premium, quesos especialmente curados, conservas y acompañamientos.</p>
           <span className="rf-cava-info__seña">Seña de $100.000 por transferencia</span>
@@ -340,16 +340,28 @@ function ReservaCava() {
           <div className="rf-transfer">
             <p className="rf-transfer__title">Seña · $100.000 por transferencia</p>
             <div className="rf-transfer__row">
-              <span className="rf-transfer__key">Alias</span>
-              <span className="rf-transfer__val">selvaggio.ba</span>
+              <span className="rf-transfer__key">Banco</span>
+              <span className="rf-transfer__val">Banco Santander</span>
             </div>
             <div className="rf-transfer__row">
-              <span className="rf-transfer__key">CVU</span>
-              <span className="rf-transfer__val">0000003100080434358834</span>
+              <span className="rf-transfer__key">Cuenta</span>
+              <span className="rf-transfer__val">Caja de ahorro en pesos 519-355143/7</span>
+            </div>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">CBU</span>
+              <span className="rf-transfer__val">0720519488000035514372</span>
+            </div>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">Alias</span>
+              <span className="rf-transfer__val">selvaggioba</span>
             </div>
             <div className="rf-transfer__row">
               <span className="rf-transfer__key">Titular</span>
               <span className="rf-transfer__val">Tomas Laureano Molina</span>
+            </div>
+            <div className="rf-transfer__row">
+              <span className="rf-transfer__key">CUIT</span>
+              <span className="rf-transfer__val">20-42200145-0</span>
             </div>
           </div>
 
