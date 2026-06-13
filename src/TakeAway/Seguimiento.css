@@ -1,0 +1,301 @@
+/* ─── Seguimiento de pedido ─── */
+
+.sg-main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+.sg-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.sg-eyebrow {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a7e76;
+  margin-bottom: 12px;
+}
+.sg-title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 38px;
+  font-weight: 600;
+  color: #2a2420;
+  margin: 0;
+}
+
+/* ─── Search bar ─── */
+.sg-search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.sg-search__input {
+  flex: 1;
+  padding: 13px 16px;
+  border: 1.5px solid #ddd7cf;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2a2420;
+  background: #fff;
+  outline: none;
+  letter-spacing: 0.05em;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+}
+.sg-search__input:focus { border-color: #2a2420; }
+.sg-search__input::placeholder { font-weight: 400; letter-spacing: 0; color: #b0a89e; }
+.sg-search__btn {
+  padding: 13px 22px;
+  background: #2a2420;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.sg-search__btn:hover:not(:disabled) { background: #7c3f2f; }
+.sg-search__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sg-error {
+  background: #fef2f0;
+  border: 1px solid #f5c6bc;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #8b3a2e;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* ─── Pedido card ─── */
+.sg-pedido {
+  background: #fff;
+  border: 1px solid #ece6e0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.sg-pedido__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #f0ece8;
+}
+.sg-pedido__num {
+  display: block;
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2a2420;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+.sg-pedido__nombre {
+  display: block;
+  font-size: 14px;
+  color: #8a7e76;
+}
+
+/* ─── Estado badge ─── */
+.sg-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sg-badge--pendiente   { background: #fef6e8; color: #9a6510; }
+.sg-badge--preparando  { background: #e8f0fe; color: #1a56a8; }
+.sg-badge--listo       { background: #e6f4ea; color: #1e6b3a; }
+.sg-badge--entregado   { background: #f0ece8; color: #5a4e46; }
+.sg-badge--cancelado   { background: #fef0ee; color: #8b3a2e; }
+
+/* ─── Timeline ─── */
+.sg-timeline {
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sg-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.sg-step__indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+}
+.sg-step__dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #ddd7cf;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.sg-step--done .sg-step__dot {
+  background: #2a7c4e;
+  border-color: #2a7c4e;
+}
+.sg-step--active .sg-step__dot {
+  border-color: #2a2420;
+  background: #2a2420;
+}
+.sg-step__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: sgPulse 1.4s ease-in-out infinite;
+}
+@keyframes sgPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+.sg-step__line {
+  width: 2px;
+  height: 32px;
+  background: #ece6e0;
+  margin: 2px 0;
+  transition: background 0.3s;
+}
+.sg-step--done + .sg-step .sg-step__line,
+.sg-step--done .sg-step__line { background: #2a7c4e; }
+
+.sg-step__content {
+  padding: 2px 0 28px;
+}
+.sg-step:last-child .sg-step__content { padding-bottom: 0; }
+.sg-step__label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b0a89e;
+  transition: color 0.2s;
+}
+.sg-step--done .sg-step__label  { color: #2a7c4e; }
+.sg-step--active .sg-step__label { color: #2a2420; font-size: 15px; }
+.sg-step__desc {
+  display: block;
+  font-size: 13px;
+  color: #6b5e54;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* ─── Cancelado ─── */
+.sg-cancelado {
+  padding: 24px 22px;
+  text-align: center;
+  color: #8b3a2e;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.sg-wpp-btn {
+  display: inline-block;
+  margin-top: 14px;
+  background: #25d366;
+  color: #fff;
+  border-radius: 100px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.18s;
+}
+.sg-wpp-btn:hover { background: #1da851; }
+
+/* ─── Detalle items ─── */
+.sg-detalle {
+  padding: 20px 22px;
+  border-top: 1px solid #f0ece8;
+  background: #faf7f4;
+}
+.sg-detalle__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a7e76;
+  margin: 0 0 14px;
+}
+.sg-detalle__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #ece6e0;
+  font-size: 14px;
+}
+.sg-detalle__row:last-of-type { border-bottom: none; }
+.sg-detalle__qty { color: #8a7e76; font-size: 13px; min-width: 18px; }
+.sg-detalle__nombre { flex: 1; color: #2a2420; }
+.sg-detalle__precio { font-weight: 600; color: #2a2420; }
+.sg-detalle__total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 2px solid #ece6e0;
+  font-weight: 700;
+  font-size: 15px;
+  color: #2a2420;
+}
+.sg-detalle__pago {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #6b5e54;
+}
+.sg-detalle__pago span:first-child { font-weight: 600; }
+.sg-detalle__comentario {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #6b5e54;
+  font-style: italic;
+  line-height: 1.5;
+}
+.sg-detalle__comentario span { font-weight: 600; font-style: normal; }
+
+/* ─── Listo banner ─── */
+.sg-listo-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 22px;
+  background: #e6f4ea;
+  border-top: 1px solid #c3e6cb;
+  font-size: 14px;
+  color: #1e6b3a;
+  line-height: 1.5;
+}
+.sg-listo-banner span:first-child { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+.sg-listo-banner strong { display: block; font-size: 15px; margin-bottom: 4px; }
+.sg-listo-banner p { margin: 0; color: #2a8a4e; }
+
+@media (max-width: 480px) {
+  .sg-main { padding: 32px 16px 60px; }
+}

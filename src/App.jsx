@@ -17,6 +17,8 @@ const LimpiarDuplicados = lazy(() => import('./LimpiarDuplicados'))
 const OrganizadorFotos = lazy(() => import('./OrganizadorFotos'))
 const ReservaCava = lazy(() => import('./Reservas/ReservaCava'))
 const ReservaMesas = lazy(() => import('./Reservas/ReservaMesas'))
+const TakeAway = lazy(() => import('./TakeAway/TakeAway'))
+const SeguimientoPedido = lazy(() => import('./TakeAway/SeguimientoPedido'))
 const Page404 = lazy(() => import('./pages/Page404'))
 const Terminos = lazy(() => import('./pages/Terminos'))
 const Privacidad = lazy(() => import('./pages/Privacidad'))
@@ -39,6 +41,8 @@ function App() {
           <Route path="/cargar-datos" element={<CargarDatosPrueba />} />
           <Route path="/limpiar-duplicados" element={<LimpiarDuplicados />} />
           <Route path="/organizar-fotos" element={<OrganizadorFotos />} />
+          <Route path="/take-away" element={<TakeAway />} />
+          <Route path="/take-away/seguimiento" element={<SeguimientoPedido />} />
           <Route path="/reserva-cava" element={<ReservaCava />} />
           <Route path="/reserva-mesas" element={<ReservaMesas />} />
           <Route path="/terminos" element={<Terminos />} />

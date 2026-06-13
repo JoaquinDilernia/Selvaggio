@@ -17,6 +17,7 @@ function LandingDemo() {
   const [prensa, setPrensa] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
+  const [takeawayActivo, setTakeawayActivo] = useState(false);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
   const [popupEvento, setPopupEvento] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -123,6 +124,11 @@ function LandingDemo() {
       }
     }).catch(() => {});
 
+    // Fetch takeaway config
+    getDoc(doc(db, 'selvaggio_configuracion', 'takeaway_config')).then((snap) => {
+      setTakeawayActivo(snap.exists() ? snap.data().activo === true : false);
+    }).catch(() => {});
+
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
       setShowStickyBtn(window.scrollY > window.innerHeight * 0.75);
@@ -203,6 +209,11 @@ function LandingDemo() {
           </nav>
 
           <div className="ap-nav__right">
+            {takeawayActivo && (
+              <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--dark" style={{ marginRight: 8 }}>
+                Take Away
+              </Link>
+            )}
             <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--dark">
               Reservar
             </Link>
@@ -238,6 +249,9 @@ function LandingDemo() {
           <div className="ap-hero__actions">
             <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white">Reservar mesa</Link>
             <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--ghost-white">Reservar La Cava</Link>
+            {takeawayActivo && (
+              <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--ghost-white">Pedir para llevar</Link>
+            )}
           </div>
         </div>
         <button className="ap-hero__scroll-hint" onClick={() => scrollTo('stats')} aria-label="Ir abajo">
