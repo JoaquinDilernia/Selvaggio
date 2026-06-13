@@ -8,12 +8,12 @@ import Toast from '../components/Toast';
 import './TakeAway.css';
 
 const METODOS_PAGO = [
-  { id: 'efectivo',       label: 'Efectivo',       desc: 'Pagás al retirar' },
-  { id: 'transferencia',  label: 'Transferencia',  desc: 'Al retirar' },
-  { id: 'tarjeta',        label: 'Tarjeta',        desc: 'Débito / crédito' },
+  { id: 'efectivo',      label: 'Efectivo',      desc: '10% de descuento' },
+  { id: 'transferencia', label: 'Transferencia',  desc: 'Al retirar' },
+  { id: 'tarjeta',       label: 'Tarjeta',        desc: 'Débito / crédito' },
 ];
 
-const formatPrecio = (n) =>
+const formatPrecio = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
 
 /* ─── Success screen ─── */
@@ -34,41 +34,36 @@ function SuccessScreen({ pedidoNum }) {
           </svg>
         </div>
         <h1 className="tw-success__title">¡Pedido recibido!</h1>
-        <p className="tw-success__sub">
-          Estamos preparando tu pedido. Te avisamos cuando esté listo para retirar.
-        </p>
+        <p className="tw-success__sub">Estamos preparando tu pedido. Te avisamos cuando esté listo para retirar.</p>
         <div className="tw-success__num">
           <span className="tw-success__num-label">Tu número de pedido</span>
           <span className="tw-success__num-val">{pedidoNum}</span>
         </div>
-        <Link to={`/take-away/seguimiento?id=${pedidoNum}`} className="tw-success__btn">
-          Seguir mi pedido →
-        </Link>
+        <Link to={`/take-away/seguimiento?id=${pedidoNum}`} className="tw-success__btn">Seguir mi pedido →</Link>
         <Link to="/" className="tw-success__volver">← Volver al inicio</Link>
       </div>
     </div>
   );
 }
 
-/* ─── Checkout step ─── */
+/* ─── Checkout ─── */
 function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
   const [formData, setFormData] = useState({
-    nombre: '', apellido: '', email: '', telefono: '',
-    metodoPago: 'efectivo', comentarios: ''
+    nombre: '', apellido: '', email: '', telefono: '', metodoPago: 'efectivo', comentarios: ''
   });
   const [toast, setToast] = useState(null);
 
-  const total = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+  const subtotal  = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+  const esEfectivo = formData.metodoPago === 'efectivo';
+  const descuento = esEfectivo ? Math.round(subtotal * 0.10) : 0;
+  const total     = subtotal - descuento;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(p => ({ ...p, [name]: value }));
-  };
+  const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
     if (carrito.length === 0) { setToast({ message: 'El carrito está vacío', type: 'error' }); return; }
-    onConfirmar(formData);
+    onConfirmar({ ...formData, subtotal, descuento, totalFinal: total });
   };
 
   return (
@@ -90,17 +85,38 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
         <div className="tw-resumen">
           <h3 className="tw-resumen__title">Resumen</h3>
           {carrito.map(item => (
-            <div key={item.productoId} className="tw-resumen__row">
-              <span className="tw-resumen__qty">{item.cantidad}×</span>
-              <span className="tw-resumen__nombre">
-                {item.nombre}
-                {item.unidad && <span className="tw-resumen__unidad"> · {item.unidad}</span>}
-              </span>
-              <span className="tw-resumen__precio">{formatPrecio(item.precio * item.cantidad)}</span>
+            <div key={item.cartId} className="tw-resumen__item">
+              <div className="tw-resumen__row">
+                <span className="tw-resumen__qty">{item.cantidad}×</span>
+                <span className="tw-resumen__nombre">{item.nombre}</span>
+                <span className="tw-resumen__precio">{formatPrecio(item.precio * item.cantidad)}</span>
+              </div>
+              {item.selecciones && Object.values(item.selecciones).map((sec, i) =>
+                sec.items && sec.items.length > 0 ? (
+                  <div key={i} className="tw-resumen__selec">
+                    <span className="tw-resumen__selec-sec">{sec.nombre}:</span>
+                    <span className="tw-resumen__selec-items">{sec.items.map(x => x.nombre).join(', ')}</span>
+                  </div>
+                ) : null
+              )}
             </div>
           ))}
+          {esEfectivo && (
+            <>
+              <div className="tw-resumen__row tw-resumen__row--sub">
+                <span className="tw-resumen__qty" />
+                <span className="tw-resumen__nombre" style={{ color: '#8a7e76' }}>Subtotal</span>
+                <span className="tw-resumen__precio" style={{ color: '#8a7e76' }}>{formatPrecio(subtotal)}</span>
+              </div>
+              <div className="tw-resumen__row tw-resumen__row--descuento">
+                <span className="tw-resumen__qty">🏷</span>
+                <span className="tw-resumen__nombre tw-resumen__descuento-label">10% descuento efectivo</span>
+                <span className="tw-resumen__precio tw-resumen__descuento-val">−{formatPrecio(descuento)}</span>
+              </div>
+            </>
+          )}
           <div className="tw-resumen__total">
-            <span>Total</span>
+            <span>Total{esEfectivo ? ' a pagar' : ''}</span>
             <span>{formatPrecio(total)}</span>
           </div>
           <p className="tw-resumen__nota">El pago se realiza al momento de retirar en el local.</p>
@@ -164,18 +180,131 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
   );
 }
 
-/* ─── Main catalog ─── */
+/* ─── Modal de customización de picada ─── */
+function CustomizarModal({ picada, ingredientesMap, onClose, onAgregar }) {
+  const [selecciones, setSelecciones] = useState(() => {
+    const init = {};
+    (picada.secciones || []).forEach(s => { init[s.id] = []; });
+    return init;
+  });
+
+  const toggleIng = (seccionId, ingId, ingNombre, limite) => {
+    setSelecciones(prev => {
+      const actual = prev[seccionId] || [];
+      const yaEsta = actual.find(i => i.id === ingId);
+      if (yaEsta) return { ...prev, [seccionId]: actual.filter(i => i.id !== ingId) };
+      if (actual.length >= limite) return prev;
+      return { ...prev, [seccionId]: [...actual, { id: ingId, nombre: ingNombre }] };
+    });
+  };
+
+  const valido = (picada.secciones || []).every(s => {
+    if (s.opcional) return true;
+    return (selecciones[s.id] || []).length >= 1;
+  });
+
+  const handleAgregar = () => {
+    const item = {
+      cartId: Date.now().toString() + Math.random().toString(36).slice(2),
+      picadaId: picada.id,
+      nombre: picada.nombre,
+      precio: picada.precio,
+      cantidad: 1,
+      selecciones: {},
+    };
+    (picada.secciones || []).forEach(s => {
+      item.selecciones[s.id] = { nombre: s.nombre, items: selecciones[s.id] || [] };
+    });
+    onAgregar(item);
+    onClose();
+  };
+
+  return (
+    <div className="tw-modal-overlay" onClick={onClose}>
+      <div className="tw-modal" onClick={e => e.stopPropagation()}>
+        <div className="tw-modal-head">
+          <div>
+            <h2 className="tw-modal-nombre">{picada.nombre}</h2>
+            <span className="tw-modal-precio">{formatPrecio(picada.precio)}</span>
+          </div>
+          <button className="tw-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="tw-modal-body">
+          {picada.descripcion && <p className="tw-modal-desc">{picada.descripcion}</p>}
+
+          {(picada.secciones || []).length === 0 && (
+            <p style={{ color: '#8a7e76', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>
+              Esta picada no tiene secciones configuradas todavía.
+            </p>
+          )}
+
+          {(picada.secciones || []).map(seccion => {
+            const sel = selecciones[seccion.id] || [];
+            const ings = (seccion.ingredienteIds || [])
+              .map(id => ingredientesMap.get(id))
+              .filter(Boolean)
+              .filter(i => i.disponible !== false);
+
+            return (
+              <div key={seccion.id} className="tw-seccion">
+                <div className="tw-seccion-head">
+                  <div>
+                    <span className="tw-seccion-nombre">{seccion.nombre}</span>
+                    {seccion.opcional && <span className="tw-seccion-opt-tag">opcional</span>}
+                  </div>
+                  <span className={`tw-seccion-count${sel.length === seccion.limite ? ' tw-seccion-count--full' : sel.length > 0 ? ' tw-seccion-count--partial' : ''}`}>
+                    {sel.length}/{seccion.limite}
+                  </span>
+                </div>
+                {ings.length === 0 ? (
+                  <p className="tw-seccion-empty">No hay opciones disponibles.</p>
+                ) : (
+                  <div className="tw-seccion-pills">
+                    {ings.map(ing => {
+                      const selec = !!sel.find(i => i.id === ing.id);
+                      const lleno = sel.length >= seccion.limite && !selec;
+                      return (
+                        <button key={ing.id} type="button"
+                          className={`tw-ing-pill${selec ? ' tw-ing-pill--on' : ''}${lleno ? ' tw-ing-pill--disabled' : ''}`}
+                          onClick={() => !lleno || selec ? toggleIng(seccion.id, ing.id, ing.nombre, seccion.limite) : null}>
+                          {ing.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="tw-modal-foot">
+          {!valido && (
+            <p className="tw-modal-hint">Completá todas las secciones requeridas</p>
+          )}
+          <button className="tw-modal-agregar" onClick={handleAgregar} disabled={!valido}>
+            Agregar al pedido · {formatPrecio(picada.precio)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Catalog ─── */
 function TakeAway() {
-  const [productos, setProductos] = useState([]);
+  const [picadas, setPicadas] = useState([]);
+  const [ingredientesMap, setIngredientesMap] = useState(new Map());
   const [cargando, setCargando] = useState(true);
-  const [categoriaActiva, setCategoriaActiva] = useState('Todos');
   const [carrito, setCarrito] = useState([]);
   const [carritoOpen, setCarritoOpen] = useState(false);
+  const [customizando, setCustomizando] = useState(null);
   const [step, setStep] = useState('catalogo');
   const [pedidoNum, setPedidoNum] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const [takeawayActivo, setTakeawayActivo] = useState(null); // null = cargando
+  const [takeawayActivo, setTakeawayActivo] = useState(null);
 
   useEffect(() => {
     try {
@@ -193,55 +322,41 @@ function TakeAway() {
       .then(snap => setTakeawayActivo(snap.exists() ? snap.data().activo === true : false))
       .catch(() => setTakeawayActivo(false));
 
-    getDocs(collection(db, 'selvaggio_takeaway_productos'))
-      .then(snap => {
-        setProductos(
-          snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(p => p.disponible !== false)
-            .sort((a, b) => (a.orden || 0) - (b.orden || 0))
-        );
-      })
-      .catch(() => {})
-      .finally(() => setCargando(false));
+    Promise.all([
+      getDocs(collection(db, 'selvaggio_tw_picadas')),
+      getDocs(collection(db, 'selvaggio_tw_ingredientes')),
+    ]).then(([picSnap, ingSnap]) => {
+      setPicadas(
+        picSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(p => p.disponible !== false)
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      );
+      const map = new Map();
+      ingSnap.docs.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
+      setIngredientesMap(map);
+    }).catch(() => {}).finally(() => setCargando(false));
   }, []);
 
-  const agregarAlCarrito = (producto) => {
-    setCarrito(prev => {
-      const existe = prev.find(i => i.productoId === producto.id);
-      if (existe) return prev.map(i => i.productoId === producto.id ? { ...i, cantidad: i.cantidad + 1 } : i);
-      return [...prev, {
-        productoId: producto.id,
-        nombre: producto.nombre,
-        precio: producto.precio,
-        unidad: producto.unidad || '',
-        cantidad: 1,
-      }];
-    });
+  const agregarAlCarrito = (item) => {
+    setCarrito(prev => [...prev, item]);
+    setToast({ message: `${item.nombre} agregado al pedido`, type: 'success' });
   };
 
-  const cambiarCantidad = (productoId, delta) => {
+  const cambiarCantidad = (cartId, delta) => {
     setCarrito(prev =>
-      prev
-        .map(i => i.productoId === productoId ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i)
+      prev.map(i => i.cartId === cartId ? { ...i, cantidad: Math.max(0, i.cantidad + delta) } : i)
         .filter(i => i.cantidad > 0)
     );
   };
 
-  const cantidadEnCarrito = (productoId) => carrito.find(i => i.productoId === productoId)?.cantidad || 0;
   const totalCarrito = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const cantidadItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
-
-  const categorias = ['Todos', ...new Set(productos.map(p => p.categoria).filter(Boolean))];
-  const productosFiltrados = categoriaActiva === 'Todos'
-    ? productos
-    : productos.filter(p => p.categoria === categoriaActiva);
 
   const handleConfirmar = async (formData) => {
     setLoading(true);
     try {
       const counterRef = doc(db, 'selvaggio_configuracion', 'takeaway_counter');
-      const n = await runTransaction(db, async (t) => {
+      const n = await runTransaction(db, async t => {
         const snap = await t.get(counterRef);
         const num = (snap.exists() ? snap.data().ultimo || 0 : 0) + 1;
         t.set(counterRef, { ultimo: num }, { merge: true });
@@ -251,12 +366,12 @@ function TakeAway() {
 
       await addDoc(collection(db, 'selvaggio_takeaway_pedidos'), {
         numeroPedido: numStr,
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        email: formData.email,
-        telefono: formData.telefono,
+        nombre: formData.nombre, apellido: formData.apellido,
+        email: formData.email, telefono: formData.telefono,
         items: carrito.map(i => ({ ...i, subtotal: i.precio * i.cantidad })),
-        total: totalCarrito,
+        subtotal: formData.subtotal,
+        descuento: formData.descuento || 0,
+        total: formData.totalFinal,
         metodoPago: formData.metodoPago,
         comentarios: formData.comentarios,
         estado: 'pendiente',
@@ -277,11 +392,9 @@ function TakeAway() {
           }, { merge: true });
         } else {
           await setDoc(clienteRef, {
-            nombre: nombreCompleto,
-            email: clienteId,
+            nombre: nombreCompleto, email: clienteId,
             telefono: formData.telefono || '',
-            totalReservas: 0,
-            totalPedidos: 1,
+            totalReservas: 0, totalPedidos: 1,
             ultimoPedido: new Date().toISOString(),
             creado: new Date().toISOString(),
           });
@@ -295,19 +408,15 @@ function TakeAway() {
     } catch (err) {
       console.error(err);
       setToast({ message: 'Error al procesar el pedido. Intentá nuevamente.', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
+  // ── Early returns ──
   if (takeawayActivo === null) return (
     <div className="tw-page">
       <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo">
-          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
-        </Link>
-        <span className="tw-nav__title">Take Away</span>
-        <span />
+        <Link to="/" className="tw-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" /></Link>
+        <span className="tw-nav__title">Take Away</span><span />
       </nav>
     </div>
   );
@@ -315,25 +424,18 @@ function TakeAway() {
   if (takeawayActivo === false) return (
     <div className="tw-page">
       <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo">
-          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
-        </Link>
+        <Link to="/" className="tw-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" /></Link>
         <span className="tw-nav__title">Take Away</span>
         <Link to="/" className="tw-nav__back">← Inicio</Link>
       </nav>
       <div className="tw-unavailable">
         <div className="tw-unavailable__icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
         </div>
         <h1 className="tw-unavailable__title">Take Away no disponible</h1>
-        <p className="tw-unavailable__sub">
-          Por el momento no estamos recibiendo pedidos online.<br />
-          Podés contactarnos directamente o volver a intentarlo más tarde.
-        </p>
+        <p className="tw-unavailable__sub">Por el momento no estamos recibiendo pedidos online.<br />Podés contactarnos directamente o volver a intentarlo más tarde.</p>
         <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
       </div>
     </div>
@@ -341,97 +443,79 @@ function TakeAway() {
 
   if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} />;
 
-  if (step === 'checkout') {
-    return (
-      <CheckoutScreen
-        carrito={carrito}
-        onVolver={() => setStep('catalogo')}
-        onConfirmar={handleConfirmar}
-        loading={loading}
-      />
-    );
-  }
+  if (step === 'checkout') return (
+    <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
+      onConfirmar={handleConfirmar} loading={loading} />
+  );
 
   return (
     <div className="tw-page">
+      {/* Modal customización */}
+      {customizando && (
+        <CustomizarModal
+          picada={customizando}
+          ingredientesMap={ingredientesMap}
+          onClose={() => setCustomizando(null)}
+          onAgregar={agregarAlCarrito}
+        />
+      )}
+
       <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo">
-          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
-        </Link>
+        <Link to="/" className="tw-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" /></Link>
         <span className="tw-nav__title">Take Away</span>
         <Link to="/" className="tw-nav__back">← Inicio</Link>
       </nav>
 
       <div className="tw-hero">
         <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
-        <h1 className="tw-hero__title">Elegí, pedí, <em>retirá.</em></h1>
-        <p className="tw-hero__sub">Armá tu pedido online y pasá a buscarlo cuando esté listo.</p>
-        <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">
-          ¿Tenés un pedido? Seguilo →
-        </Link>
-      </div>
-
-      <div className="tw-cats">
-        <div className="tw-cats__inner">
-          {categorias.map(cat => (
-            <button key={cat}
-              className={`tw-cat-btn${categoriaActiva === cat ? ' tw-cat-btn--on' : ''}`}
-              onClick={() => setCategoriaActiva(cat)}>
-              {cat}
-            </button>
-          ))}
-        </div>
+        <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
+        <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
+        <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
       </div>
 
       <div className="tw-catalog">
         {cargando ? (
-          <div className="tw-catalog__loading">Cargando productos…</div>
-        ) : productosFiltrados.length === 0 ? (
-          <div className="tw-catalog__empty">
-            {productos.length === 0
-              ? 'No hay productos disponibles por el momento.'
-              : 'No hay productos en esta categoría.'}
-          </div>
+          <div className="tw-catalog__loading">Cargando picadas…</div>
+        ) : picadas.length === 0 ? (
+          <div className="tw-catalog__empty">No hay picadas disponibles por el momento.</div>
         ) : (
           <div className="tw-grid">
-            {productosFiltrados.map(producto => {
-              const qty = cantidadEnCarrito(producto.id);
-              return (
-                <div key={producto.id} className="tw-card">
-                  {producto.imagen && (
-                    <div className="tw-card__img-wrap">
-                      <img src={producto.imagen} alt={producto.nombre} className="tw-card__img" loading="lazy" />
+            {picadas.map(picada => (
+              <div key={picada.id} className="tw-card">
+                {picada.imagen && (
+                  <div className="tw-card__img-wrap">
+                    <img src={picada.imagen} alt={picada.nombre} className="tw-card__img" loading="lazy" />
+                  </div>
+                )}
+                <div className="tw-card__body">
+                  <h3 className="tw-card__nombre">{picada.nombre}</h3>
+                  {picada.descripcion && <p className="tw-card__desc">{picada.descripcion}</p>}
+
+                  {/* Resumen de secciones */}
+                  {(picada.secciones || []).length > 0 && (
+                    <div className="tw-card__secs">
+                      {picada.secciones.map(s => (
+                        <span key={s.id} className="tw-card__sec-tag">
+                          {s.nombre} · {s.limite > 1 ? `elegí ${s.limite}` : 'elegí 1'}
+                        </span>
+                      ))}
                     </div>
                   )}
-                  <div className="tw-card__body">
-                    <span className="tw-card__cat">{producto.categoria}</span>
-                    <h3 className="tw-card__nombre">{producto.nombre}</h3>
-                    {producto.descripcion && <p className="tw-card__desc">{producto.descripcion}</p>}
-                    <div className="tw-card__foot">
-                      <div className="tw-card__precio-wrap">
-                        <span className="tw-card__precio">{formatPrecio(producto.precio)}</span>
-                        {producto.unidad && <span className="tw-card__unidad">/ {producto.unidad}</span>}
-                      </div>
-                      {qty === 0 ? (
-                        <button className="tw-card__add" onClick={() => agregarAlCarrito(producto)}>
-                          + Agregar
-                        </button>
-                      ) : (
-                        <div className="tw-card__qty">
-                          <button className="tw-card__qty-btn" onClick={() => cambiarCantidad(producto.id, -1)}>−</button>
-                          <span className="tw-card__qty-val">{qty}</span>
-                          <button className="tw-card__qty-btn" onClick={() => cambiarCantidad(producto.id, 1)}>+</button>
-                        </div>
-                      )}
-                    </div>
+
+                  <div className="tw-card__foot">
+                    <span className="tw-card__precio">{formatPrecio(picada.precio)}</span>
+                    <button className="tw-card__add tw-card__add--armar" onClick={() => setCustomizando(picada)}>
+                      Armar →
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
+      {/* Cart drawer */}
       {carritoOpen && (
         <div className="tw-drawer-overlay" onClick={() => setCarritoOpen(false)}>
           <div className="tw-drawer" onClick={e => e.stopPropagation()}>
@@ -443,32 +527,32 @@ function TakeAway() {
               {carrito.length === 0 ? (
                 <p className="tw-drawer__empty">No agregaste nada todavía.</p>
               ) : carrito.map(item => (
-                <div key={item.productoId} className="tw-drawer__item">
+                <div key={item.cartId} className="tw-drawer__item">
                   <div className="tw-drawer__item-info">
-                    <span className="tw-drawer__item-nombre">
-                      {item.nombre}
-                      {item.unidad && <span className="tw-drawer__item-unidad"> · {item.unidad}</span>}
-                    </span>
+                    <span className="tw-drawer__item-nombre">{item.nombre}</span>
+                    {item.selecciones && Object.values(item.selecciones).map((sec, i) =>
+                      sec.items && sec.items.length > 0 ? (
+                        <span key={i} className="tw-drawer__item-selec">
+                          {sec.nombre}: {sec.items.map(x => x.nombre).join(', ')}
+                        </span>
+                      ) : null
+                    )}
                     <span className="tw-drawer__item-precio">
                       {formatPrecio(item.precio)} × {item.cantidad} = {formatPrecio(item.precio * item.cantidad)}
                     </span>
                   </div>
                   <div className="tw-drawer__item-qty">
-                    <button onClick={() => cambiarCantidad(item.productoId, -1)}>−</button>
+                    <button onClick={() => cambiarCantidad(item.cartId, -1)}>−</button>
                     <span>{item.cantidad}</span>
-                    <button onClick={() => cambiarCantidad(item.productoId, 1)}>+</button>
+                    <button onClick={() => cambiarCantidad(item.cartId, 1)}>+</button>
                   </div>
                 </div>
               ))}
             </div>
             {carrito.length > 0 && (
               <div className="tw-drawer__foot">
-                <div className="tw-drawer__total">
-                  <span>Total</span>
-                  <span>{formatPrecio(totalCarrito)}</span>
-                </div>
-                <button className="tw-drawer__checkout"
-                  onClick={() => { setCarritoOpen(false); setStep('checkout'); }}>
+                <div className="tw-drawer__total"><span>Total</span><span>{formatPrecio(totalCarrito)}</span></div>
+                <button className="tw-drawer__checkout" onClick={() => { setCarritoOpen(false); setStep('checkout'); }}>
                   Ir al checkout →
                 </button>
               </div>

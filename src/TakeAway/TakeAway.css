@@ -515,6 +515,14 @@
   margin: 10px 0 0;
   font-style: italic;
 }
+.tw-resumen__descuento-label {
+  color: #1a6b3a;
+  font-weight: 600;
+}
+.tw-resumen__descuento-val {
+  color: #1a6b3a !important;
+  font-weight: 700 !important;
+}
 
 /* Form */
 .tw-form { display: flex; flex-direction: column; gap: 20px; }
@@ -702,6 +710,134 @@
   line-height: 1.65;
   margin: 0 0 32px;
 }
+
+/* ─── Cards de picada ─── */
+.tw-card__secs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.tw-card__sec-tag {
+  font-size: 11px; padding: 3px 9px; border-radius: 100px;
+  background: #f0ece8; color: #6b5e54; font-weight: 500;
+}
+.tw-card__add--armar {
+  background: #7c3f2f;
+  letter-spacing: 0.02em;
+}
+.tw-card__add--armar:hover { background: #2a2420; }
+
+/* ─── Resumen checkout ─── */
+.tw-resumen__item { margin-bottom: 6px; }
+.tw-resumen__item:last-of-type { border-bottom: 1px solid #f5f0ec; padding-bottom: 6px; margin-bottom: 8px; }
+.tw-resumen__selec {
+  display: flex; gap: 6px; padding: 1px 0 1px 28px; font-size: 12px;
+}
+.tw-resumen__selec-sec { font-weight: 600; color: #4a3f38; flex-shrink: 0; }
+.tw-resumen__selec-items { color: #8a7e76; }
+
+/* Drawer selecciones */
+.tw-drawer__item-selec {
+  display: block; font-size: 11px; color: #8a7e76; line-height: 1.5; margin-top: 1px;
+}
+
+/* ─── Modal customización ─── */
+.tw-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(42,36,32,0.55); z-index: 300;
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: twFadeIn 0.2s ease;
+}
+@media (min-width: 600px) {
+  .tw-modal-overlay { align-items: center; }
+}
+.tw-modal {
+  background: #fff; width: 100%; max-width: 560px;
+  max-height: 92vh; display: flex; flex-direction: column;
+  border-radius: 20px 20px 0 0; overflow: hidden;
+  animation: twSlideUp 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+@media (min-width: 600px) {
+  .tw-modal { border-radius: 20px; max-height: 85vh; }
+}
+@keyframes twSlideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.tw-modal-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 20px 22px 16px; border-bottom: 1px solid #ece6e0; flex-shrink: 0;
+}
+.tw-modal-nombre {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 24px; font-weight: 600; color: #2a2420; margin: 0 0 4px;
+}
+.tw-modal-precio { font-size: 17px; font-weight: 700; color: #7c3f2f; }
+.tw-modal-close {
+  background: none; border: none; font-size: 18px; color: #8a7e76;
+  cursor: pointer; padding: 4px; line-height: 1; font-family: inherit;
+  transition: color 0.15s; flex-shrink: 0; margin-left: 12px;
+}
+.tw-modal-close:hover { color: #2a2420; }
+.tw-modal-desc {
+  font-size: 14px; color: #6b5e54; line-height: 1.6;
+  margin: 0 0 20px; padding: 0 22px;
+}
+.tw-modal-body {
+  flex: 1; overflow-y: auto; padding: 16px 22px;
+}
+.tw-modal-foot {
+  padding: 14px 22px; border-top: 1px solid #ece6e0; flex-shrink: 0;
+}
+.tw-modal-hint {
+  font-size: 12px; color: #8a7e76; text-align: center; margin: 0 0 8px;
+}
+.tw-modal-agregar {
+  width: 100%; background: #2a2420; color: #fff; border: none;
+  border-radius: 10px; padding: 15px; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: background 0.18s; font-family: inherit;
+}
+.tw-modal-agregar:hover:not(:disabled) { background: #7c3f2f; }
+.tw-modal-agregar:disabled { background: #c0b8b0; cursor: not-allowed; }
+
+/* Secciones en modal */
+.tw-seccion { margin-bottom: 22px; }
+.tw-seccion:last-child { margin-bottom: 0; }
+.tw-seccion-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.tw-seccion-nombre {
+  font-size: 14px; font-weight: 700; color: #2a2420;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.tw-seccion-opt-tag {
+  font-size: 10px; font-weight: 600; color: #8a7e76;
+  background: #f0ece8; border-radius: 100px; padding: 2px 7px;
+  margin-left: 8px; text-transform: lowercase; letter-spacing: 0;
+}
+.tw-seccion-count {
+  font-size: 13px; font-weight: 700; color: #c0b8b0;
+  background: #f5f0ec; border-radius: 100px; padding: 3px 10px;
+  transition: all 0.2s;
+}
+.tw-seccion-count--partial { color: #7c3f2f; background: #fef0e8; }
+.tw-seccion-count--full { color: #1a6b3a; background: #e6f4ea; }
+.tw-seccion-empty { font-size: 13px; color: #8a7e76; font-style: italic; }
+.tw-seccion-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Ingredient pills */
+.tw-ing-pill {
+  padding: 8px 16px; border-radius: 100px;
+  border: 1.5px solid #ddd7cf; background: #fff;
+  font-size: 13px; font-weight: 500; color: #4a3f38;
+  cursor: pointer; transition: all 0.18s; font-family: inherit;
+}
+.tw-ing-pill:hover:not(.tw-ing-pill--disabled) { border-color: #2a2420; color: #2a2420; }
+.tw-ing-pill--on {
+  background: #2a2420; border-color: #2a2420; color: #fff;
+}
+.tw-ing-pill--on:hover { background: #7c3f2f; border-color: #7c3f2f; }
+.tw-ing-pill--disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Descuento */
+.tw-resumen__descuento-label { color: #1a6b3a; font-weight: 600; }
+.tw-resumen__descuento-val { color: #1a6b3a !important; font-weight: 700 !important; }
 
 /* ─── Precio + unidad ─── */
 .tw-card__precio-wrap {
