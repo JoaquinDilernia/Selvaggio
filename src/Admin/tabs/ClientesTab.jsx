@@ -66,6 +66,29 @@ function ClientesTab() {
     return null;
   };
 
+  const exportarCSV = () => {
+    const filas = [
+      ['Nombre', 'Email', 'Teléfono', 'Cumpleaños', 'Reservas', 'Pedidos', 'Última reserva'],
+      ...clientesFiltrados.map(c => [
+        c.nombre || '',
+        c.email || '',
+        c.telefono || '',
+        c.fechaNacimiento ? formatCumple(c.fechaNacimiento) : '',
+        c.totalReservas || 0,
+        c.totalPedidos || 0,
+        c.ultimaReserva ? new Date(c.ultimaReserva).toLocaleDateString('es-AR') : '',
+      ])
+    ];
+    const csv = filas.map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clientes-selvaggio-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Stats
   const totalClientes = clientes.length;
   const conCumple = clientes.filter(c => c.fechaNacimiento).length;
@@ -117,6 +140,13 @@ function ClientesTab() {
           <option value="reservas">Más reservas</option>
           <option value="reciente">Última reserva</option>
         </select>
+        <button
+          onClick={exportarCSV}
+          disabled={clientesFiltrados.length === 0}
+          style={{ padding: '10px 18px', background: '#1c1a17', color: '#fff', border: 'none', borderRadius: 4, fontSize: 14, fontFamily: 'Inter, sans-serif', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >
+          Exportar CSV
+        </button>
       </div>
 
       {cargando ? (
