@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { trackLead } from '../utils/metaPixel'
 import './NewsletterSection.css'
 
 function NewsletterSection() {
@@ -39,9 +40,10 @@ function NewsletterSection() {
         activo: true
       })
 
-      setMensaje({ 
-        texto: '¡Gracias por suscribirte! Te mantendremos informado.', 
-        tipo: 'success' 
+      trackLead()
+      setMensaje({
+        texto: '¡Gracias por suscribirte! Te mantendremos informado.',
+        tipo: 'success'
       })
       setEmail('')
       setNombre('')

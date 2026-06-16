@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { updateAllSEO } from '../utils/seo';
+import { trackContact } from '../utils/metaPixel';
 import { HiOutlineLocationMarker, HiOutlineClock, HiOutlineMail } from 'react-icons/hi';
 import { FaWhatsapp, FaInstagram, FaStar } from 'react-icons/fa';
 import ContactForm from './ContactForm';
@@ -89,12 +90,13 @@ function Landing() {
       </header>
 
       {/* Botón flotante WhatsApp */}
-      <a 
-        href="https://wa.me/5491166864692?text=Hola!%20Quiero%20informaci%C3%B3n%20acerca%20de%20Selvaggio" 
-        target="_blank" 
-        rel="noopener noreferrer" 
+      <a
+        href="https://wa.me/5491166864692?text=Hola!%20Quiero%20informaci%C3%B3n%20acerca%20de%20Selvaggio"
+        target="_blank"
+        rel="noopener noreferrer"
         className="whatsapp-float"
         aria-label="Contactar por WhatsApp"
+        onClick={trackContact}
       >
         <svg viewBox="0 0 32 32" className="whatsapp-icon">
           <path fill="currentColor" d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 7.933-2.127c2.42 1.37 5.173 2.127 8.067 2.127 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.467c-2.482 0-4.908-0.646-7.07-1.87l-0.507-0.292-4.713 1.262 1.262-4.669-0.292-0.508c-1.207-2.100-1.847-4.507-1.847-6.923 0-7.435 6.050-13.485 13.485-13.485s13.485 6.050 13.485 13.485c0 7.435-6.050 13.485-13.485 13.485zM22.282 18.778c-0.398-0.199-2.361-1.163-2.726-1.297s-0.632-0.199-0.898 0.199c-0.265 0.398-1.029 1.297-1.261 1.563s-0.465 0.298-0.863 0.099c-0.398-0.199-1.680-0.619-3.199-1.975-1.182-1.054-1.980-2.357-2.211-2.755s-0.025-0.613 0.174-0.811c0.179-0.178 0.398-0.465 0.597-0.697s0.265-0.398 0.398-0.664c0.133-0.265 0.066-0.497-0.033-0.697s-0.898-2.164-1.230-2.963c-0.324-0.779-0.652-0.673-0.898-0.686-0.232-0.012-0.497-0.015-0.763-0.015s-0.697 0.099-1.062 0.497c-0.365 0.398-1.394 1.363-1.394 3.327s1.427 3.859 1.627 4.125c0.199 0.265 2.807 4.288 6.802 6.014 0.950 0.411 1.691 0.657 2.269 0.841 0.955 0.303 1.825 0.260 2.513 0.158 0.767-0.115 2.361-0.966 2.695-1.897s0.332-1.730 0.232-1.897c-0.099-0.166-0.365-0.265-0.763-0.465z"/>

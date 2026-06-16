@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
+import { trackSchedule } from '../utils/metaPixel';
 import './ReservaCava.css';
 
 function ReservaCava() {
@@ -151,6 +152,7 @@ function ReservaCava() {
         }
       }
 
+      trackSchedule();
       setReservaExitosa(true);
       enviarConfirmacionCava(formData);
       fetchReservedDates();

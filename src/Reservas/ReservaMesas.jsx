@@ -4,6 +4,7 @@ import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increme
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
+import { trackSchedule } from '../utils/metaPixel';
 import './ReservaMesas.css';
 
 const LIMITE_POR_SLOT = 4;
@@ -135,6 +136,7 @@ function ReservaMesas() {
         }
       }
 
+      trackSchedule();
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
       enviarConfirmacionMesas(formData);

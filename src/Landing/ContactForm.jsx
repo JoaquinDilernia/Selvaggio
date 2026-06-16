@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { trackLead } from '../utils/metaPixel';
 
 function ContactForm() {
   const [formData, setFormData] = useState({
@@ -41,6 +42,7 @@ function ContactForm() {
         leido: false
       });
 
+      trackLead();
       setMensaje({ tipo: 'success', texto: '¡Mensaje enviado! Te contactaremos pronto ✓' });
       
       // Limpiar formulario
