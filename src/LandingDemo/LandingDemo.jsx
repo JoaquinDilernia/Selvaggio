@@ -17,7 +17,6 @@ function LandingDemo() {
   const [prensa, setPrensa] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [cartaUrl, setCartaUrl] = useState(null);
-  const [takeawayActivo, setTakeawayActivo] = useState(false);
   const [showStickyBtn, setShowStickyBtn] = useState(false);
   const [popupEvento, setPopupEvento] = useState(null);
   const [lightboxImg, setLightboxImg] = useState(null);
@@ -59,19 +58,17 @@ function LandingDemo() {
     link.rel = 'stylesheet';
     document.head.appendChild(link);
 
-    // Loading: wait for video or max 4s
+    // Loading: wait for video or max 2s; bail immediately on error
     const vid = videoRef.current;
     const hideLoader = () => setCargando(false);
-    let fallbackTimer = setTimeout(hideLoader, 4000);
+    let fallbackTimer = setTimeout(hideLoader, 2000);
     if (vid) {
-      const onReady = () => {
-        clearTimeout(fallbackTimer);
-        hideLoader();
-      };
+      const onReady = () => { clearTimeout(fallbackTimer); hideLoader(); };
       if (vid.readyState >= 3) {
         onReady();
       } else {
         vid.addEventListener('canplay', onReady, { once: true });
+        vid.addEventListener('error', onReady, { once: true });
       }
     }
 
@@ -122,11 +119,6 @@ function LandingDemo() {
         const data = snap.data();
         if (data.url && !data.eliminada) setCartaUrl(data.url);
       }
-    }).catch(() => {});
-
-    // Fetch takeaway config
-    getDoc(doc(db, 'selvaggio_configuracion', 'takeaway_config')).then((snap) => {
-      setTakeawayActivo(snap.exists() ? snap.data().activo === true : false);
     }).catch(() => {});
 
     const handleScroll = () => {
@@ -209,11 +201,9 @@ function LandingDemo() {
           </nav>
 
           <div className="ap-nav__right">
-            {takeawayActivo && (
-              <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--dark" style={{ marginRight: 8 }}>
-                Take Away
-              </Link>
-            )}
+            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--dark" style={{ marginRight: 8 }}>
+              Take Away
+            </Link>
             <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--dark">
               Reservar
             </Link>
@@ -249,9 +239,7 @@ function LandingDemo() {
           <div className="ap-hero__actions">
             <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white">Reservar mesa</Link>
             <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--ghost-white">Reservar La Cava</Link>
-            {takeawayActivo && (
-              <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--ghost-white">Pedir para llevar</Link>
-            )}
+            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--ghost-white">Pedir para llevar</Link>
           </div>
         </div>
         <button className="ap-hero__scroll-hint" onClick={() => scrollTo('stats')} aria-label="Ir abajo">
