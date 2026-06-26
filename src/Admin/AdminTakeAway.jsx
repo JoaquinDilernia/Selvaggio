@@ -74,7 +74,10 @@ function PedidosTW() {
   };
 
   const abrirWpp = (p) => {
-    const tel = p.telefono?.replace(/\D/g, '') || '';
+    let tel = p.telefono?.replace(/\D/g, '') || '';
+    // Normalizar número argentino: quitar 0 inicial o 54 duplicado
+    if (tel.startsWith('54')) tel = tel.slice(2);
+    if (tel.startsWith('0')) tel = tel.slice(1);
     let msg = p.estado === 'listo'
       ? `Hola ${p.nombre}! 🎉 Tu pedido ${p.numeroPedido} de Selvaggio está listo para retirar. Te esperamos en Av. Fondo de la Legua 59, Las Lomas de San Isidro.`
       : p.estado === 'preparando'
@@ -796,12 +799,46 @@ function AdminTakeAway() {
   const [subTab, setSubTab] = useState('pedidos');
   const [activo, setActivo] = useState(null);
   const [toggling, setToggling] = useState(false);
+  const [horarioDesde, setHorarioDesde] = useState(18);
+  const [horarioHasta, setHorarioHasta] = useState(23);
+  const [diasAbiertos, setDiasAbiertos] = useState([2, 3, 4, 5, 6]);
+  const [guardandoConfig, setGuardandoConfig] = useState(false);
 
   useEffect(() => {
     getDoc(doc(db, 'selvaggio_configuracion', 'takeaway_config'))
-      .then(snap => setActivo(snap.exists() ? snap.data().activo !== false : false))
+      .then(snap => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setActivo(data.activo !== false);
+          if (data.horarioDesde !== undefined) setHorarioDesde(data.horarioDesde);
+          if (data.horarioHasta !== undefined) setHorarioHasta(data.horarioHasta);
+          if (data.diasAbiertos !== undefined) setDiasAbiertos(data.diasAbiertos);
+        } else {
+          setActivo(false);
+        }
+      })
       .catch(() => setActivo(false));
   }, []);
+
+  const guardarConfig = async () => {
+    setGuardandoConfig(true);
+    try {
+      await setDoc(
+        doc(db, 'selvaggio_configuracion', 'takeaway_config'),
+        { horarioDesde, horarioHasta, diasAbiertos },
+        { merge: true }
+      );
+    } catch {}
+    finally { setGuardandoConfig(false); }
+  };
+
+  const toggleDia = (idx) => {
+    setDiasAbiertos(prev =>
+      prev.includes(idx)
+        ? prev.filter(d => d !== idx)
+        : [...prev, idx].sort((a, b) => a - b)
+    );
+  };
 
   const toggleActivo = async () => {
     const nuevoEstado = !activo;
@@ -833,9 +870,52 @@ function AdminTakeAway() {
 
       {activo === false && (
         <div className="atw__inactive-banner">
-          El Take Away está desactivado. Los botones no aparecen en la web.
+          El Take Away está desactivado. El botón sigue visible en la web pero no se pueden hacer pedidos.
         </div>
       )}
+
+      <div className="atw__config">
+        <div className="atw__config-row">
+          <span className="atw__config-label">Días:</span>
+          <div className="atw__dias">
+            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((d, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`atw__dia-chip${diasAbiertos.includes(i) ? ' atw__dia-chip--on' : ''}`}
+                onClick={() => toggleDia(i)}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="atw__config-row">
+          <span className="atw__config-label">Horario:</span>
+          <span className="atw__config-text">desde</span>
+          <input
+            type="number" min={0} max={23}
+            className="atw__hora-input"
+            value={horarioDesde}
+            onChange={e => setHorarioDesde(Number(e.target.value))}
+          />
+          <span className="atw__config-text">hs hasta</span>
+          <input
+            type="number" min={1} max={24}
+            className="atw__hora-input"
+            value={horarioHasta}
+            onChange={e => setHorarioHasta(Number(e.target.value))}
+          />
+          <span className="atw__config-text">hs</span>
+          <button
+            className="atw__save-config-btn"
+            onClick={guardarConfig}
+            disabled={guardandoConfig}
+          >
+            {guardandoConfig ? '…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
 
       <div className="atw__subtabs">
         {[['pedidos','Pedidos'],['picadas','Picadas'],['ingredientes','Ingredientes']].map(([id, label]) => (

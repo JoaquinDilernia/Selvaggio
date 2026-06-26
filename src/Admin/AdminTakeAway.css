@@ -899,3 +899,84 @@
   .atw__grid { grid-template-columns: 1fr; }
   .atw__prod-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Config horario y días ── */
+.atw__config {
+  padding: 12px 20px;
+  background: #f9f6f2;
+  border-bottom: 1px solid #e8e0d6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.atw__config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.atw__config-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c4b3c;
+  min-width: 52px;
+}
+
+.atw__config-text {
+  font-size: 13px;
+  color: #7a6a5a;
+}
+
+.atw__dias {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.atw__dia-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #d4c8ba;
+  background: #fff;
+  color: #7a6a5a;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.atw__dia-chip--on {
+  background: #5c4b3c;
+  border-color: #5c4b3c;
+  color: #fff;
+}
+
+.atw__hora-input {
+  width: 52px;
+  padding: 4px 8px;
+  border: 1px solid #d4c8ba;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+  background: #fff;
+  color: #3c2f24;
+}
+
+.atw__save-config-btn {
+  padding: 4px 14px;
+  border-radius: 6px;
+  border: none;
+  background: #5c4b3c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.atw__save-config-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
