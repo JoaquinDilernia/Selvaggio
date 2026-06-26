@@ -907,10 +907,13 @@ function AdminTakeAway() {
             onChange={e => setHorarioHasta(Number(e.target.value))}
           />
           <span className="atw__config-text">hs</span>
+          {diasAbiertos.length === 0 && (
+            <span className="atw__config-warn">Seleccioná al menos un día</span>
+          )}
           <button
             className="atw__save-config-btn"
             onClick={guardarConfig}
-            disabled={guardandoConfig}
+            disabled={guardandoConfig || diasAbiertos.length === 0}
           >
             {guardandoConfig ? '…' : 'Guardar'}
           </button>

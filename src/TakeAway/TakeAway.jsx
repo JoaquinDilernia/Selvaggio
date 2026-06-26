@@ -606,6 +606,35 @@ function TakeAway() {
     </div>
   );
 
+  // 3. Flujo de pedido en curso — ANTES de los gates de horario
+  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} />;
+
+  if (step === 'verificacion' && pendingFormData) return (
+    <>
+      <VerificacionEmailScreen
+        email={pendingFormData.email}
+        nombre={pendingFormData.nombre}
+        onVerificado={handleConfirmarFinal}
+        onVolver={() => setStep('checkout')}
+      />
+      {loading && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <p style={{ color: '#f5f0e8', fontSize: 16 }}>Procesando pedido…</p>
+        </div>
+      )}
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
+    </>
+  );
+
+  if (step === 'checkout') return (
+    <>
+      <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
+        onConfirmar={handleConfirmar} loading={loading} />
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
+    </>
+  );
+
+  // 4. Gates de horario/día — solo aplican al catálogo
   if (!esDiaAbierto(config.diasAbiertos)) return (
     <div className="tw-page">
       <nav className="tw-nav">
@@ -663,33 +692,6 @@ function TakeAway() {
         <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
       </div>
     </div>
-  );
-
-  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} />;
-
-  if (step === 'verificacion' && pendingFormData) return (
-    <>
-      <VerificacionEmailScreen
-        email={pendingFormData.email}
-        nombre={pendingFormData.nombre}
-        onVerificado={handleConfirmarFinal}
-        onVolver={() => setStep('checkout')}
-      />
-      {loading && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <p style={{ color: '#f5f0e8', fontSize: 16 }}>Procesando pedido…</p>
-        </div>
-      )}
-      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
-    </>
-  );
-
-  if (step === 'checkout') return (
-    <>
-      <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
-        onConfirmar={handleConfirmar} loading={loading} />
-      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
-    </>
   );
 
   return (
