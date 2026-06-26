@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  collection, getDocs, addDoc, getDoc, doc, setDoc, increment, Timestamp, runTransaction
+  collection, getDocs, addDoc, getDoc, doc, setDoc, increment, Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
+import { trackTakeAwayInicio, trackTakeAwayPedido, trackViewContent } from '../utils/metaPixel';
+import { enviarNotificacionPedidoTakeAway, enviarCodigoVerificacion } from '../utils/emailService';
 import './TakeAway.css';
 
 const METODOS_PAGO = [
@@ -41,6 +43,110 @@ function SuccessScreen({ pedidoNum }) {
         </div>
         <Link to={`/take-away/seguimiento?id=${pedidoNum}`} className="tw-success__btn">Seguir mi pedido →</Link>
         <Link to="/" className="tw-success__volver">← Volver al inicio</Link>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Verificación de email ─── */
+function VerificacionEmailScreen({ email, nombre, onVerificado, onVolver, onReenviar }) {
+  const [codigo, setCodigo] = useState('');
+  const [codigoEsperado, setCodigoEsperado] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const [error, setError] = useState('');
+  const [reenviado, setReenviado] = useState(false);
+  const [expiresAt, setExpiresAt] = useState(null);
+
+  useEffect(() => {
+    enviar();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const generarCodigo = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+  const enviar = async () => {
+    setEnviando(true);
+    setError('');
+    const nuevo = generarCodigo();
+    setCodigoEsperado(nuevo);
+    setExpiresAt(Date.now() + 10 * 60 * 1000);
+    await enviarCodigoVerificacion(email, nombre, nuevo);
+    setEnviando(false);
+  };
+
+  const handleReenviar = async () => {
+    setReenviado(false);
+    await enviar();
+    setReenviado(true);
+    setCodigo('');
+  };
+
+  const handleVerificar = () => {
+    if (!codigo.trim()) { setError('Ingresá el código.'); return; }
+    if (expiresAt && Date.now() > expiresAt) { setError('El código expiró. Reenviá uno nuevo.'); return; }
+    setVerificando(true);
+    if (codigo.trim() === codigoEsperado) {
+      onVerificado();
+    } else {
+      setError('Código incorrecto. Revisá tu casilla o reenviá.');
+      setVerificando(false);
+    }
+  };
+
+  return (
+    <div className="tw-page">
+      <nav className="tw-nav">
+        <Link to="/" className="tw-nav__logo">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
+        </Link>
+        <span className="tw-nav__title">Verificación</span>
+        <button className="tw-nav__back" onClick={onVolver}>← Volver</button>
+      </nav>
+
+      <div className="tw-co-main">
+        <div className="tw-co-header">
+          <span className="tw-co-eyebrow">Selvaggio · Take Away</span>
+          <h1 className="tw-co-title">Verificá tu email</h1>
+        </div>
+
+        <div className="tw-verif">
+          {enviando ? (
+            <p className="tw-verif__info">Enviando código a <strong>{email}</strong>…</p>
+          ) : (
+            <p className="tw-verif__info">
+              Te enviamos un código de 6 dígitos a <strong>{email}</strong>. Ingresalo para continuar.
+            </p>
+          )}
+
+          <div className="tw-field" style={{ marginTop: 24 }}>
+            <label className="tw-label tw-label--req">Código de verificación</label>
+            <input
+              className="tw-input tw-input--code"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={codigo}
+              onChange={e => { setCodigo(e.target.value.replace(/\D/g, '')); setError(''); }}
+              placeholder="123456"
+              autoFocus
+            />
+            {error && <p className="tw-verif__error">{error}</p>}
+          </div>
+
+          <button
+            className="tw-submit"
+            onClick={handleVerificar}
+            disabled={verificando || enviando || codigo.length !== 6}
+            style={{ marginTop: 16 }}
+          >
+            {verificando ? 'Verificando…' : 'Confirmar código'}
+          </button>
+
+          <button className="tw-verif__reenviar" onClick={handleReenviar} disabled={enviando}>
+            {enviando ? 'Enviando…' : reenviado ? '✓ Código reenviado' : '¿No llegó? Reenviar código'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -175,7 +281,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
         </form>
       </div>
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
     </div>
   );
 }
@@ -292,6 +398,27 @@ function CustomizarModal({ picada, ingredientesMap, onClose, onAgregar }) {
   );
 }
 
+const NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+const formatDiasAbiertos = (dias) => {
+  if (!dias || dias.length === 0) return '';
+  const nombres = dias.map(d => NOMBRES_DIA[d]);
+  if (nombres.length === 1) return nombres[0];
+  return nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];
+};
+
+const esDiaAbierto = (diasAbiertos) => {
+  if (!diasAbiertos || diasAbiertos.length === 0) return true;
+  return diasAbiertos.includes(new Date().getDay());
+};
+
+const esDentroDeHorario = (desde, hasta) => {
+  const hora = new Date().getHours();
+  if (desde !== undefined && hora < desde) return false;
+  if (hasta !== undefined && hora >= hasta) return false;
+  return true;
+};
+
 /* ─── Catalog ─── */
 function TakeAway() {
   const [picadas, setPicadas] = useState([]);
@@ -303,8 +430,9 @@ function TakeAway() {
   const [step, setStep] = useState('catalogo');
   const [pedidoNum, setPedidoNum] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
   const [toast, setToast] = useState(null);
-  const [takeawayActivo, setTakeawayActivo] = useState(null);
+  const [config, setConfig] = useState(null);
 
   useEffect(() => {
     try {
@@ -319,8 +447,10 @@ function TakeAway() {
 
   useEffect(() => {
     getDoc(doc(db, 'selvaggio_configuracion', 'takeaway_config'))
-      .then(snap => setTakeawayActivo(snap.exists() ? snap.data().activo === true : false))
-      .catch(() => setTakeawayActivo(false));
+      .then(snap => setConfig(snap.exists() ? snap.data() : { activo: false }))
+      .catch(() => setConfig({ activo: false }));
+
+    trackViewContent('Take Away', 'Take Away');
 
     Promise.all([
       getDocs(collection(db, 'selvaggio_tw_picadas')),
@@ -337,7 +467,12 @@ function TakeAway() {
     }).catch(() => {}).finally(() => setCargando(false));
   }, []);
 
+  const checkoutTracked = useRef(false);
   const agregarAlCarrito = (item) => {
+    if (!checkoutTracked.current && carrito.length === 0) {
+      checkoutTracked.current = true;
+      trackTakeAwayInicio();
+    }
     setCarrito(prev => [...prev, item]);
     setToast({ message: `${item.nombre} agregado al pedido`, type: 'success' });
   };
@@ -352,20 +487,25 @@ function TakeAway() {
   const totalCarrito = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const cantidadItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
 
-  const handleConfirmar = async (formData) => {
+  // Intercepta el checkout → va a verificación solo si el template está configurado
+  const verificacionActiva = !!import.meta.env.VITE_EMAILJS_TEMPLATE_EMAIL_VERIF &&
+    import.meta.env.VITE_EMAILJS_TEMPLATE_EMAIL_VERIF !== 'COMPLETAR_CON_ID_DEL_TEMPLATE';
+
+  const handleConfirmar = (formData) => {
+    setPendingFormData(formData);
+    if (verificacionActiva) {
+      setStep('verificacion');
+    } else {
+      handleConfirmarFinalConData(formData);
+    }
+  };
+
+  // Se llama una vez verificado el email (o directo si la verificación no está activa)
+  const handleConfirmarFinalConData = async (formData) => {
     setLoading(true);
     try {
-      const counterRef = doc(db, 'selvaggio_configuracion', 'takeaway_counter');
-      const n = await runTransaction(db, async t => {
-        const snap = await t.get(counterRef);
-        const num = (snap.exists() ? snap.data().ultimo || 0 : 0) + 1;
-        t.set(counterRef, { ultimo: num }, { merge: true });
-        return num;
-      });
-      const numStr = `TW-${String(n).padStart(4, '0')}`;
-
-      await addDoc(collection(db, 'selvaggio_takeaway_pedidos'), {
-        numeroPedido: numStr,
+      const docRef = await addDoc(collection(db, 'selvaggio_takeaway_pedidos'), {
+        numeroPedido: '',
         nombre: formData.nombre, apellido: formData.apellido,
         email: formData.email, telefono: formData.telefono,
         items: carrito.map(i => ({ ...i, subtotal: i.precio * i.cantidad })),
@@ -377,6 +517,8 @@ function TakeAway() {
         estado: 'pendiente',
         createdAt: Timestamp.now(),
       });
+      const numStr = 'TW-' + docRef.id.slice(-6).toUpperCase();
+      await setDoc(docRef, { numeroPedido: numStr }, { merge: true });
 
       if (formData.email) {
         const clienteId = formData.email.toLowerCase().trim();
@@ -401,6 +543,22 @@ function TakeAway() {
         }
       }
 
+      // Notificar al local apenas entra el pedido
+      enviarNotificacionPedidoTakeAway({
+        numeroPedido: numStr,
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        email: formData.email,
+        telefono: formData.telefono,
+        items: carrito,
+        subtotal: formData.subtotal,
+        descuento: formData.descuento || 0,
+        total: formData.totalFinal,
+        metodoPago: formData.metodoPago,
+        comentarios: formData.comentarios,
+      });
+
+      await trackTakeAwayPedido(formData.totalFinal, formData);
       setPedidoNum(numStr);
       setCarrito([]);
       localStorage.removeItem('selvaggio_tw_carrito');
@@ -408,23 +566,30 @@ function TakeAway() {
     } catch (err) {
       console.error(err);
       setToast({ message: 'Error al procesar el pedido. Intentá nuevamente.', type: 'error' });
+      setStep(verificacionActiva ? 'verificacion' : 'checkout');
     } finally { setLoading(false); }
   };
 
+  const handleConfirmarFinal = () => handleConfirmarFinalConData(pendingFormData);
+
   // ── Early returns ──
-  if (takeawayActivo === null) return (
+  if (config === null) return (
     <div className="tw-page">
       <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" /></Link>
+        <Link to="/" className="tw-nav__logo">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
+        </Link>
         <span className="tw-nav__title">Take Away</span><span />
       </nav>
     </div>
   );
 
-  if (takeawayActivo === false) return (
+  if (config.activo === false) return (
     <div className="tw-page">
       <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo"><img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" /></Link>
+        <Link to="/" className="tw-nav__logo">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
+        </Link>
         <span className="tw-nav__title">Take Away</span>
         <Link to="/" className="tw-nav__back">← Inicio</Link>
       </nav>
@@ -441,11 +606,90 @@ function TakeAway() {
     </div>
   );
 
+  if (!esDiaAbierto(config.diasAbiertos)) return (
+    <div className="tw-page">
+      <nav className="tw-nav">
+        <Link to="/" className="tw-nav__logo">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
+        </Link>
+        <span className="tw-nav__title">Take Away</span>
+        <Link to="/" className="tw-nav__back">← Inicio</Link>
+      </nav>
+      <div className="tw-unavailable">
+        <div className="tw-unavailable__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <h1 className="tw-unavailable__title">Cerrado hoy</h1>
+        <p className="tw-unavailable__sub">
+          Hoy no abrimos para Take Away.
+          {config.diasAbiertos?.length > 0 && (
+            <><br />Abrimos {formatDiasAbiertos(config.diasAbiertos)}.</>
+          )}
+        </p>
+        <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
+      </div>
+    </div>
+  );
+
+  if (!esDentroDeHorario(config.horarioDesde, config.horarioHasta)) return (
+    <div className="tw-page">
+      <nav className="tw-nav">
+        <Link to="/" className="tw-nav__logo">
+          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
+        </Link>
+        <span className="tw-nav__title">Take Away</span>
+        <Link to="/" className="tw-nav__back">← Inicio</Link>
+      </nav>
+      <div className="tw-unavailable">
+        <div className="tw-unavailable__icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h1 className="tw-unavailable__title">Fuera de horario</h1>
+        <p className="tw-unavailable__sub">
+          {config.horarioDesde !== undefined && config.horarioHasta !== undefined
+            ? `Los pedidos están disponibles de ${config.horarioDesde} a ${config.horarioHasta} hs.`
+            : config.horarioDesde !== undefined
+            ? `Los pedidos están disponibles a partir de las ${config.horarioDesde} hs.`
+            : 'Volvé más tarde.'}
+        </p>
+        <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
+      </div>
+    </div>
+  );
+
   if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} />;
 
+  if (step === 'verificacion' && pendingFormData) return (
+    <>
+      <VerificacionEmailScreen
+        email={pendingFormData.email}
+        nombre={pendingFormData.nombre}
+        onVerificado={handleConfirmarFinal}
+        onVolver={() => setStep('checkout')}
+      />
+      {loading && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <p style={{ color: '#f5f0e8', fontSize: 16 }}>Procesando pedido…</p>
+        </div>
+      )}
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
+    </>
+  );
+
   if (step === 'checkout') return (
-    <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
-      onConfirmar={handleConfirmar} loading={loading} />
+    <>
+      <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
+        onConfirmar={handleConfirmar} loading={loading} />
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
+    </>
   );
 
   return (
@@ -573,7 +817,7 @@ function TakeAway() {
         </button>
       )}
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
     </div>
   );
 }
