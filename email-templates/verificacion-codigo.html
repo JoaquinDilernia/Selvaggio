@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu código de verificación</title>
+  <style>
+    body { margin: 0; padding: 0; background: #1a1714; font-family: Arial, sans-serif; }
+    .wrapper { background: #1a1714; padding: 32px 16px; }
+    .card { background: #242018; border-radius: 8px; overflow: hidden; max-width: 480px; margin: 0 auto; }
+    .header { padding: 28px 28px 24px; border-bottom: 1px solid #3a3228; }
+    .eyebrow { margin: 0 0 6px; color: #b8956a; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+    .title { margin: 0; color: #f5f0e8; font-size: 22px; font-weight: 400; }
+    .body { padding: 28px 28px 8px; }
+    .greeting { margin: 0 0 16px; color: #8a7e76; font-size: 15px; line-height: 1.6; }
+    .greeting strong { color: #f5f0e8; }
+    .code-block { background: #1e1b16; border: 1px solid #3a3228; border-radius: 8px; padding: 24px 16px; text-align: center; margin: 24px 0; }
+    .code-label { margin: 0 0 10px; color: #8a7e76; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .code { margin: 0; color: #b8956a; font-size: 42px; font-weight: 700; letter-spacing: 10px; font-family: 'Courier New', monospace; }
+    .expiry { margin: 8px 0 0; color: #8a7e76; font-size: 12px; }
+    .note { margin: 0 0 24px; color: #8a7e76; font-size: 13px; line-height: 1.6; padding: 0 0 24px; border-bottom: 1px solid #3a3228; }
+    .footer { padding: 20px 28px; text-align: center; }
+    .footer p { margin: 0; color: #8a7e76; font-size: 12px; letter-spacing: 1px; }
+
+    @media only screen and (max-width: 480px) {
+      .wrapper { padding: 0 !important; }
+      .card { border-radius: 0 !important; }
+      .header, .body, .footer { padding-left: 20px !important; padding-right: 20px !important; }
+      .code { font-size: 34px !important; letter-spacing: 6px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="header">
+        <p class="eyebrow">Selvaggio · Take Away</p>
+        <h1 class="title">Verificá tu email</h1>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+        <p class="greeting">Hola, <strong>{{to_name}}</strong>. Usá el siguiente código para confirmar tu pedido:</p>
+
+        <!-- Código -->
+        <div class="code-block">
+          <p class="code-label">Tu código</p>
+          <p class="code">{{codigo}}</p>
+          <p class="expiry">Válido por 10 minutos</p>
+        </div>
+
+        <p class="note">Si no realizaste un pedido en Selvaggio, podés ignorar este mensaje.</p>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>Selvaggio Wine Bar &amp; Delicatessen</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuevo pedido Take Away</title>
+  <style>
+    body { margin: 0; padding: 0; background: #1a1714; font-family: Arial, sans-serif; }
+    .wrapper { background: #1a1714; padding: 32px 16px; }
+    .card { background: #242018; border-radius: 8px; overflow: hidden; max-width: 560px; margin: 0 auto; }
+    .header { padding: 28px 28px 24px; border-bottom: 1px solid #3a3228; }
+    .eyebrow { margin: 0 0 6px; color: #b8956a; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; }
+    .title { margin: 0; color: #f5f0e8; font-size: 22px; font-weight: 400; }
+    .order-band { background: #1e1b16; padding: 18px 28px; border-bottom: 1px solid #3a3228; }
+    .order-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+    .order-label { margin: 0 0 4px; color: #8a7e76; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    .order-num { margin: 0; color: #b8956a; font-size: 22px; font-weight: 700; letter-spacing: 3px; }
+    .order-date { margin: 0; color: #8a7e76; font-size: 13px; text-align: right; }
+    .section { padding: 22px 28px; border-bottom: 1px solid #3a3228; }
+    .section-label { margin: 0 0 14px; color: #8a7e76; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+    .client-grid { display: flex; flex-wrap: wrap; gap: 14px 0; }
+    .client-field { width: 50%; }
+    .client-field.full { width: 100%; }
+    .field-label { margin: 0 0 3px; color: #8a7e76; font-size: 11px; }
+    .field-value { margin: 0; color: #f5f0e8; font-size: 15px; }
+    .items-text { color: #f5f0e8; font-size: 14px; line-height: 1.9; white-space: pre-line; margin: 0; }
+    .totals { width: 100%; border-collapse: collapse; }
+    .totals td { padding: 5px 0; font-size: 14px; }
+    .totals .total-row td { padding-top: 12px; border-top: 1px solid #3a3228; font-size: 16px; font-weight: 700; }
+    .muted { color: #8a7e76; }
+    .green { color: #7a9e6e; }
+    .gold { color: #b8956a; }
+    .light { color: #f5f0e8; }
+    .pill-row { padding: 14px 28px; border-bottom: 1px solid #3a3228; }
+    .pill-label { color: #8a7e76; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .pill-value { color: #f5f0e8; font-size: 14px; margin-left: 6px; }
+    .footer { padding: 20px 28px; text-align: center; }
+    .footer p { margin: 0; color: #8a7e76; font-size: 12px; letter-spacing: 1px; }
+
+    @media only screen and (max-width: 480px) {
+      .wrapper { padding: 0 !important; }
+      .card { border-radius: 0 !important; }
+      .header, .section, .pill-row, .footer { padding-left: 20px !important; padding-right: 20px !important; }
+      .order-band { padding-left: 20px !important; padding-right: 20px !important; }
+      .order-row { flex-direction: column; align-items: flex-start; }
+      .order-date { text-align: left !important; }
+      .client-field { width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="header">
+        <p class="eyebrow">Selvaggio · Take Away</p>
+        <h1 class="title">Nuevo pedido recibido</h1>
+      </div>
+
+      <!-- Número + fecha -->
+      <div class="order-band">
+        <div class="order-row">
+          <div>
+            <p class="order-label">Número de pedido</p>
+            <p class="order-num">{{numero_pedido}}</p>
+          </div>
+          <p class="order-date">{{fecha_hora}}</p>
+        </div>
+      </div>
+
+      <!-- Cliente -->
+      <div class="section">
+        <p class="section-label">Cliente</p>
+        <div class="client-grid">
+          <div class="client-field">
+            <p class="field-label">Nombre</p>
+            <p class="field-value">{{nombre_cliente}}</p>
+          </div>
+          <div class="client-field">
+            <p class="field-label">WhatsApp</p>
+            <p class="field-value">{{telefono_cliente}}</p>
+          </div>
+          <div class="client-field full">
+            <p class="field-label">Email</p>
+            <p class="field-value">{{email_cliente}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div class="section">
+        <p class="section-label">Pedido</p>
+        <p class="items-text">{{items_pedido}}</p>
+      </div>
+
+      <!-- Totales -->
+      <div class="section">
+        <table class="totals">
+          <tr>
+            <td class="muted">Subtotal</td>
+            <td class="muted" align="right">{{subtotal}}</td>
+          </tr>
+          <tr>
+            <td class="green">Descuento efectivo (10%)</td>
+            <td class="green" align="right">{{descuento}}</td>
+          </tr>
+          <tr class="total-row">
+            <td class="light">Total</td>
+            <td class="gold" align="right">{{total}}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Método de pago -->
+      <div class="pill-row">
+        <span class="pill-label">Método de pago</span>
+        <span class="pill-value">{{metodo_pago}}</span>
+      </div>
+
+      <!-- Entrega -->
+      <div class="pill-row">
+        <span class="pill-label">Entrega</span>
+        <span class="pill-value">{{metodo_envio}}</span>
+      </div>
+
+      <!-- Dirección de envío -->
+      <div class="pill-row">
+        <span class="pill-label">Dirección</span>
+        <span class="pill-value">{{direccion_envio}}</span>
+      </div>
+
+      <!-- Comentarios -->
+      <div class="pill-row">
+        <span class="pill-label">Comentarios</span>
+        <span class="pill-value">{{comentarios}}</span>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>Selvaggio Wine Bar &amp; Delicatessen</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
