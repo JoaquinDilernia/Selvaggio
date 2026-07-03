@@ -342,7 +342,9 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
 
           <div className="tw-field">
             <label className="tw-label tw-label--req">Método de pago</label>
-            <p className="tw-pago-nota">Todos los pagos se realizan al retirar en el local.</p>
+            <p className="tw-pago-nota">
+              {esEnvio ? 'Todos los pagos se realizan al momento de la entrega.' : 'Todos los pagos se realizan al retirar en el local.'}
+            </p>
             <div className="tw-pago-grid">
               {METODOS_PAGO.map(m => (
                 <button key={m.id} type="button"
