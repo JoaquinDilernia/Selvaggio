@@ -988,3 +988,62 @@
   color: #c0392b;
   margin-left: 4px;
 }
+
+/* ── Zonas de envío ── */
+.atw__zonas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.atw__zona-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 20px;
+  background: #f0ece8;
+  color: #4a3f38;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.atw__zona-chip__del {
+  background: none;
+  border: none;
+  color: #8a7e76;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+
+.atw__zona-chip__del:hover { color: #8b3a2e; background: #fef0ee; }
+
+.atw__zona-input {
+  padding: 4px 10px;
+  border: 1px solid #d4c8ba;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #3c2f24;
+  min-width: 160px;
+}
+
+.atw__zona-add-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #d4c8ba;
+  background: #fff;
+  color: #4a3f38;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.atw__zona-add-btn:hover:not(:disabled) { border-color: #2a2420; color: #2a2420; }
+.atw__zona-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }

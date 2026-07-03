@@ -948,6 +948,11 @@ function AdicionalestTW() {
 /* ══════════════════════════════════
    MAIN
 ══════════════════════════════════ */
+const ZONAS_ENVIO_DEFAULT = [
+  'Núñez', 'Vicente López', 'Olivos', 'Acassuso', 'Martínez',
+  'San Isidro', 'Beccar', 'Victoria', 'San Fernando', 'Tigre', 'Nordelta',
+];
+
 function AdminTakeAway() {
   const [subTab, setSubTab] = useState('pedidos');
   const [activo, setActivo] = useState(null);
@@ -955,6 +960,8 @@ function AdminTakeAway() {
   const [horarioDesde, setHorarioDesde] = useState(18);
   const [horarioHasta, setHorarioHasta] = useState(23);
   const [diasAbiertos, setDiasAbiertos] = useState([2, 3, 4, 5, 6]);
+  const [zonasEnvio, setZonasEnvio] = useState(ZONAS_ENVIO_DEFAULT);
+  const [nuevaZona, setNuevaZona] = useState('');
   const [guardandoConfig, setGuardandoConfig] = useState(false);
 
   useEffect(() => {
@@ -966,6 +973,7 @@ function AdminTakeAway() {
           if (data.horarioDesde !== undefined) setHorarioDesde(data.horarioDesde);
           if (data.horarioHasta !== undefined) setHorarioHasta(data.horarioHasta);
           if (data.diasAbiertos !== undefined) setDiasAbiertos(data.diasAbiertos);
+          if (data.zonasEnvio !== undefined) setZonasEnvio(data.zonasEnvio);
         } else {
           setActivo(false);
         }
@@ -978,11 +986,22 @@ function AdminTakeAway() {
     try {
       await setDoc(
         doc(db, 'selvaggio_configuracion', 'takeaway_config'),
-        { horarioDesde, horarioHasta, diasAbiertos },
+        { horarioDesde, horarioHasta, diasAbiertos, zonasEnvio },
         { merge: true }
       );
     } catch {}
     finally { setGuardandoConfig(false); }
+  };
+
+  const agregarZona = () => {
+    const nueva = nuevaZona.trim();
+    if (!nueva || zonasEnvio.includes(nueva)) return;
+    setZonasEnvio(prev => [...prev, nueva]);
+    setNuevaZona('');
+  };
+
+  const eliminarZona = (zona) => {
+    setZonasEnvio(prev => prev.filter(z => z !== zona));
   };
 
   const toggleDia = (idx) => {
@@ -1070,6 +1089,37 @@ function AdminTakeAway() {
           >
             {guardandoConfig ? '…' : 'Guardar'}
           </button>
+        </div>
+        <div className="atw__config-row">
+          <span className="atw__config-label">Envío:</span>
+          <div className="atw__zonas">
+            {zonasEnvio.map(zona => (
+              <span key={zona} className="atw__zona-chip">
+                {zona}
+                <button type="button" className="atw__zona-chip__del" onClick={() => eliminarZona(zona)}>✕</button>
+              </span>
+            ))}
+            {zonasEnvio.length === 0 && (
+              <span className="atw__config-warn">Sin zonas — "Envío Selvaggio" no se ofrecerá a los clientes</span>
+            )}
+          </div>
+        </div>
+        <div className="atw__config-row">
+          <span className="atw__config-label" />
+          <input
+            type="text"
+            className="atw__zona-input"
+            value={nuevaZona}
+            onChange={e => setNuevaZona(e.target.value)}
+            placeholder="Agregar localidad…"
+            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarZona())}
+          />
+          <button type="button" className="atw__zona-add-btn" onClick={agregarZona} disabled={!nuevaZona.trim()}>
+            + Agregar
+          </button>
+          <span className="atw__config-text" style={{ marginLeft: 'auto' }}>
+            Recordá presionar "Guardar" arriba para aplicar los cambios de zonas.
+          </span>
         </div>
       </div>
 
