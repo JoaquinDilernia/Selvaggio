@@ -161,11 +161,16 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
   const [formData, setFormData] = useState({
     nombre: '', apellido: '', email: '', telefono: '', metodoPago: 'efectivo', comentarios: '',
     fechaRetiro: '', horaRetiro: '',
+    metodoEnvio: 'retiro',
+    localidadEnvio: '', direccionEnvio: '', pisoDeptoEnvio: '', referenciaEnvio: '',
   });
   const [toast, setToast] = useState(null);
 
   const subtotal  = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const esEfectivo = formData.metodoPago === 'efectivo';
+  const zonasEnvio = config?.zonasEnvio || [];
+  const hayEnvioDisponible = zonasEnvio.length > 0;
+  const esEnvio = formData.metodoEnvio === 'envio';
   const descuento = esEfectivo ? Math.round(subtotal * 0.10) : 0;
   const total     = subtotal - descuento;
 
@@ -231,11 +236,20 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
               </div>
             </>
           )}
+          {esEnvio && (
+            <div className="tw-resumen__row tw-resumen__row--envio">
+              <span className="tw-resumen__qty">🚚</span>
+              <span className="tw-resumen__nombre">Envío Selvaggio</span>
+              <span className="tw-resumen__precio tw-resumen__precio--gratis">Gratis</span>
+            </div>
+          )}
           <div className="tw-resumen__total">
             <span>Total{esEfectivo ? ' a pagar' : ''}</span>
             <span>{formatPrecio(total)}</span>
           </div>
-          <p className="tw-resumen__nota">El pago se realiza al momento de retirar en el local.</p>
+          <p className="tw-resumen__nota">
+            {esEnvio ? 'El pago se realiza al momento de la entrega.' : 'El pago se realiza al momento de retirar en el local.'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="tw-form">
@@ -265,6 +279,68 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
           </div>
 
           <div className="tw-field">
+            <label className="tw-label tw-label--req">Método de envío</label>
+            <div className={`tw-envio-grid${hayEnvioDisponible ? '' : ' tw-envio-grid--single'}`}>
+              <button type="button"
+                className={`tw-pago-btn${!esEnvio ? ' tw-pago-btn--on' : ''}`}
+                onClick={() => setFormData(p => ({ ...p, metodoEnvio: 'retiro' }))}>
+                <span className="tw-pago-btn__label">Retiro en local</span>
+                <span className="tw-pago-btn__desc">Pasás a buscarlo vos</span>
+              </button>
+              {hayEnvioDisponible && (
+                <button type="button"
+                  className={`tw-pago-btn${esEnvio ? ' tw-pago-btn--on' : ''}`}
+                  onClick={() => setFormData(p => ({ ...p, metodoEnvio: 'envio' }))}>
+                  <span className="tw-pago-btn__label">Envío Selvaggio</span>
+                  <span className="tw-pago-btn__desc tw-pago-btn__desc--free">Envío gratis</span>
+                </button>
+              )}
+            </div>
+
+            {!esEnvio ? (
+              <div className="tw-retiro-info">
+                <p className="tw-retiro-info__row">📍 Av. Fondo de la Legua 59, Las Lomas de San Isidro</p>
+                {config?.diasAbiertos?.length > 0 && (
+                  <p className="tw-retiro-info__row">
+                    🕐 Retirás {formatDiasAbiertos(config.diasAbiertos)}
+                    {config?.horarioDesde !== undefined && config?.horarioHasta !== undefined
+                      ? ` de ${config.horarioDesde} a ${config.horarioHasta} hs.`
+                      : '.'}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="tw-envio-fields">
+                <div className="tw-field">
+                  <label className="tw-label tw-label--req">Localidad</label>
+                  <select className="tw-input tw-select" name="localidadEnvio" value={formData.localidadEnvio}
+                    onChange={handleChange} required>
+                    <option value="">Elegí tu localidad…</option>
+                    {zonasEnvio.map(zona => <option key={zona} value={zona}>{zona}</option>)}
+                  </select>
+                </div>
+                <div className="tw-field">
+                  <label className="tw-label tw-label--req">Dirección</label>
+                  <input className="tw-input" type="text" name="direccionEnvio" value={formData.direccionEnvio}
+                    onChange={handleChange} required placeholder="Calle y número" />
+                </div>
+                <div className="tw-row">
+                  <div className="tw-field">
+                    <label className="tw-label">Piso/Depto</label>
+                    <input className="tw-input" type="text" name="pisoDeptoEnvio" value={formData.pisoDeptoEnvio}
+                      onChange={handleChange} placeholder="Opcional" />
+                  </div>
+                  <div className="tw-field">
+                    <label className="tw-label">Referencia</label>
+                    <input className="tw-input" type="text" name="referenciaEnvio" value={formData.referenciaEnvio}
+                      onChange={handleChange} placeholder="Ej: portón verde" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="tw-field">
             <label className="tw-label tw-label--req">Método de pago</label>
             <p className="tw-pago-nota">Todos los pagos se realizan al retirar en el local.</p>
             <div className="tw-pago-grid">
@@ -281,7 +357,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
 
           <div className="tw-retiro-section">
             <div className="tw-field">
-              <label className="tw-label tw-label--req">Fecha de retiro</label>
+              <label className="tw-label tw-label--req">{esEnvio ? 'Fecha de entrega' : 'Fecha de retiro'}</label>
               {fechasDisponibles.length === 0 ? (
                 <p className="tw-retiro-no-slots">No hay fechas de retiro configuradas aún.</p>
               ) : (
@@ -299,7 +375,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
 
             {formData.fechaRetiro && (
               <div className="tw-field">
-                <label className="tw-label tw-label--req">Horario de retiro</label>
+                <label className="tw-label tw-label--req">{esEnvio ? 'Horario estimado de entrega' : 'Horario de retiro'}</label>
                 {horasDisponibles.length === 0 ? (
                   <p className="tw-retiro-no-slots">No hay horarios disponibles para ese día.</p>
                 ) : (

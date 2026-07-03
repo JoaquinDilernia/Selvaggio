@@ -1024,3 +1024,41 @@
   .tw-cart-float:hover { transform: translateY(-2px); }
   .tw-co-main { padding: 28px 16px 80px; }
 }
+
+/* ── Método de envío ── */
+.tw-envio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tw-envio-grid--single { grid-template-columns: 1fr; }
+.tw-pago-btn__desc--free { color: #1a6b3a; font-weight: 600; }
+
+.tw-retiro-info {
+  background: #f5f0ec;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tw-retiro-info__row {
+  font-size: 13px;
+  color: #4a3f38;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tw-envio-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tw-resumen__row--envio { border-bottom: 1px solid #f5f0ec; }
+.tw-resumen__precio--gratis { color: #1a6b3a !important; font-weight: 700 !important; }
+
+@media (max-width: 600px) {
+  .tw-envio-grid { grid-template-columns: 1fr; }
+}
