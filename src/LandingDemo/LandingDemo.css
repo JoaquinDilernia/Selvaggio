@@ -19,6 +19,15 @@
 
   --font-display: 'Cormorant Garant', Georgia, serif;
   --font-ui:      'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Z-index scale */
+  --z-base:     1;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-modal-backdrop: 300;
+  --z-modal:    400;
+  --z-toast:    500;
+  --z-tooltip:  600;
 }
 
 /* ── Loading Screen ──────────────────────────────────────── */
@@ -92,7 +101,7 @@
 .ap-nav {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 1000;
+  z-index: var(--z-sticky);
   height: 54px;
   transition: background 0.4s ease, backdrop-filter 0.4s ease, border-color 0.4s ease;
   border-bottom: 1px solid transparent;
@@ -226,9 +235,13 @@
   font-weight: 500;
   cursor: pointer;
   border: none;
-  transition: all 0.22s ease;
+  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease,
+              opacity 0.22s ease, box-shadow 0.22s ease, transform 0.16s ease-out;
   white-space: nowrap;
   letter-spacing: 0.01em;
+}
+.ap-btn:active {
+  transform: scale(0.97);
 }
 
 .ap-btn--pill {
@@ -281,6 +294,7 @@
   align-items: flex-end;        /* texto pegado abajo-izquierda */
   justify-content: flex-start;
   overflow: hidden;
+  background: url('/Hero.jpeg') center/cover no-repeat;
 }
 
 .ap-hero__video {
@@ -330,6 +344,7 @@
   letter-spacing: -0.01em;
   color: #fff;
   margin-bottom: 24px;
+  text-wrap: balance;
 }
 
 .ap-hero__title em {
@@ -484,6 +499,7 @@
   line-height: 1.06;
   color: var(--ap-ink);
   margin-bottom: 28px;
+  text-wrap: balance;
 }
 
 .ap-heading--white   { color: #fff; }
@@ -737,6 +753,7 @@
   line-height: 1.06;
   color: #fff;
   margin-bottom: 16px;
+  text-wrap: balance;
 }
 
 .ap-cta__sub {
@@ -916,7 +933,7 @@
   position: fixed;
   bottom: 28px;
   right: 28px;
-  z-index: 999;
+  z-index: var(--z-sticky);
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -937,10 +954,11 @@
 .ap-reveal {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.75s ease, transform 0.75s ease;
+  transition: opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1),
+              transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
 }
-.ap-reveal--delay  { transition-delay: 0.14s; }
-.ap-reveal--delay2 { transition-delay: 0.28s; }
+.ap-reveal--delay  { transition-delay: 0.12s; }
+.ap-reveal--delay2 { transition-delay: 0.24s; }
 .ap-revealed { opacity: 1; transform: translateY(0); }
 
 /* ── RESPONSIVE ──────────────────────────────────────────── */
@@ -1136,7 +1154,7 @@
 .ap-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  z-index: var(--z-modal);
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
@@ -1819,3 +1837,22 @@
 }
 
 .ap-horario-row--open .ap-horario-hrs { color: var(--ap-mid); }
+
+/* ── ACCESIBILIDAD: prefers-reduced-motion ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ap-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .ap-loader__logo { animation: none; opacity: 1; }
+  .ap-loader__progress { animation: none; }
+  .ap-hero__scroll-hint span { animation: none; }
+  .ap-img:hover,
+  .ap-gallery__img:hover,
+  .ap-evento-img { transition: none; }
+  .ap-lightbox { animation: none; }
+  .ap-lightbox__img { animation: none; }
+  .ap-btn { transition: none; }
+  .ap-btn:active { transform: none; }
+}

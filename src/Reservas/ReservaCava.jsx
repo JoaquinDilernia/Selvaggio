@@ -5,7 +5,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
-import { trackSchedule } from '../utils/metaPixel';
+import { trackSchedule, trackViewContent } from '../utils/metaPixel';
 import './ReservaCava.css';
 
 function ReservaCava() {
@@ -28,7 +28,7 @@ function ReservaCava() {
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  useEffect(() => { fetchReservedDates(); }, []);
+  useEffect(() => { fetchReservedDates(); trackViewContent('Reserva La Cava', 'Reservas'); }, []);
 
   const fetchReservedDates = async () => {
     try {
@@ -152,7 +152,7 @@ function ReservaCava() {
         }
       }
 
-      trackSchedule();
+      trackSchedule('cava', formData);
       setReservaExitosa(true);
       enviarConfirmacionCava(formData);
       fetchReservedDates();

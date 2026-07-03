@@ -1,10 +1,22 @@
-import { HashRouter as Router, Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import { ToastProvider } from './components/Toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import LandingDemo from './LandingDemo/LandingDemo'
+import { trackPageView } from './utils/metaPixel'
 import './theme.css'
 import './App.css'
+
+// Dispara PageView en cada navegación (el primero ya lo dispara index.html)
+function RouteTracker() {
+  const location = useLocation();
+  const isFirst = useRef(true);
+  useEffect(() => {
+    if (isFirst.current) { isFirst.current = false; return; }
+    trackPageView();
+  }, [location.pathname]);
+  return null;
+}
 
 const Landing = lazy(() => import('./Landing/Landing'))
 const AdminNew = lazy(() => import('./Admin/AdminNew'))
@@ -29,6 +41,7 @@ function App() {
   return (
     <ToastProvider>
       <Router>
+        <RouteTracker />
         <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<LandingDemo />} />

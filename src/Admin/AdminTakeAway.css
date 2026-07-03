@@ -260,6 +260,7 @@
   margin-top: 8px;
 }
 .atw__card-info-row span:first-child { font-weight: 600; }
+.atw__card-info-row--retiro { color: #7c3f2f; font-weight: 600; background: #fdf5f0; padding: 5px 8px; border-radius: 6px; }
 .atw__card-comentario {
   font-size: 12px;
   color: #8a7e76;
@@ -667,6 +668,7 @@
 .atw__ing-row--off { opacity: 0.5; }
 .atw__ing-nombre { flex: 1; font-size: 14px; font-weight: 500; color: #2a2420; }
 .atw__ing-desc { font-size: 12px; color: #8a7e76; }
+.atw__ing-precio--adic { font-size: 13px; font-weight: 600; color: #7c3f2f; white-space: nowrap; margin-right: 8px; }
 .atw__ing-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ─── Picada card extras ─── */

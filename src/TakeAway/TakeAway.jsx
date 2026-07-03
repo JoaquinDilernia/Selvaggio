@@ -19,7 +19,7 @@ const formatPrecio = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
 
 /* ─── Success screen ─── */
-function SuccessScreen({ pedidoNum }) {
+function SuccessScreen({ pedidoNum, retiroLabel }) {
   return (
     <div className="tw-page">
       <nav className="tw-nav">
@@ -36,7 +36,11 @@ function SuccessScreen({ pedidoNum }) {
           </svg>
         </div>
         <h1 className="tw-success__title">¡Pedido recibido!</h1>
-        <p className="tw-success__sub">Estamos preparando tu pedido. Te avisamos cuando esté listo para retirar.</p>
+        <p className="tw-success__sub">
+          {retiroLabel
+            ? <>Tu retiro está agendado para el <strong>{retiroLabel}</strong>. ¡Te avisamos cuando esté listo!</>
+            : 'Estamos preparando tu pedido. Te avisamos cuando esté listo para retirar.'}
+        </p>
         <div className="tw-success__num">
           <span className="tw-success__num-label">Tu número de pedido</span>
           <span className="tw-success__num-val">{pedidoNum}</span>
@@ -153,9 +157,10 @@ function VerificacionEmailScreen({ email, nombre, onVerificado, onVolver, onReen
 }
 
 /* ─── Checkout ─── */
-function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
+function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
   const [formData, setFormData] = useState({
-    nombre: '', apellido: '', email: '', telefono: '', metodoPago: 'efectivo', comentarios: ''
+    nombre: '', apellido: '', email: '', telefono: '', metodoPago: 'efectivo', comentarios: '',
+    fechaRetiro: '', horaRetiro: '',
   });
   const [toast, setToast] = useState(null);
 
@@ -163,6 +168,11 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
   const esEfectivo = formData.metodoPago === 'efectivo';
   const descuento = esEfectivo ? Math.round(subtotal * 0.10) : 0;
   const total     = subtotal - descuento;
+
+  const fechasDisponibles = generarFechasRetiro(config?.diasAbiertos, config?.horarioDesde, config?.horarioHasta);
+  const horasDisponibles = formData.fechaRetiro
+    ? generarHorasRetiro(parseFechaKey(formData.fechaRetiro), config?.horarioDesde, config?.horarioHasta)
+    : [];
 
   const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -267,6 +277,42 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="tw-retiro-section">
+            <div className="tw-field">
+              <label className="tw-label tw-label--req">Fecha de retiro</label>
+              {fechasDisponibles.length === 0 ? (
+                <p className="tw-retiro-no-slots">No hay fechas de retiro configuradas aún.</p>
+              ) : (
+                <select className="tw-input tw-select" name="fechaRetiro" value={formData.fechaRetiro}
+                  onChange={e => setFormData(p => ({ ...p, fechaRetiro: e.target.value, horaRetiro: '' }))} required>
+                  <option value="">Elegí el día…</option>
+                  {fechasDisponibles.map(fecha => (
+                    <option key={fechaAKey(fecha)} value={fechaAKey(fecha)}>
+                      {formatFechaRetiroLabel(fecha)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {formData.fechaRetiro && (
+              <div className="tw-field">
+                <label className="tw-label tw-label--req">Horario de retiro</label>
+                {horasDisponibles.length === 0 ? (
+                  <p className="tw-retiro-no-slots">No hay horarios disponibles para ese día.</p>
+                ) : (
+                  <select className="tw-input tw-select" name="horaRetiro" value={formData.horaRetiro}
+                    onChange={e => setFormData(p => ({ ...p, horaRetiro: e.target.value }))} required>
+                    <option value="">Elegí el horario…</option>
+                    {horasDisponibles.map(hora => (
+                      <option key={hora} value={hora}>{hora} hs.</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="tw-field">
@@ -419,16 +465,69 @@ const esDentroDeHorario = (desde, hasta) => {
   return true;
 };
 
+const generarHorasRetiro = (fecha, desde, hasta, bufferMinutos = 60) => {
+  if (desde == null || hasta == null) return [];
+  const ahora = new Date();
+  const esHoy = fecha.getFullYear() === ahora.getFullYear() &&
+    fecha.getMonth() === ahora.getMonth() && fecha.getDate() === ahora.getDate();
+  const minimo = esHoy ? new Date(ahora.getTime() + bufferMinutos * 60 * 1000) : null;
+  const slots = [];
+  for (let h = desde; h < hasta; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const slot = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), h, m);
+      if (minimo && slot < minimo) continue;
+      slots.push(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'));
+    }
+  }
+  return slots;
+};
+
+const generarFechasRetiro = (diasAbiertos, horarioDesde, horarioHasta, maxDias = 14) => {
+  if (!diasAbiertos || diasAbiertos.length === 0) return [];
+  const resultado = [];
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  for (let i = 0; resultado.length < maxDias && i < maxDias + 14; i++) {
+    const f = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + i);
+    if (!diasAbiertos.includes(f.getDay())) continue;
+    if (generarHorasRetiro(f, horarioDesde, horarioHasta).length === 0) continue;
+    resultado.push(f);
+  }
+  return resultado;
+};
+
+const fechaAKey = f =>
+  f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0');
+
+const parseFechaKey = key => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+const formatFechaRetiroLabel = (fecha) => {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const manana = new Date(hoy); manana.setDate(hoy.getDate() + 1);
+  const dia = NOMBRES_DIA[fecha.getDay()];
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const base = dia + ' ' + dd + '/' + mm;
+  if (fecha.getTime() === hoy.getTime()) return 'Hoy · ' + base;
+  if (fecha.getTime() === manana.getTime()) return 'Mañana · ' + base;
+  return base.charAt(0).toUpperCase() + base.slice(1);
+};
+
+
 /* ─── Catalog ─── */
 function TakeAway() {
   const [picadas, setPicadas] = useState([]);
   const [ingredientesMap, setIngredientesMap] = useState(new Map());
+  const [adicionales, setAdicionales] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [carrito, setCarrito] = useState([]);
   const [carritoOpen, setCarritoOpen] = useState(false);
   const [customizando, setCustomizando] = useState(null);
   const [step, setStep] = useState('catalogo');
   const [pedidoNum, setPedidoNum] = useState('');
+  const [retiroLabel, setRetiroLabel] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [toast, setToast] = useState(null);
@@ -455,7 +554,8 @@ function TakeAway() {
     Promise.all([
       getDocs(collection(db, 'selvaggio_tw_picadas')),
       getDocs(collection(db, 'selvaggio_tw_ingredientes')),
-    ]).then(([picSnap, ingSnap]) => {
+      getDocs(collection(db, 'selvaggio_tw_adicionales')),
+    ]).then(([picSnap, ingSnap, adicSnap]) => {
       setPicadas(
         picSnap.docs.map(d => ({ id: d.id, ...d.data() }))
           .filter(p => p.disponible !== false)
@@ -464,6 +564,11 @@ function TakeAway() {
       const map = new Map();
       ingSnap.docs.forEach(d => map.set(d.id, { id: d.id, ...d.data() }));
       setIngredientesMap(map);
+      setAdicionales(
+        adicSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .filter(a => a.disponible !== false)
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      );
     }).catch(() => {}).finally(() => setCargando(false));
   }, []);
 
@@ -484,6 +589,22 @@ function TakeAway() {
     );
   };
 
+  const cambiarAdicional = (adic, delta) => {
+    setCarrito(prev => {
+      const existing = prev.find(i => i.adicionalId === adic.id);
+      if (existing) {
+        const newQty = existing.cantidad + delta;
+        if (newQty <= 0) return prev.filter(i => i.adicionalId !== adic.id);
+        return prev.map(i => i.adicionalId === adic.id ? { ...i, cantidad: newQty } : i);
+      }
+      if (delta > 0) {
+        return [...prev, { cartId: 'adic-' + adic.id, adicionalId: adic.id, nombre: adic.nombre, precio: adic.precio, cantidad: 1, tipo: 'adicional' }];
+      }
+      return prev;
+    });
+  };
+
+  const cantidadAdicional = (adicId) => (carrito.find(i => i.adicionalId === adicId)?.cantidad || 0);
   const totalCarrito = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const cantidadItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
 
@@ -514,6 +635,8 @@ function TakeAway() {
         total: formData.totalFinal,
         metodoPago: formData.metodoPago,
         comentarios: formData.comentarios,
+        fechaRetiro: formData.fechaRetiro || '',
+        horaRetiro: formData.horaRetiro || '',
         estado: 'pendiente',
         createdAt: Timestamp.now(),
       });
@@ -556,10 +679,18 @@ function TakeAway() {
         total: formData.totalFinal,
         metodoPago: formData.metodoPago,
         comentarios: formData.comentarios,
+        fechaRetiro: formData.fechaRetiro || '',
+        horaRetiro: formData.horaRetiro || '',
       });
 
       await trackTakeAwayPedido(formData.totalFinal, formData);
       setPedidoNum(numStr);
+      if (formData.fechaRetiro && formData.horaRetiro) {
+        const [y, m, d] = formData.fechaRetiro.split('-').map(Number);
+        const fecha = new Date(y, m - 1, d);
+        const diaStr = NOMBRES_DIA[fecha.getDay()] + ' ' + String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0');
+        setRetiroLabel(diaStr + ' a las ' + formData.horaRetiro);
+      }
       setCarrito([]);
       localStorage.removeItem('selvaggio_tw_carrito');
       setStep('exito');
@@ -607,7 +738,7 @@ function TakeAway() {
   );
 
   // 3. Flujo de pedido en curso — ANTES de los gates de horario
-  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} />;
+  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} retiroLabel={retiroLabel} />;
 
   if (step === 'verificacion' && pendingFormData) return (
     <>
@@ -629,69 +760,9 @@ function TakeAway() {
   if (step === 'checkout') return (
     <>
       <CheckoutScreen carrito={carrito} onVolver={() => setStep('catalogo')}
-        onConfirmar={handleConfirmar} loading={loading} />
+        onConfirmar={handleConfirmar} loading={loading} config={config} />
       {toast && <Toast toast={{ id: 0, ...toast }} onClose={() => setToast(null)} />}
     </>
-  );
-
-  // 4. Gates de horario/día — solo aplican al catálogo
-  if (!esDiaAbierto(config.diasAbiertos)) return (
-    <div className="tw-page">
-      <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo">
-          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
-        </Link>
-        <span className="tw-nav__title">Take Away</span>
-        <Link to="/" className="tw-nav__back">← Inicio</Link>
-      </nav>
-      <div className="tw-unavailable">
-        <div className="tw-unavailable__icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        </div>
-        <h1 className="tw-unavailable__title">Cerrado hoy</h1>
-        <p className="tw-unavailable__sub">
-          Hoy no abrimos para Take Away.
-          {config.diasAbiertos?.length > 0 && (
-            <><br />Abrimos {formatDiasAbiertos(config.diasAbiertos)}.</>
-          )}
-        </p>
-        <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
-      </div>
-    </div>
-  );
-
-  if (!esDentroDeHorario(config.horarioDesde, config.horarioHasta)) return (
-    <div className="tw-page">
-      <nav className="tw-nav">
-        <Link to="/" className="tw-nav__logo">
-          <img src="/logotipo-sin-fondo-blanco.png" alt="Selvaggio" className="tw-nav__logo-img" />
-        </Link>
-        <span className="tw-nav__title">Take Away</span>
-        <Link to="/" className="tw-nav__back">← Inicio</Link>
-      </nav>
-      <div className="tw-unavailable">
-        <div className="tw-unavailable__icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <h1 className="tw-unavailable__title">Fuera de horario</h1>
-        <p className="tw-unavailable__sub">
-          {config.horarioDesde !== undefined && config.horarioHasta !== undefined
-            ? `Los pedidos están disponibles de ${config.horarioDesde} a ${config.horarioHasta} hs.`
-            : config.horarioDesde !== undefined
-            ? `Los pedidos están disponibles a partir de las ${config.horarioDesde} hs.`
-            : 'Volvé más tarde.'}
-        </p>
-        <Link to="/" className="tw-success__btn">← Volver al inicio</Link>
-      </div>
-    </div>
   );
 
   return (
@@ -761,6 +832,37 @@ function TakeAway() {
         )}
       </div>
 
+      {/* Adicionales */}
+      {adicionales.length > 0 && (
+        <div className="tw-adicionales">
+          <h2 className="tw-adicionales__title">Agregá algo más</h2>
+          <div className="tw-adicionales-grid">
+            {adicionales.map(adic => {
+              const qty = cantidadAdicional(adic.id);
+              return (
+                <div key={adic.id} className="tw-adic-card">
+                  <div className="tw-adic-card__info">
+                    <span className="tw-adic-card__nombre">{adic.nombre}</span>
+                    {adic.descripcion && <span className="tw-adic-card__desc">{adic.descripcion}</span>}
+                    <span className="tw-adic-card__precio">{formatPrecio(adic.precio)}</span>
+                  </div>
+                  <div className="tw-adic-card__ctrl">
+                    {qty === 0 ? (
+                      <button className="tw-adic-card__add" onClick={() => cambiarAdicional(adic, 1)}>+ Agregar</button>
+                    ) : (
+                      <div className="tw-adic-qty">
+                        <button className="tw-adic-qty__btn" onClick={() => cambiarAdicional(adic, -1)}>−</button>
+                        <span className="tw-adic-qty__val">{qty}</span>
+                        <button className="tw-adic-qty__btn" onClick={() => cambiarAdicional(adic, 1)}>+</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {/* Cart drawer */}
       {carritoOpen && (
         <div className="tw-drawer-overlay" onClick={() => setCarritoOpen(false)}>

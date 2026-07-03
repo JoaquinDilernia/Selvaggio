@@ -92,6 +92,15 @@ function PedidosTW() {
     return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
 
+  const fmtFechaRetiro = (fechaStr, horaStr) => {
+    if (!fechaStr) return null;
+    const [y, m, d] = fechaStr.split('-').map(Number);
+    const fecha = new Date(y, m - 1, d);
+    const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const diaStr = DIAS[fecha.getDay()] + ' ' + String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0');
+    return horaStr ? diaStr + ' ' + horaStr + ' hs.' : diaStr;
+  };
+
   const ACTIVOS = ['pendiente', 'preparando', 'listo'];
   const filtrados = pedidos.filter(p => {
     if (filtro === 'activos')   return ACTIVOS.includes(p.estado);
@@ -166,6 +175,9 @@ function PedidosTW() {
                       </div>
                     </div>
                     <div className="atw__card-info-row"><span>Pago:</span><span>{PAGO_LABEL[p.metodoPago] || p.metodoPago || '—'}</span></div>
+                    {fmtFechaRetiro(p.fechaRetiro, p.horaRetiro) && (
+                      <div className="atw__card-info-row atw__card-info-row--retiro"><span>Retiro:</span><span>{fmtFechaRetiro(p.fechaRetiro, p.horaRetiro)}</span></div>
+                    )}
                     {p.comentarios && <p className="atw__card-comentario">"{p.comentarios}"</p>}
                   </div>
                   <div className="atw__card-actions">
@@ -793,6 +805,147 @@ function PicadasTW() {
 }
 
 /* ══════════════════════════════════
+   ADICIONALES
+══════════════════════════════════ */
+const ADIC_EMPTY = { nombre: '', descripcion: '', precio: '', disponible: true };
+
+function AdicionalestTW() {
+  const [adicionales, setAdicionales] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [form, setForm] = useState(ADIC_EMPTY);
+  const [guardando, setGuardando] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => { fetchAdicionales(); }, []);
+
+  const fetchAdicionales = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'selvaggio_tw_adicionales'));
+      setAdicionales(snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.nombre || '').localeCompare(b.nombre || '')));
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.nombre) { setToast({ message: 'El nombre es obligatorio', type: 'error' }); return; }
+    if (form.precio === '' || isNaN(Number(form.precio))) { setToast({ message: 'Ingresá un precio válido', type: 'error' }); return; }
+    setGuardando(true);
+    try {
+      const data = { nombre: form.nombre, descripcion: form.descripcion, precio: Number(form.precio), disponible: form.disponible };
+      if (editandoId) {
+        await updateDoc(doc(db, 'selvaggio_tw_adicionales', editandoId), { ...data, updatedAt: serverTimestamp() });
+        setToast({ message: 'Adicional actualizado', type: 'success' });
+      } else {
+        await addDoc(collection(db, 'selvaggio_tw_adicionales'), { ...data, orden: adicionales.length, createdAt: serverTimestamp() });
+        setToast({ message: 'Adicional creado', type: 'success' });
+      }
+      setForm(ADIC_EMPTY); setEditandoId(null); setMostrarForm(false);
+      fetchAdicionales();
+    } catch { setToast({ message: 'Error al guardar', type: 'error' }); }
+    finally { setGuardando(false); }
+  };
+
+  const startEdit = (adic) => {
+    setForm({ nombre: adic.nombre || '', descripcion: adic.descripcion || '', precio: adic.precio?.toString() || '0', disponible: adic.disponible !== false });
+    setEditandoId(adic.id); setMostrarForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleDisponible = async (adic) => {
+    try {
+      await updateDoc(doc(db, 'selvaggio_tw_adicionales', adic.id), { disponible: !adic.disponible, updatedAt: serverTimestamp() });
+      fetchAdicionales();
+    } catch {}
+  };
+
+  const eliminar = async (id, nombre) => {
+    if (!confirm(`¿Eliminar «${nombre}»?`)) return;
+    try {
+      await deleteDoc(doc(db, 'selvaggio_tw_adicionales', id));
+      setToast({ message: 'Adicional eliminado', type: 'success' });
+      fetchAdicionales();
+    } catch { setToast({ message: 'Error al eliminar', type: 'error' }); }
+  };
+
+  return (
+    <div>
+      <div className="atw__prod-header">
+        <h3 className="atw__prod-title">Adicionales con costo ({adicionales.length})</h3>
+        {!mostrarForm && <button className="atw__add-btn" onClick={() => setMostrarForm(true)}>+ Nuevo</button>}
+      </div>
+      <p style={{ fontSize: 13, color: '#8a7e76', marginBottom: 16, marginTop: -4 }}>
+        Productos opcionales que el cliente puede sumar al pedido con un costo adicional.
+      </p>
+
+      {mostrarForm && (
+        <div className="atw__form" style={{ marginBottom: 20 }}>
+          <p className="atw__form-title">{editandoId ? 'Editar adicional' : 'Nuevo adicional'}</p>
+          <form onSubmit={handleSubmit}>
+            <div className="atw__form-row atw__form-row--3">
+              <div className="atw__form-group" style={{ gridColumn: '1/3' }}>
+                <label>Nombre *</label>
+                <input type="text" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
+                  required placeholder="Ej: Pan de campo, Tabla de quesos extra…" />
+              </div>
+              <div className="atw__form-group">
+                <label>Precio *</label>
+                <input type="number" min={0} value={form.precio} onChange={e => setForm(p => ({ ...p, precio: e.target.value }))}
+                  required placeholder="0" />
+              </div>
+            </div>
+            <div className="atw__form-row">
+              <div className="atw__form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Descripción (opcional)</label>
+                <input type="text" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
+                  placeholder="Detalle que ve el cliente…" />
+              </div>
+            </div>
+            <div className="atw__toggle-wrap" style={{ marginBottom: 12 }}>
+              <input type="checkbox" id="adic-disp" checked={form.disponible} onChange={e => setForm(p => ({ ...p, disponible: e.target.checked }))} />
+              <label htmlFor="adic-disp">Disponible para los clientes</label>
+            </div>
+            <div className="atw__form-actions">
+              <button type="submit" className="atw__form-submit" disabled={guardando}>
+                {guardando ? 'Guardando…' : editandoId ? 'Actualizar' : 'Crear'}
+              </button>
+              <button type="button" className="atw__form-cancel" onClick={() => { setForm(ADIC_EMPTY); setEditandoId(null); setMostrarForm(false); }}>Cancelar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {loading ? <p className="atw__loading">Cargando…</p>
+        : adicionales.length === 0 ? (
+          <p className="atw__empty">No hay adicionales. Creá el primero para que los clientes puedan sumarlo al pedido.</p>
+        ) : (
+          <div className="atw__ings-list">
+            {adicionales.map(adic => (
+              <div key={adic.id} className={`atw__ing-row${adic.disponible === false ? ' atw__ing-row--off' : ''}`}>
+                <span className="atw__ing-nombre">{adic.nombre}</span>
+                {adic.descripcion && <span className="atw__ing-desc">{adic.descripcion}</span>}
+                <span className="atw__ing-precio atw__ing-precio--adic">{fmt(adic.precio)}</span>
+                <div className="atw__ing-actions">
+                  <button className="atw__ing-disp" onClick={() => toggleDisponible(adic)}>
+                    {adic.disponible !== false ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                  <button className="atw__ing-edit" onClick={() => startEdit(adic)}>Editar</button>
+                  <button className="atw__ing-del" onClick={() => eliminar(adic.id, adic.nombre)}>×</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════
    MAIN
 ══════════════════════════════════ */
 function AdminTakeAway() {
@@ -921,7 +1074,7 @@ function AdminTakeAway() {
       </div>
 
       <div className="atw__subtabs">
-        {[['pedidos','Pedidos'],['picadas','Picadas'],['ingredientes','Ingredientes']].map(([id, label]) => (
+        {[['pedidos','Pedidos'],['picadas','Picadas'],['ingredientes','Ingredientes'],['adicionales','Adicionales']].map(([id, label]) => (
           <button key={id} className={`atw__stab${subTab === id ? ' atw__stab--on' : ''}`}
             onClick={() => setSubTab(id)}>{label}</button>
         ))}
@@ -930,6 +1083,7 @@ function AdminTakeAway() {
       {subTab === 'pedidos'      && <PedidosTW />}
       {subTab === 'picadas'      && <PicadasTW />}
       {subTab === 'ingredientes' && <IngredientesTW />}
+      {subTab === 'adicionales' && <AdicionalestTW />}
     </div>
   );
 }

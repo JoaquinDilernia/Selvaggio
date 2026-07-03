@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
-import { trackSchedule } from '../utils/metaPixel';
+import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
 import './ReservaMesas.css';
 
 const LIMITE_POR_SLOT = 4;
@@ -30,6 +30,16 @@ function ReservaMesas() {
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
   const [excepcionDia, setExcepcionDia] = useState(null);
+
+  useEffect(() => { trackViewContent('Reserva Mesa', 'Reservas'); }, []);
+
+  const checkoutTracked = useRef(false);
+  const handleFirstFocus = () => {
+    if (!checkoutTracked.current) {
+      checkoutTracked.current = true;
+      trackInitiateCheckout('mesa');
+    }
+  };
 
   useEffect(() => {
     if (formData.fecha) {
@@ -136,7 +146,7 @@ function ReservaMesas() {
         }
       }
 
-      trackSchedule();
+      await trackSchedule('mesa', formData);
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
       enviarConfirmacionMesas(formData);
@@ -200,7 +210,7 @@ function ReservaMesas() {
             <div className="rf-field">
               <label className="rf-label rf-label--req">Nombre</label>
               <input className="rf-input" type="text" name="nombre" value={formData.nombre}
-                onChange={handleChange} required placeholder="Tu nombre" />
+                onChange={handleChange} onFocus={handleFirstFocus} required placeholder="Tu nombre" />
             </div>
             <div className="rf-field">
               <label className="rf-label rf-label--req">Apellido</label>
