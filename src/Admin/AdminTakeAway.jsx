@@ -78,8 +78,11 @@ function PedidosTW() {
     // Normalizar número argentino: quitar 0 inicial o 54 duplicado
     if (tel.startsWith('54')) tel = tel.slice(2);
     if (tel.startsWith('0')) tel = tel.slice(1);
+    const esEnvio = p.metodoEnvio === 'envio';
     let msg = p.estado === 'listo'
-      ? `Hola ${p.nombre}! 🎉 Tu pedido ${p.numeroPedido} de Selvaggio está listo para retirar. Te esperamos en Av. Fondo de la Legua 59, Las Lomas de San Isidro.`
+      ? (esEnvio
+          ? `Hola ${p.nombre}! 🎉 Tu pedido ${p.numeroPedido} de Selvaggio está listo y en breve sale para ${p.localidadEnvio} - ${p.direccionEnvio}.`
+          : `Hola ${p.nombre}! 🎉 Tu pedido ${p.numeroPedido} de Selvaggio está listo para retirar. Te esperamos en Av. Fondo de la Legua 59, Las Lomas de San Isidro.`)
       : p.estado === 'preparando'
       ? `Hola ${p.nombre}! Tu pedido ${p.numeroPedido} de Selvaggio está siendo preparado. En breve te avisamos cuando esté listo.`
       : `Hola ${p.nombre}! Te contactamos desde Selvaggio por tu pedido ${p.numeroPedido}.`;
@@ -175,8 +178,24 @@ function PedidosTW() {
                       </div>
                     </div>
                     <div className="atw__card-info-row"><span>Pago:</span><span>{PAGO_LABEL[p.metodoPago] || p.metodoPago || '—'}</span></div>
+                    <div className="atw__card-info-row">
+                      <span>Entrega:</span>
+                      <span>{p.metodoEnvio === 'envio' ? `Envío — ${p.localidadEnvio}` : 'Retiro en local'}</span>
+                    </div>
+                    {p.metodoEnvio === 'envio' && (
+                      <div className="atw__card-info-row">
+                        <span>Dirección:</span>
+                        <span>
+                          {p.direccionEnvio}{p.pisoDeptoEnvio ? `, ${p.pisoDeptoEnvio}` : ''}
+                          {p.referenciaEnvio ? ` — ${p.referenciaEnvio}` : ''}
+                        </span>
+                      </div>
+                    )}
                     {fmtFechaRetiro(p.fechaRetiro, p.horaRetiro) && (
-                      <div className="atw__card-info-row atw__card-info-row--retiro"><span>Retiro:</span><span>{fmtFechaRetiro(p.fechaRetiro, p.horaRetiro)}</span></div>
+                      <div className="atw__card-info-row atw__card-info-row--retiro">
+                        <span>{p.metodoEnvio === 'envio' ? 'Fecha entrega:' : 'Retiro:'}</span>
+                        <span>{fmtFechaRetiro(p.fechaRetiro, p.horaRetiro)}</span>
+                      </div>
                     )}
                     {p.comentarios && <p className="atw__card-comentario">"{p.comentarios}"</p>}
                   </div>
