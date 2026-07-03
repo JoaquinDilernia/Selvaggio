@@ -713,6 +713,11 @@ function TakeAway() {
         comentarios: formData.comentarios,
         fechaRetiro: formData.fechaRetiro || '',
         horaRetiro: formData.horaRetiro || '',
+        metodoEnvio: formData.metodoEnvio || 'retiro',
+        localidadEnvio: formData.metodoEnvio === 'envio' ? (formData.localidadEnvio || '') : '',
+        direccionEnvio: formData.metodoEnvio === 'envio' ? (formData.direccionEnvio || '') : '',
+        pisoDeptoEnvio: formData.metodoEnvio === 'envio' ? (formData.pisoDeptoEnvio || '') : '',
+        referenciaEnvio: formData.metodoEnvio === 'envio' ? (formData.referenciaEnvio || '') : '',
         estado: 'pendiente',
         createdAt: Timestamp.now(),
       });
@@ -757,6 +762,11 @@ function TakeAway() {
         comentarios: formData.comentarios,
         fechaRetiro: formData.fechaRetiro || '',
         horaRetiro: formData.horaRetiro || '',
+        metodoEnvio: formData.metodoEnvio || 'retiro',
+        localidadEnvio: formData.metodoEnvio === 'envio' ? (formData.localidadEnvio || '') : '',
+        direccionEnvio: formData.metodoEnvio === 'envio' ? (formData.direccionEnvio || '') : '',
+        pisoDeptoEnvio: formData.metodoEnvio === 'envio' ? (formData.pisoDeptoEnvio || '') : '',
+        referenciaEnvio: formData.metodoEnvio === 'envio' ? (formData.referenciaEnvio || '') : '',
       });
 
       await trackTakeAwayPedido(formData.totalFinal, formData);

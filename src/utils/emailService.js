@@ -65,6 +65,12 @@ export async function enviarNotificacionPedidoTakeAway(pedido) {
       descuento: pedido.descuento > 0 ? `−${formatPrecioEmail(pedido.descuento)}` : '—',
       total: formatPrecioEmail(pedido.total),
       metodo_pago: pedido.metodoPago.charAt(0).toUpperCase() + pedido.metodoPago.slice(1),
+      metodo_envio: pedido.metodoEnvio === 'envio'
+        ? `Envío Selvaggio — ${pedido.localidadEnvio}`
+        : 'Retiro en local',
+      direccion_envio: pedido.metodoEnvio === 'envio'
+        ? `${pedido.direccionEnvio}${pedido.pisoDeptoEnvio ? ', ' + pedido.pisoDeptoEnvio : ''}${pedido.referenciaEnvio ? ' (' + pedido.referenciaEnvio + ')' : ''}`
+        : '—',
       comentarios: pedido.comentarios || '—',
       fecha_hora: ahora,
     }, PUBLIC_KEY);
