@@ -1062,3 +1062,29 @@
 @media (max-width: 600px) {
   .tw-envio-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Info de retiro/envío en el hero ── */
+.tw-hero__info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+.tw-hero__info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.75);
+  font-size: 12px;
+  font-weight: 500;
+}
+.tw-hero__info-pill--free {
+  background: rgba(42,124,78,0.16);
+  border-color: rgba(42,124,78,0.4);
+  color: #8fd4ab;
+}

@@ -875,6 +875,12 @@ function TakeAway() {
         <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
         <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
         <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
+        <div className="tw-hero__info">
+          <span className="tw-hero__info-pill">📍 Retirás en Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
+          {config?.zonasEnvio?.length > 0 && (
+            <span className="tw-hero__info-pill tw-hero__info-pill--free">🚚 Envío gratis a zonas seleccionadas</span>
+          )}
+        </div>
         <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
       </div>
 
