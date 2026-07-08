@@ -982,6 +982,29 @@ function TakeAway() {
         </div>
       )}
 
+      {/* Proceso */}
+      <div className="tw-proceso">
+        <span className="tw-proceso__eyebrow">El proceso</span>
+        <h2 className="tw-proceso__title">Así de simple.</h2>
+        <div className="tw-proceso__grid">
+          <div className="tw-proceso__paso">
+            <span className="tw-proceso__num">01</span>
+            <h3 className="tw-proceso__paso-title">Elegís tu picada</h3>
+            <p className="tw-proceso__paso-desc">Elegís la picada y personalizás cada sección con los ingredientes que más te gusten.</p>
+          </div>
+          <div className="tw-proceso__paso">
+            <span className="tw-proceso__num">02</span>
+            <h3 className="tw-proceso__paso-title">Lo armamos</h3>
+            <p className="tw-proceso__paso-desc">Preparamos todo en el local: quesos, fiambres y acompañamientos, tal cual la pediste.</p>
+          </div>
+          <div className="tw-proceso__paso">
+            <span className="tw-proceso__num">03</span>
+            <h3 className="tw-proceso__paso-title">Retirás y disfrutás</h3>
+            <p className="tw-proceso__paso-desc">Pasás por Av. Fondo de la Legua 59, Las Lomas de San Isidro, y lo llevás donde quieras.</p>
+          </div>
+        </div>
+      </div>
+
       {/* CTA final */}
       <div className="tw-cta-final">
         <h2 className="tw-cta-final__title">¿Cuándo es tu <em>próximo momento?</em></h2>
