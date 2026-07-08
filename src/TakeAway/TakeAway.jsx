@@ -686,9 +686,8 @@ function TakeAway() {
   const totalCarrito = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const cantidadItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
 
-  // Intercepta el checkout → va a verificación solo si el template está configurado
-  const verificacionActiva = !!import.meta.env.VITE_EMAILJS_TEMPLATE_EMAIL_VERIF &&
-    import.meta.env.VITE_EMAILJS_TEMPLATE_EMAIL_VERIF !== 'COMPLETAR_CON_ID_DEL_TEMPLATE';
+  // Deshabilitada temporalmente: EmailJS no puede enviar mails (cuenta de Gmail desconectada)
+  const verificacionActiva = false;
 
   const handleConfirmar = (formData) => {
     setPendingFormData(formData);
