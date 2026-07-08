@@ -42,12 +42,15 @@ export const trackViewContent = (contentName, contentCategory) =>
 
 // ─── Reservas ────────────────────────────────────────────────
 
-// Click en botón "Reservar" desde la landing
+// Foco en el primer campo del formulario (Cava, Mesa o Take Away)
+const INITIATE_CHECKOUT_META = {
+  cava: { content_name: 'Reservar La Cava', content_category: 'Reservas' },
+  mesa: { content_name: 'Reservar Mesa', content_category: 'Reservas' },
+  takeaway: { content_name: 'Checkout Take Away', content_category: 'Take Away' },
+};
+
 export const trackInitiateCheckout = (tipo) =>
-  fbq('track', 'InitiateCheckout', {
-    content_name: tipo === 'cava' ? 'Reservar La Cava' : 'Reservar Mesa',
-    content_category: 'Reservas',
-  });
+  fbq('track', 'InitiateCheckout', INITIATE_CHECKOUT_META[tipo] || INITIATE_CHECKOUT_META.mesa);
 
 // Reserva completada con Advanced Matching
 export const trackSchedule = async (tipo, userData = {}) => {
@@ -68,11 +71,13 @@ export const trackSchedule = async (tipo, userData = {}) => {
 
 // ─── Take Away ───────────────────────────────────────────────
 
-// Usuario llega al formulario de checkout
-export const trackTakeAwayInicio = () =>
-  fbq('track', 'InitiateCheckout', {
-    content_name: 'Checkout Take Away',
+// Producto agregado al carrito
+export const trackAddToCart = (item) =>
+  fbq('track', 'AddToCart', {
+    content_name: item.nombre,
     content_category: 'Take Away',
+    value: item.precio,
+    currency: 'ARS',
   });
 
 // Pedido confirmado y guardado con Advanced Matching

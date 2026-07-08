@@ -47,9 +47,11 @@
 
 /* ─── Hero ─── */
 .tw-hero {
+  position: relative;
   background: #1a1614;
   padding: 52px 24px 44px;
   text-align: center;
+  overflow: hidden;
 }
 .tw-hero__eyebrow {
   font-size: 11px;
@@ -807,8 +809,8 @@
 /* ─── Cards de picada ─── */
 .tw-card__secs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
 .tw-card__sec-tag {
-  font-size: 11px; padding: 3px 9px; border-radius: 100px;
-  background: #f0ece8; color: #6b5e54; font-weight: 500;
+  font-size: 11px; padding: 3px 10px; border-radius: 100px;
+  background: transparent; border: 1px solid #e0d8d0; color: #7c6f64; font-weight: 500;
 }
 .tw-card__add--armar {
   background: #7c3f2f;
@@ -1087,4 +1089,90 @@
   background: rgba(42,124,78,0.16);
   border-color: rgba(42,124,78,0.4);
   color: #8fd4ab;
+}
+
+/* ── Hero con imagen de fondo ── */
+.tw-hero--img {
+  min-height: 420px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+  background-size: cover;
+  background-position: center;
+}
+.tw-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(13,13,13,0.88) 0%, rgba(13,13,13,0.35) 55%, transparent 100%);
+}
+.tw-hero__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 52px 24px 44px;
+}
+@media (max-width: 600px) {
+  .tw-hero--img { min-height: 340px; }
+  .tw-hero__content { padding: 32px 20px 24px; }
+}
+
+/* ── Placeholder de foto en cards sin imagen ── */
+.tw-card__img-wrap--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tw-card__img-placeholder-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b5aa9e;
+}
+
+/* ── CTA final ── */
+.tw-cta-final {
+  background: #1a1614;
+  padding: 64px 24px;
+  text-align: center;
+}
+.tw-cta-final__title {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: clamp(30px, 5vw, 40px);
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+.tw-cta-final__title em { font-style: italic; }
+.tw-cta-final__sub {
+  color: rgba(255,255,255,0.45);
+  font-size: 14px;
+  font-weight: 300;
+  margin: 0 0 28px;
+}
+.tw-cta-final__btn {
+  background: #faf7f4;
+  color: #1a1614;
+  border: none;
+  border-radius: 100px;
+  padding: 13px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.18s;
+  margin-bottom: 28px;
+}
+.tw-cta-final__btn:hover { background: #fff; transform: translateY(-1px); }
+.tw-cta-final__info {
+  display: flex;
+  gap: 22px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+}
+@media (max-width: 600px) {
+  .tw-cta-final { padding: 48px 20px; }
+  .tw-cta-final__info { flex-direction: column; gap: 8px; }
 }

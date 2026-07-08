@@ -5,7 +5,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
-import { trackTakeAwayInicio, trackTakeAwayPedido, trackViewContent } from '../utils/metaPixel';
+import { trackAddToCart, trackInitiateCheckout, trackTakeAwayPedido, trackViewContent } from '../utils/metaPixel';
+import { trackEvento } from '../utils/nativeAnalytics';
 import { enviarNotificacionPedidoTakeAway, enviarCodigoVerificacion } from '../utils/emailService';
 import './TakeAway.css';
 
@@ -181,6 +182,15 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
 
   const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
+  const checkoutTracked = useRef(false);
+  const handleFirstFocus = () => {
+    if (!checkoutTracked.current) {
+      checkoutTracked.current = true;
+      trackInitiateCheckout('takeaway');
+      trackEvento('checkout_iniciado', 'takeaway');
+    }
+  };
+
   const handleSubmit = e => {
     e.preventDefault();
     if (carrito.length === 0) { setToast({ message: 'El carrito está vacío', type: 'error' }); return; }
@@ -257,7 +267,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
             <div className="tw-field">
               <label className="tw-label tw-label--req">Nombre</label>
               <input className="tw-input" type="text" name="nombre" value={formData.nombre}
-                onChange={handleChange} required placeholder="Tu nombre" />
+                onChange={handleChange} onFocus={handleFirstFocus} required placeholder="Tu nombre" />
             </div>
             <div className="tw-field">
               <label className="tw-label tw-label--req">Apellido</label>
@@ -628,6 +638,7 @@ function TakeAway() {
       .catch(() => setConfig({ activo: false }));
 
     trackViewContent('Take Away', 'Take Away');
+    trackEvento('view_content', 'takeaway');
 
     Promise.all([
       getDocs(collection(db, 'selvaggio_tw_picadas')),
@@ -650,12 +661,9 @@ function TakeAway() {
     }).catch(() => {}).finally(() => setCargando(false));
   }, []);
 
-  const checkoutTracked = useRef(false);
   const agregarAlCarrito = (item) => {
-    if (!checkoutTracked.current && carrito.length === 0) {
-      checkoutTracked.current = true;
-      trackTakeAwayInicio();
-    }
+    trackAddToCart(item);
+    trackEvento('add_to_cart', 'takeaway', item.precio);
     setCarrito(prev => [...prev, item]);
     setToast({ message: `${item.nombre} agregado al pedido`, type: 'success' });
   };
@@ -771,6 +779,7 @@ function TakeAway() {
       });
 
       await trackTakeAwayPedido(formData.totalFinal, formData);
+      trackEvento('conversion', 'takeaway', formData.totalFinal);
       setPedidoNum(numStr);
       if (formData.fechaRetiro && formData.horaRetiro) {
         const [y, m, d] = formData.fechaRetiro.split('-').map(Number);
@@ -870,20 +879,26 @@ function TakeAway() {
         <Link to="/" className="tw-nav__back">← Inicio</Link>
       </nav>
 
-      <div className="tw-hero">
-        <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
-        <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
-        <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
-        <div className="tw-hero__info">
-          <span className="tw-hero__info-pill">📍 Retirás en Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
-          {config?.zonasEnvio?.length > 0 && (
-            <span className="tw-hero__info-pill tw-hero__info-pill--free">🚚 Envío gratis a zonas seleccionadas</span>
-          )}
+      <div
+        className="tw-hero tw-hero--img"
+        style={picadas[0]?.imagen ? { backgroundImage: `url(${picadas[0].imagen})` } : undefined}
+      >
+        <div className="tw-hero__overlay" />
+        <div className="tw-hero__content">
+          <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
+          <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
+          <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
+          <div className="tw-hero__info">
+            <span className="tw-hero__info-pill">📍 Retirás en Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
+            {config?.zonasEnvio?.length > 0 && (
+              <span className="tw-hero__info-pill tw-hero__info-pill--free">🚚 Envío gratis a zonas seleccionadas</span>
+            )}
+          </div>
+          <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
         </div>
-        <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
       </div>
 
-      <div className="tw-catalog">
+      <div className="tw-catalog" id="tw-catalogo">
         {cargando ? (
           <div className="tw-catalog__loading">Cargando picadas…</div>
         ) : picadas.length === 0 ? (
@@ -892,9 +907,13 @@ function TakeAway() {
           <div className="tw-grid">
             {picadas.map(picada => (
               <div key={picada.id} className="tw-card">
-                {picada.imagen && (
+                {picada.imagen ? (
                   <div className="tw-card__img-wrap">
                     <img src={picada.imagen} alt={picada.nombre} className="tw-card__img" loading="lazy" />
+                  </div>
+                ) : (
+                  <div className="tw-card__img-wrap tw-card__img-wrap--placeholder">
+                    <span className="tw-card__img-placeholder-label">Foto próximamente</span>
                   </div>
                 )}
                 <div className="tw-card__body">
@@ -956,6 +975,28 @@ function TakeAway() {
           </div>
         </div>
       )}
+
+      {/* CTA final */}
+      <div className="tw-cta-final">
+        <h2 className="tw-cta-final__title">¿Cuándo es tu <em>próximo momento?</em></h2>
+        <p className="tw-cta-final__sub">
+          Pedidos {config?.diasAbiertos?.length > 0 ? formatDiasAbiertos(config.diasAbiertos) : 'todos los días'}
+          {config?.horarioDesde !== undefined && config?.horarioHasta !== undefined
+            ? `, de ${config.horarioDesde} a ${config.horarioHasta} hs.`
+            : '.'}
+        </p>
+        <button
+          className="tw-cta-final__btn"
+          onClick={() => document.getElementById('tw-catalogo')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+          Pedir para llevar
+        </button>
+        <div className="tw-cta-final__info">
+          <span>📍 Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
+          <span>📞 +54 9 11 6686-4692</span>
+        </div>
+      </div>
+
       {/* Cart drawer */}
       {carritoOpen && (
         <div className="tw-drawer-overlay" onClick={() => setCarritoOpen(false)}>

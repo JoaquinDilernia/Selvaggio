@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
 import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
-import { trackSchedule, trackViewContent } from '../utils/metaPixel';
+import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
+import { trackEvento } from '../utils/nativeAnalytics';
 import './ReservaCava.css';
 
 function ReservaCava() {
@@ -28,7 +29,20 @@ function ReservaCava() {
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  useEffect(() => { fetchReservedDates(); trackViewContent('Reserva La Cava', 'Reservas'); }, []);
+  useEffect(() => {
+    fetchReservedDates();
+    trackViewContent('Reserva La Cava', 'Reservas');
+    trackEvento('view_content', 'cava');
+  }, []);
+
+  const checkoutTracked = useRef(false);
+  const handleFirstFocus = () => {
+    if (!checkoutTracked.current) {
+      checkoutTracked.current = true;
+      trackInitiateCheckout('cava');
+      trackEvento('checkout_iniciado', 'cava');
+    }
+  };
 
   const fetchReservedDates = async () => {
     try {
@@ -153,6 +167,7 @@ function ReservaCava() {
       }
 
       trackSchedule('cava', formData);
+      trackEvento('conversion', 'cava');
       setReservaExitosa(true);
       enviarConfirmacionCava(formData);
       fetchReservedDates();
@@ -220,7 +235,7 @@ function ReservaCava() {
             <div className="rf-field">
               <label className="rf-label rf-label--req">Nombre completo</label>
               <input className="rf-input" type="text" name="nombre" value={formData.nombre}
-                onChange={handleChange} required placeholder="Tu nombre" />
+                onChange={handleChange} onFocus={handleFirstFocus} required placeholder="Tu nombre" />
             </div>
             <div className="rf-field">
               <label className="rf-label rf-label--req">WhatsApp</label>

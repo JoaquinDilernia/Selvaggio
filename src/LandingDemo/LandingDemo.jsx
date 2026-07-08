@@ -2,10 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { trackEvento } from '../utils/nativeAnalytics';
 import EventoPopup from '../components/EventoPopup';
 import './LandingDemo.css';
 
 function LandingDemo() {
+  const CTA_EVENTOS = { cava: 'click_reservar_cava', mesa: 'click_reservar_mesa', takeaway: 'click_take_away' };
+  const handleCtaClick = (categoria) => trackEvento(CTA_EVENTOS[categoria], categoria);
+
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -201,10 +205,10 @@ function LandingDemo() {
           </nav>
 
           <div className="ap-nav__right">
-            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--dark" style={{ marginRight: 8 }}>
+            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--dark" style={{ marginRight: 8 }} onClick={() => handleCtaClick('takeaway')}>
               Take Away
             </Link>
-            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--dark">
+            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--dark" onClick={() => handleCtaClick('mesa')}>
               Reservar
             </Link>
             <button
@@ -237,9 +241,9 @@ function LandingDemo() {
             La primera experiencia de autoservicio premium en Buenos Aires.
           </p>
           <div className="ap-hero__actions">
-            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white">Reservar mesa</Link>
-            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--ghost-white">Reservar La Cava</Link>
-            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--ghost-white">Pedir para llevar</Link>
+            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white" onClick={() => handleCtaClick('mesa')}>Reservar mesa</Link>
+            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--ghost-white" onClick={() => handleCtaClick('cava')}>Reservar La Cava</Link>
+            <Link to="/take-away" className="ap-btn ap-btn--pill ap-btn--ghost-white" onClick={() => handleCtaClick('takeaway')}>Pedir para llevar</Link>
           </div>
         </div>
         <button className="ap-hero__scroll-hint" onClick={() => scrollTo('stats')} aria-label="Ir abajo">
@@ -490,7 +494,7 @@ function LandingDemo() {
               Carta privada, atención personalizada y una ambientación pensada para
               hacer de cada evento algo único e irrepetible.
             </p>
-            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--white" style={{ marginTop: '2rem', display: 'inline-block' }}>
+            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--white" style={{ marginTop: '2rem', display: 'inline-block' }} onClick={() => handleCtaClick('cava')}>
               Consultar disponibilidad
             </Link>
           </div>
@@ -581,8 +585,8 @@ function LandingDemo() {
           <h2 className="ap-cta__title">¿Cuándo es tu próximo momento?</h2>
           <p className="ap-cta__sub">Mesas disponibles de martes a domingo.</p>
           <div className="ap-cta__actions">
-            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white ap-btn--large">Reservar mesa</Link>
-            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--outline ap-btn--large">Reservar La Cava</Link>
+            <Link to="/reserva-mesas" className="ap-btn ap-btn--pill ap-btn--white ap-btn--large" onClick={() => handleCtaClick('mesa')}>Reservar mesa</Link>
+            <Link to="/reserva-cava" className="ap-btn ap-btn--pill ap-btn--outline ap-btn--large" onClick={() => handleCtaClick('cava')}>Reservar La Cava</Link>
           </div>
         </div>
       </section>
@@ -742,7 +746,7 @@ function LandingDemo() {
             <button onClick={() => scrollTo('cava')}>La Cava</button>
             {prensa.length > 0 && <button onClick={() => scrollTo('prensa')}>Prensa</button>}
             <button onClick={() => scrollTo('trabaja')}>Trabajá con nosotros</button>
-            <Link to="/reserva-mesas">Reservas</Link>
+            <Link to="/reserva-mesas" onClick={() => handleCtaClick('mesa')}>Reservas</Link>
           </nav>
           <div className="ap-footer__social">
             <a href="https://instagram.com/selvaggio.ba" target="_blank" rel="noopener noreferrer">Instagram</a>
@@ -761,6 +765,7 @@ function LandingDemo() {
       <Link
         to="/reserva-mesas"
         className={`ap-sticky-reservar${showStickyBtn ? ' ap-sticky-reservar--visible' : ''}`}
+        onClick={() => handleCtaClick('mesa')}
       >
         Reservar mesa
       </Link>

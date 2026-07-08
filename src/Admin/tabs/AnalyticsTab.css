@@ -1,0 +1,54 @@
+.an-funnels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+.an-funnel {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  padding: 22px 24px;
+}
+.an-funnel__titulo {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #1c1a17;
+  margin: 0 0 18px;
+}
+.an-funnel__paso { margin-bottom: 16px; }
+.an-funnel__paso:last-child { margin-bottom: 0; }
+.an-funnel__paso-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.an-funnel__paso-label {
+  font-size: 13px;
+  color: #6b635a;
+}
+.an-funnel__paso-valor {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 20px;
+  color: #1c1a17;
+  font-weight: 500;
+}
+.an-funnel__barra-track {
+  height: 10px;
+  background: rgba(28,26,23,0.06);
+  border-radius: 0 4px 4px 0;
+  overflow: hidden;
+}
+.an-funnel__barra-fill {
+  height: 100%;
+  background: #7a1c1c;
+  border-radius: 0 4px 4px 0;
+  transition: width 0.3s ease;
+}
+.an-funnel__caida {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #a09890;
+}

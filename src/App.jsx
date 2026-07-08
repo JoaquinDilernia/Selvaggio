@@ -4,14 +4,25 @@ import { ToastProvider } from './components/Toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import LandingDemo from './LandingDemo/LandingDemo'
 import { trackPageView } from './utils/metaPixel'
+import { trackEvento } from './utils/nativeAnalytics'
 import './theme.css'
 import './App.css'
 
-// Dispara PageView en cada navegación (el primero ya lo dispara index.html)
+const ROUTE_CATEGORIA = {
+  '/': 'home',
+  '/reserva-cava': 'cava',
+  '/reserva-mesas': 'mesa',
+  '/take-away': 'takeaway',
+};
+
+// Dispara PageView (Meta, el primero ya lo dispara index.html) y page_view
+// nativo (propio, sin el sesgo del pixel) en cada navegación
 function RouteTracker() {
   const location = useLocation();
   const isFirst = useRef(true);
   useEffect(() => {
+    const categoria = ROUTE_CATEGORIA[location.pathname];
+    if (categoria) trackEvento('page_view', categoria);
     if (isFirst.current) { isFirst.current = false; return; }
     trackPageView();
   }, [location.pathname]);

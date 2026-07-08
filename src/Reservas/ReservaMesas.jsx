@@ -5,6 +5,7 @@ import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
 import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
+import { trackEvento } from '../utils/nativeAnalytics';
 import './ReservaMesas.css';
 
 const LIMITE_POR_SLOT = 4;
@@ -31,13 +32,17 @@ function ReservaMesas() {
   const [reservasPorHorario, setReservasPorHorario] = useState({});
   const [excepcionDia, setExcepcionDia] = useState(null);
 
-  useEffect(() => { trackViewContent('Reserva Mesa', 'Reservas'); }, []);
+  useEffect(() => {
+    trackViewContent('Reserva Mesa', 'Reservas');
+    trackEvento('view_content', 'mesa');
+  }, []);
 
   const checkoutTracked = useRef(false);
   const handleFirstFocus = () => {
     if (!checkoutTracked.current) {
       checkoutTracked.current = true;
       trackInitiateCheckout('mesa');
+      trackEvento('checkout_iniciado', 'mesa');
     }
   };
 
@@ -147,6 +152,7 @@ function ReservaMesas() {
       }
 
       await trackSchedule('mesa', formData);
+      trackEvento('conversion', 'mesa');
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
       enviarConfirmacionMesas(formData);
