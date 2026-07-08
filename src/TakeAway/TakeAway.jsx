@@ -879,22 +879,28 @@ function TakeAway() {
         <Link to="/" className="tw-nav__back">← Inicio</Link>
       </nav>
 
-      <div
-        className="tw-hero tw-hero--img"
-        style={picadas[0]?.imagen ? { backgroundImage: `url(${picadas[0].imagen})` } : undefined}
-      >
-        <div className="tw-hero__overlay" />
+      <div className="tw-hero tw-hero--solid">
+        <div className="tw-hero__texture" />
         <div className="tw-hero__content">
-          <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
-          <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
-          <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
-          <div className="tw-hero__info">
-            <span className="tw-hero__info-pill">📍 Retirás en Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
-            {config?.zonasEnvio?.length > 0 && (
-              <span className="tw-hero__info-pill tw-hero__info-pill--free">🚚 Envío gratis a zonas seleccionadas</span>
-            )}
+          <div className="tw-hero__main">
+            <span className="tw-hero__eyebrow">Selvaggio · Wine Bar & Delicatessen</span>
+            <h1 className="tw-hero__title">Armá tu picada, <em>retirala.</em></h1>
+            <p className="tw-hero__sub">Elegí tu picada, personalizá el contenido y pasá a buscarla cuando esté lista.</p>
+            <div className="tw-hero__info">
+              <span className="tw-hero__info-pill">📍 Retirás en Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
+              {config?.zonasEnvio?.length > 0 && (
+                <span className="tw-hero__info-pill tw-hero__info-pill--free">🚚 Envío gratis a zonas seleccionadas</span>
+              )}
+            </div>
+            <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
           </div>
-          <Link to="/take-away/seguimiento" className="tw-hero__seguimiento">¿Tenés un pedido? Seguilo →</Link>
+          <div className="tw-hero__meta">
+            <span className="tw-hero__meta-item">📍 Av. Fondo de la Legua 59, Las Lomas de San Isidro</span>
+            {config?.diasAbiertos?.length > 0 && config?.horarioDesde !== undefined && config?.horarioHasta !== undefined && (
+              <span className="tw-hero__meta-item">🕐 {formatDiasAbiertos(config.diasAbiertos)} · {config.horarioDesde} a {config.horarioHasta} hs.</span>
+            )}
+            <span className="tw-hero__meta-item">📞 +54 9 11 6686-4692</span>
+          </div>
         </div>
       </div>
 

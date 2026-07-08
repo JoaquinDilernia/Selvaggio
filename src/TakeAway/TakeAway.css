@@ -49,8 +49,6 @@
 .tw-hero {
   position: relative;
   background: #1a1614;
-  padding: 52px 24px 44px;
-  text-align: center;
   overflow: hidden;
 }
 .tw-hero__eyebrow {
@@ -1011,7 +1009,6 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 600px) {
-  .tw-hero { padding: 36px 20px 28px; }
   .tw-catalog { padding: 24px 16px 140px; }
   .tw-grid { grid-template-columns: 1fr; }
   .tw-row { grid-template-columns: 1fr; }
@@ -1069,7 +1066,7 @@
 .tw-hero__info {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   margin: 0 0 18px;
 }
@@ -1091,29 +1088,56 @@
   color: #8fd4ab;
 }
 
-/* ── Hero con imagen de fondo ── */
-.tw-hero--img {
+/* ── Hero con fondo sólido y textura ── */
+.tw-hero--solid {
   min-height: 420px;
   display: flex;
   align-items: flex-end;
-  padding: 0;
-  background-size: cover;
-  background-position: center;
 }
-.tw-hero__overlay {
+.tw-hero__texture {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(13,13,13,0.88) 0%, rgba(13,13,13,0.35) 55%, transparent 100%);
+  background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 14px);
+  pointer-events: none;
 }
 .tw-hero__content {
   position: relative;
   z-index: 1;
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 32px;
   padding: 52px 24px 44px;
 }
+.tw-hero__main {
+  text-align: left;
+  max-width: 560px;
+}
+.tw-hero__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tw-hero__meta-item {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
 @media (max-width: 600px) {
-  .tw-hero--img { min-height: 340px; }
-  .tw-hero__content { padding: 32px 20px 24px; }
+  .tw-hero--solid { min-height: 340px; }
+  .tw-hero__content {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 32px 20px 24px;
+  }
+  .tw-hero__meta {
+    align-items: flex-start;
+    margin-top: 20px;
+  }
+  .tw-hero__meta-item { white-space: normal; }
 }
 
 /* ── Placeholder de foto en cards sin imagen ── */
