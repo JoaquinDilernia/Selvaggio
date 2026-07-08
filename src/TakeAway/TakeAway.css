@@ -1104,11 +1104,14 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 32px;
-  padding: 52px 24px 44px;
+  padding: 52px 48px 44px;
+  box-sizing: border-box;
 }
 .tw-hero__main {
   text-align: left;
@@ -1131,7 +1134,7 @@
   .tw-hero__content {
     flex-direction: column;
     align-items: flex-start;
-    padding: 32px 20px 24px;
+    padding: 32px 24px 24px;
   }
   .tw-hero__meta {
     align-items: flex-start;
@@ -1205,7 +1208,7 @@
 .tw-proceso {
   max-width: 960px;
   margin: 0 auto;
-  padding: 48px 32px 8px;
+  padding: 48px 32px 56px;
   border-top: 1.5px solid #ebe5dd;
 }
 .tw-proceso__eyebrow {
@@ -1263,7 +1266,7 @@
   margin: 0;
 }
 @media (max-width: 600px) {
-  .tw-proceso { padding: 40px 20px 4px; }
+  .tw-proceso { padding: 40px 20px 44px; }
   .tw-proceso__grid {
     grid-template-columns: 1fr;
     gap: 24px;
