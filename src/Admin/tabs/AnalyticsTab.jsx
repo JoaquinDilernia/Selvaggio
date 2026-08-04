@@ -5,6 +5,7 @@ import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
 import FiltersBar, { RANGOS } from './analytics/FiltersBar';
 import FunnelsSection from './analytics/FunnelsSection';
 import DayOfWeekChart from './analytics/DayOfWeekChart';
+import DailyEvolutionChart from './analytics/DailyEvolutionChart';
 import './TabsShared.css';
 import './AnalyticsTab.css';
 
@@ -104,6 +105,12 @@ function AnalyticsTab() {
             categoria={categoria}
           />
           <DayOfWeekChart eventosActuales={eventosActuales} categoria={categoria} />
+          <DailyEvolutionChart
+            eventosActuales={eventosActuales}
+            categoria={categoria}
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+          />
         </>
       )}
     </div>
