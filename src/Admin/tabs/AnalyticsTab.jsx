@@ -2,14 +2,9 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
+import FiltersBar, { RANGOS } from './analytics/FiltersBar';
 import './TabsShared.css';
 import './AnalyticsTab.css';
-
-const RANGOS = [
-  { id: 'hoy', label: 'Hoy', dias: 1 },
-  { id: '7d', label: 'Últimos 7 días', dias: 7 },
-  { id: '30d', label: 'Últimos 30 días', dias: 30 },
-];
 
 const FUNNELS = {
   cava: {
@@ -56,6 +51,7 @@ function AnalyticsTab() {
   const [preset, setPreset] = useState('7d');
   const [fechaDesde, setFechaDesde] = useState(() => restarDias(hoyAR(), RANGO_DEFAULT.dias - 1));
   const [fechaHasta, setFechaHasta] = useState(hoyAR);
+  const [categoria, setCategoria] = useState('todas');
   const [eventosActuales, setEventosActuales] = useState([]);
   const [eventosAnteriores, setEventosAnteriores] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -95,8 +91,26 @@ function AnalyticsTab() {
     setFechaDesde(restarDias(hoyAR(), r.dias - 1));
   };
 
-  const contar = (eventos, categoria, tipo) =>
-    eventos.filter(e => e.categoria === categoria && e.tipo === tipo).length;
+  const handleFechaDesde = (valor) => {
+    setPreset(null);
+    setFechaDesde(valor);
+    if (valor > fechaHasta) setFechaHasta(valor);
+  };
+
+  const handleFechaHasta = (valor) => {
+    setPreset(null);
+    const hoy = hoyAR();
+    const clamped = valor > hoy ? hoy : valor;
+    setFechaHasta(clamped);
+    if (clamped < fechaDesde) setFechaDesde(clamped);
+  };
+
+  const contar = (eventos, categoriaFunnel, tipo) =>
+    eventos.filter(e => e.categoria === categoriaFunnel && e.tipo === tipo).length;
+
+  const entradasFunnels = categoria === 'todas'
+    ? Object.entries(FUNNELS)
+    : Object.entries(FUNNELS).filter(([id]) => id === categoria);
 
   return (
     <div className="tab-inner">
@@ -105,27 +119,26 @@ function AnalyticsTab() {
         <p>Tráfico y funnel de conversión, medidos de forma nativa e independiente del pixel de Meta.</p>
       </div>
 
-      <div className="filters-bar">
-        {RANGOS.map(r => (
-          <button
-            key={r.id}
-            className={`filter-btn${preset === r.id ? ' active' : ''}`}
-            onClick={() => handlePreset(r.id)}
-          >
-            {r.label}
-          </button>
-        ))}
-      </div>
+      <FiltersBar
+        preset={preset}
+        fechaDesde={fechaDesde}
+        fechaHasta={fechaHasta}
+        categoria={categoria}
+        onPreset={handlePreset}
+        onFechaDesde={handleFechaDesde}
+        onFechaHasta={handleFechaHasta}
+        onCategoria={setCategoria}
+      />
 
       {cargando ? (
         <div className="loading-state">Cargando…</div>
       ) : (
-        <div className="an-funnels">
-          {Object.entries(FUNNELS).map(([categoria, { titulo, pasos }]) => {
-            const conteos = pasos.map(p => contar(eventosActuales, categoria, p.tipo));
+        <div className={`an-funnels${categoria !== 'todas' ? ' an-funnels--single' : ''}`}>
+          {entradasFunnels.map(([categoriaFunnel, { titulo, pasos }]) => {
+            const conteos = pasos.map(p => contar(eventosActuales, categoriaFunnel, p.tipo));
             const max = Math.max(1, ...conteos);
             return (
-              <div key={categoria} className="an-funnel">
+              <div key={categoriaFunnel} className="an-funnel">
                 <h3 className="an-funnel__titulo">{titulo}</h3>
                 {pasos.map((paso, i) => {
                   const valor = conteos[i];
