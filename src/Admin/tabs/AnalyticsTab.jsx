@@ -3,39 +3,9 @@ import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore
 import { db } from '../../firebase/config';
 import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
 import FiltersBar, { RANGOS } from './analytics/FiltersBar';
+import FunnelsSection from './analytics/FunnelsSection';
 import './TabsShared.css';
 import './AnalyticsTab.css';
-
-const FUNNELS = {
-  cava: {
-    titulo: 'La Cava',
-    pasos: [
-      { tipo: 'click_reservar_cava', label: "Click en 'Reservar La Cava'" },
-      { tipo: 'view_content', label: 'Vio la página' },
-      { tipo: 'checkout_iniciado', label: 'Inició el formulario' },
-      { tipo: 'conversion', label: 'Reserva confirmada' },
-    ],
-  },
-  mesa: {
-    titulo: 'Mesa',
-    pasos: [
-      { tipo: 'click_reservar_mesa', label: "Click en 'Reservar Mesa'" },
-      { tipo: 'view_content', label: 'Vio la página' },
-      { tipo: 'checkout_iniciado', label: 'Inició el formulario' },
-      { tipo: 'conversion', label: 'Reserva confirmada' },
-    ],
-  },
-  takeaway: {
-    titulo: 'Take Away',
-    pasos: [
-      { tipo: 'click_take_away', label: "Click en 'Take Away'" },
-      { tipo: 'view_content', label: 'Vio el catálogo' },
-      { tipo: 'add_to_cart', label: 'Agregó al carrito' },
-      { tipo: 'checkout_iniciado', label: 'Inició el checkout' },
-      { tipo: 'conversion', label: 'Pedido confirmado' },
-    ],
-  },
-};
 
 const hoyAR = () => claveDiaAR(new Date());
 
@@ -105,13 +75,6 @@ function AnalyticsTab() {
     if (clamped < fechaDesde) setFechaDesde(clamped);
   };
 
-  const contar = (eventos, categoriaFunnel, tipo) =>
-    eventos.filter(e => e.categoria === categoriaFunnel && e.tipo === tipo).length;
-
-  const entradasFunnels = categoria === 'todas'
-    ? Object.entries(FUNNELS)
-    : Object.entries(FUNNELS).filter(([id]) => id === categoria);
-
   return (
     <div className="tab-inner">
       <div className="tab-header">
@@ -133,39 +96,11 @@ function AnalyticsTab() {
       {cargando ? (
         <div className="loading-state">Cargando…</div>
       ) : (
-        <div className={`an-funnels${categoria !== 'todas' ? ' an-funnels--single' : ''}`}>
-          {entradasFunnels.map(([categoriaFunnel, { titulo, pasos }]) => {
-            const conteos = pasos.map(p => contar(eventosActuales, categoriaFunnel, p.tipo));
-            const max = Math.max(1, ...conteos);
-            return (
-              <div key={categoriaFunnel} className="an-funnel">
-                <h3 className="an-funnel__titulo">{titulo}</h3>
-                {pasos.map((paso, i) => {
-                  const valor = conteos[i];
-                  const anterior = i > 0 ? conteos[i - 1] : null;
-                  const caida = anterior ? Math.round(100 - (valor / Math.max(anterior, 1)) * 100) : null;
-                  const pct = Math.round((valor / max) * 100);
-                  return (
-                    <div key={paso.tipo} className="an-funnel__paso">
-                      <div className="an-funnel__paso-header">
-                        <span className="an-funnel__paso-label">{paso.label}</span>
-                        <span className="an-funnel__paso-valor">{valor}</span>
-                      </div>
-                      <div className="an-funnel__barra-track">
-                        <div className="an-funnel__barra-fill" style={{ width: `${pct}%` }} />
-                      </div>
-                      {caida !== null && (
-                        <span className="an-funnel__caida">
-                          {caida > 0 ? `−${caida}% vs. paso anterior` : 'sin caída'}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+        <FunnelsSection
+          eventosActuales={eventosActuales}
+          eventosAnteriores={eventosAnteriores}
+          categoria={categoria}
+        />
       )}
     </div>
   );

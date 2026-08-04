@@ -89,3 +89,19 @@
   border-radius: 4px;
   background: #fff;
 }
+
+.an-funnel__paso-valores {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.an-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.an-badge--pos { color: #1a6635; background: rgba(26,102,53,0.1); }
+.an-badge--neg { color: #7a1c1c; background: rgba(122,28,28,0.1); }
+.an-funnels--single { grid-template-columns: 1fr; }
