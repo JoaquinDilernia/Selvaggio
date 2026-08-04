@@ -1,5 +1,5 @@
 import { diaSemanaAR } from '../../../utils/analyticsDate';
-import { CLICK_TIPOS } from './FunnelsSection';
+import { CLICK_TIPOS } from './funnels';
 
 const DIAS_LABEL = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 

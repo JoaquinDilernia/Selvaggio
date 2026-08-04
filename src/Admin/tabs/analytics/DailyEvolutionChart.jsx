@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { claveDiaAR, inicioDiaAR } from '../../../utils/analyticsDate';
-import { CLICK_TIPOS } from './FunnelsSection';
+import { CLICK_TIPOS } from './funnels';
 
 const esClick = (e, categoria) =>
   categoria === 'todas' ? Object.values(CLICK_TIPOS).includes(e.tipo) : e.tipo === CLICK_TIPOS[categoria];
