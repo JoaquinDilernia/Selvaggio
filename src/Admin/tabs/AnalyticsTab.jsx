@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
 import './TabsShared.css';
 import './AnalyticsTab.css';
 
 const RANGOS = [
-  { id: 'hoy', label: 'Hoy', dias: 0 },
+  { id: 'hoy', label: 'Hoy', dias: 1 },
   { id: '7d', label: 'Últimos 7 días', dias: 7 },
   { id: '30d', label: 'Últimos 30 días', dias: 30 },
 ];
@@ -41,35 +42,60 @@ const FUNNELS = {
   },
 };
 
+const hoyAR = () => claveDiaAR(new Date());
+
+const restarDias = (claveDia, dias) => {
+  const d = inicioDiaAR(claveDia);
+  d.setUTCDate(d.getUTCDate() - dias);
+  return claveDiaAR(d);
+};
+
+const RANGO_DEFAULT = RANGOS.find(r => r.id === '7d');
+
 function AnalyticsTab() {
-  const [rango, setRango] = useState('7d');
-  const [eventos, setEventos] = useState([]);
+  const [preset, setPreset] = useState('7d');
+  const [fechaDesde, setFechaDesde] = useState(() => restarDias(hoyAR(), RANGO_DEFAULT.dias - 1));
+  const [fechaHasta, setFechaHasta] = useState(hoyAR);
+  const [eventosActuales, setEventosActuales] = useState([]);
+  const [eventosAnteriores, setEventosAnteriores] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => { cargar(); }, [rango]);
+  useEffect(() => { cargar(); }, [fechaDesde, fechaHasta]);
 
   const cargar = async () => {
     setCargando(true);
     try {
-      const dias = RANGOS.find(r => r.id === rango).dias;
-      const desde = new Date();
-      desde.setHours(0, 0, 0, 0);
-      desde.setDate(desde.getDate() - dias);
+      const inicioActual = inicioDiaAR(fechaDesde);
+      const finActual = finDiaAR(fechaHasta);
+      const duracionMs = finActual.getTime() - inicioActual.getTime();
+      const inicioAnterior = new Date(inicioActual.getTime() - duracionMs);
+
       const q = query(
         collection(db, 'selvaggio_analytics_eventos'),
-        where('timestamp', '>=', Timestamp.fromDate(desde))
+        where('timestamp', '>=', Timestamp.fromDate(inicioAnterior)),
+        where('timestamp', '<=', Timestamp.fromDate(finActual))
       );
       const snap = await getDocs(q);
-      setEventos(snap.docs.map(d => d.data()));
+      const todos = snap.docs.map(d => d.data());
+      setEventosActuales(todos.filter(e => e.timestamp.toMillis() >= inicioActual.getTime()));
+      setEventosAnteriores(todos.filter(e => e.timestamp.toMillis() < inicioActual.getTime()));
     } catch (err) {
       console.error('Error cargando analytics:', err);
-      setEventos([]);
+      setEventosActuales([]);
+      setEventosAnteriores([]);
     } finally {
       setCargando(false);
     }
   };
 
-  const contar = (categoria, tipo) =>
+  const handlePreset = (id) => {
+    const r = RANGOS.find(x => x.id === id);
+    setPreset(id);
+    setFechaHasta(hoyAR());
+    setFechaDesde(restarDias(hoyAR(), r.dias - 1));
+  };
+
+  const contar = (eventos, categoria, tipo) =>
     eventos.filter(e => e.categoria === categoria && e.tipo === tipo).length;
 
   return (
@@ -83,8 +109,8 @@ function AnalyticsTab() {
         {RANGOS.map(r => (
           <button
             key={r.id}
-            className={`filter-btn${rango === r.id ? ' active' : ''}`}
-            onClick={() => setRango(r.id)}
+            className={`filter-btn${preset === r.id ? ' active' : ''}`}
+            onClick={() => handlePreset(r.id)}
           >
             {r.label}
           </button>
@@ -96,7 +122,7 @@ function AnalyticsTab() {
       ) : (
         <div className="an-funnels">
           {Object.entries(FUNNELS).map(([categoria, { titulo, pasos }]) => {
-            const conteos = pasos.map(p => contar(categoria, p.tipo));
+            const conteos = pasos.map(p => contar(eventosActuales, categoria, p.tipo));
             const max = Math.max(1, ...conteos);
             return (
               <div key={categoria} className="an-funnel">
