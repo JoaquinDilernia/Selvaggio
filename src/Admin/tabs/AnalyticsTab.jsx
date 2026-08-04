@@ -4,6 +4,7 @@ import { db } from '../../firebase/config';
 import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
 import FiltersBar, { RANGOS } from './analytics/FiltersBar';
 import FunnelsSection from './analytics/FunnelsSection';
+import DayOfWeekChart from './analytics/DayOfWeekChart';
 import './TabsShared.css';
 import './AnalyticsTab.css';
 
@@ -96,11 +97,14 @@ function AnalyticsTab() {
       {cargando ? (
         <div className="loading-state">Cargando…</div>
       ) : (
-        <FunnelsSection
-          eventosActuales={eventosActuales}
-          eventosAnteriores={eventosAnteriores}
-          categoria={categoria}
-        />
+        <>
+          <FunnelsSection
+            eventosActuales={eventosActuales}
+            eventosAnteriores={eventosAnteriores}
+            categoria={categoria}
+          />
+          <DayOfWeekChart eventosActuales={eventosActuales} categoria={categoria} />
+        </>
       )}
     </div>
   );

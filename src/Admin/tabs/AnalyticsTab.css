@@ -1,3 +1,13 @@
+/* Clicks = dorado (validado con dataviz/validate_palette.js contra #fff:
+   CVD ΔE 13.9, contraste normal ΔE 17.3, ambos >= 3:1 de contraste).
+   Conversiones = mismo vino que ya usan .an-funnel__barra-fill y los
+   badges negativos — falla el ideal de luminosidad del validador en
+   soledad, pero se mantiene a propósito por consistencia de marca. */
+:root {
+  --an-color-clicks: #8a6000;
+  --an-color-conversiones: #7a1c1c;
+}
+
 .an-funnels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -105,3 +115,38 @@
 .an-badge--pos { color: #1a6635; background: rgba(26,102,53,0.1); }
 .an-badge--neg { color: #7a1c1c; background: rgba(122,28,28,0.1); }
 .an-funnels--single { grid-template-columns: 1fr; }
+
+.an-dow {
+  background: #fff;
+  border: 1px solid rgba(28,26,23,0.1);
+  border-radius: 4px;
+  padding: 22px 24px;
+  margin-top: 24px;
+}
+.an-dow__titulo {
+  font-family: 'Cormorant Garant', Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #1c1a17;
+  margin: 0 0 12px;
+}
+.an-dow__leyenda { display: flex; gap: 16px; margin-bottom: 18px; }
+.an-dow__leyenda-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b635a; }
+.an-dow__swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.an-dow__swatch--clicks { background: var(--an-color-clicks); }
+.an-dow__swatch--conversiones { background: var(--an-color-conversiones); }
+.an-dow__grafico {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 180px;
+}
+.an-dow__columna { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; }
+.an-dow__barras { display: flex; align-items: flex-end; gap: 4px; flex: 1; width: 100%; justify-content: center; }
+.an-dow__barra-wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; width: 18px; }
+.an-dow__valor { font-size: 10px; color: #6b635a; margin-bottom: 3px; }
+.an-dow__barra { width: 100%; border-radius: 2px 2px 0 0; min-height: 2px; }
+.an-dow__barra--clicks { background: var(--an-color-clicks); }
+.an-dow__barra--conversiones { background: var(--an-color-conversiones); }
+.an-dow__dia { margin-top: 8px; font-size: 12px; color: #6b635a; }
