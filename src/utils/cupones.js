@@ -32,6 +32,7 @@ export function calcularDescuentoCupon(cupon, subtotal) {
 }
 
 export function validarCupon(cupon, { subtotal, cantidadUsosCliente = 0 }) {
+  if (!cupon) return { valido: false, motivo: 'cupón no encontrado' };
   if (!cupon.activo) return { valido: false, motivo: 'este cupón no está activo' };
 
   const hoy = new Date().toISOString().split('T')[0];
