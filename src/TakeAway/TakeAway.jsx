@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  collection, getDocs, addDoc, getDoc, doc, setDoc, increment, Timestamp
+  collection, getDocs, getDoc, doc, setDoc, increment, Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
@@ -9,6 +9,7 @@ import { trackAddToCart, trackInitiateCheckout, trackTakeAwayPedido, trackViewCo
 import { trackEvento } from '../utils/nativeAnalytics';
 import { enviarNotificacionPedidoTakeAway, enviarCodigoVerificacion } from '../utils/emailService';
 import { buscarCupon, calcularDescuentoCupon, validarCupon, obtenerUsosCliente } from '../utils/cupones';
+import { canjearCupon, CuponInvalidoError } from '../utils/cupones';
 import './TakeAway.css';
 
 const METODOS_PAGO = [
@@ -788,13 +789,16 @@ function TakeAway() {
   const handleConfirmarFinalConData = async (formData) => {
     setLoading(true);
     try {
-      const docRef = await addDoc(collection(db, 'selvaggio_takeaway_pedidos'), {
-        numeroPedido: '',
+      const pedidoData = {
         nombre: formData.nombre, apellido: formData.apellido,
         email: formData.email, telefono: formData.telefono,
         items: carrito.map(i => ({ ...i, subtotal: i.precio * i.cantidad })),
         subtotal: formData.subtotal,
+        descuentoCupon: formData.descuentoCupon || 0,
+        descuentoEfectivo: formData.descuentoEfectivo || 0,
         descuento: formData.descuento || 0,
+        cuponCodigo: formData.cuponCodigo || '',
+        cuponId: formData.cuponId || '',
         total: formData.totalFinal,
         metodoPago: formData.metodoPago,
         comentarios: formData.comentarios,
@@ -807,9 +811,14 @@ function TakeAway() {
         referenciaEnvio: formData.metodoEnvio === 'envio' ? (formData.referenciaEnvio || '') : '',
         estado: 'pendiente',
         createdAt: Timestamp.now(),
+      };
+
+      const { numeroPedido: numStr } = await canjearCupon({
+        cuponId: formData.cuponId || null,
+        email: formData.email,
+        subtotal: formData.subtotal,
+        pedidoData,
       });
-      const numStr = 'TW-' + docRef.id.slice(-6).toUpperCase();
-      await setDoc(docRef, { numeroPedido: numStr }, { merge: true });
 
       if (formData.email) {
         const clienteId = formData.email.toLowerCase().trim();
@@ -870,7 +879,10 @@ function TakeAway() {
       setStep('exito');
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Error al procesar el pedido. Intentá nuevamente.', type: 'error' });
+      const mensaje = err instanceof CuponInvalidoError
+        ? `El cupón ya no es válido (${err.motivo}). Volvé a intentar tu pedido.`
+        : 'Error al procesar el pedido. Intentá nuevamente.';
+      setToast({ message: mensaje, type: 'error' });
       setStep(verificacionActiva ? 'verificacion' : 'checkout');
     } finally { setLoading(false); }
   };
