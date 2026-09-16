@@ -167,9 +167,14 @@ function PedidosTW() {
                           )}
                         </div>
                       ))}
-                      {p.descuento > 0 && (
+                      {p.descuentoCupon > 0 && (
                         <div className="atw__total atw__total--desc">
-                          <span>Desc. efectivo 10%</span><span>−{fmt(p.descuento)}</span>
+                          <span>Cupón {p.cuponCodigo}</span><span>−{fmt(p.descuentoCupon)}</span>
+                        </div>
+                      )}
+                      {p.descuentoEfectivo > 0 && (
+                        <div className="atw__total atw__total--desc">
+                          <span>Desc. efectivo 10%</span><span>−{fmt(p.descuentoEfectivo)}</span>
                         </div>
                       )}
                       <div className="atw__total">
