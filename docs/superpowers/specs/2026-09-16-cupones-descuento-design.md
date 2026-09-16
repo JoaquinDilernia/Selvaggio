@@ -160,7 +160,7 @@ Archivo nuevo `src/Admin/tabs/CuponesTab.jsx`, registrado en `AdminNew.jsx` junt
 - Botón **"Eliminar"** con confirmación, borra el doc del cupón (no borra el historial de pedidos que ya lo usaron, esos quedan con los campos `cuponCodigo`/`descuentoCupon` igual).
 - Botón **"Ver uso"** por fila, expande o abre un modal con la lista de `usos/` (fecha, cliente, pedido, descuento aplicado), ordenada por fecha descendente, sin paginación (volumen bajo esperado).
 
-**Extra menor:** en `PedidosTab.jsx` se agrega una columna/badge mostrando `cuponCodigo` cuando el pedido tiene uno, reusando el campo ya guardado (sin lógica nueva).
+**Extra menor:** `PedidosTab.jsx` lee de `selvaggio_pedidos` (pedidos de mesa/salón), una colección distinta a la de Take Away, así que no aplica ahí. El lugar correcto es `src/Admin/AdminTakeAway.jsx`, que ya lista los pedidos de `selvaggio_takeaway_pedidos` en tarjetas y ya muestra la línea `Desc. efectivo 10%` cuando `p.descuento > 0` (línea ~170). Ahí se agrega, antes de esa línea, una línea `Cupón {cuponCodigo}` cuando `p.descuentoCupon > 0`, reusando los campos nuevos del pedido (sin lógica nueva).
 
 ---
 
