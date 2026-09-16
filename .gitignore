@@ -37,3 +37,4 @@ public/*.mp4
 
 # Archivos temporales de Claude
 tmpclaude-*
+.superpowers/
