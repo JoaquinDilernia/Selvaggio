@@ -1285,7 +1285,7 @@
   color: #7c3f2f; font-size: 13px; text-decoration: underline;
 }
 .tw-cupon__form { display: flex; gap: 8px; }
-.tw-cupon__form .tw-input--code { flex: 1; }
+.tw-cupon__form .tw-input { flex: 1; }
 .tw-cupon__aplicar {
   background: #2a2420; color: #fff; border: none; border-radius: 6px;
   padding: 0 16px; font-size: 13px; cursor: pointer; white-space: nowrap;

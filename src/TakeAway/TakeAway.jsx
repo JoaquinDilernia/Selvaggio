@@ -286,7 +286,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
             ) : mostrarCupon ? (
               <div className="tw-cupon__form">
                 <input
-                  className="tw-input tw-input--code"
+                  className="tw-input"
                   type="text"
                   value={codigoCupon}
                   onChange={e => setCodigoCupon(e.target.value.toUpperCase())}
