@@ -38,13 +38,25 @@
   # CSS and JavaScript
   ExpiresByType text/css "access plus 1 month"
   ExpiresByType application/javascript "access plus 1 month"
-  
+
   # Fonts
   ExpiresByType font/woff2 "access plus 1 year"
   ExpiresByType font/woff "access plus 1 year"
-  
+
+  # HTML (nunca cachear: es el entrypoint de la SPA y referencia los assets con hash)
+  ExpiresByType text/html "access plus 0 seconds"
+
   # Default
   ExpiresDefault "access plus 1 week"
+</IfModule>
+
+# Never cache index.html so deploys go live immediately
+<IfModule mod_headers.c>
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
 </IfModule>
 
 # Security Headers
