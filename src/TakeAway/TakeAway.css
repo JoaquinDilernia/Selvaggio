@@ -1277,3 +1277,24 @@
     margin-right: 0;
   }
 }
+
+/* ── Cupón de descuento en checkout ── */
+.tw-cupon { margin: 4px 0 10px; }
+.tw-cupon__toggle {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: #7c3f2f; font-size: 13px; text-decoration: underline;
+}
+.tw-cupon__form { display: flex; gap: 8px; }
+.tw-cupon__form .tw-input--code { flex: 1; }
+.tw-cupon__aplicar {
+  background: #2a2420; color: #fff; border: none; border-radius: 6px;
+  padding: 0 16px; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.tw-cupon__aplicar:disabled { opacity: 0.55; cursor: not-allowed; }
+.tw-cupon__aplicado {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f0f7f2; border: 1px solid #cfe8d6; border-radius: 6px;
+  padding: 8px 12px; font-size: 13px; color: #1a6b3a;
+}
+.tw-cupon__quitar { background: none; border: none; color: #7c3f2f; text-decoration: underline; cursor: pointer; font-size: 12px; }
+.tw-cupon__error { color: #a93226; font-size: 12px; margin: 6px 0 0; }

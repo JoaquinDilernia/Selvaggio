@@ -8,6 +8,7 @@ import Toast from '../components/Toast';
 import { trackAddToCart, trackInitiateCheckout, trackTakeAwayPedido, trackViewContent } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
 import { enviarNotificacionPedidoTakeAway, enviarCodigoVerificacion } from '../utils/emailService';
+import { buscarCupon, calcularDescuentoCupon, validarCupon, obtenerUsosCliente } from '../utils/cupones';
 import './TakeAway.css';
 
 const METODOS_PAGO = [
@@ -166,14 +167,21 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
     localidadEnvio: '', direccionEnvio: '', pisoDeptoEnvio: '', referenciaEnvio: '',
   });
   const [toast, setToast] = useState(null);
+  const [mostrarCupon, setMostrarCupon] = useState(false);
+  const [codigoCupon, setCodigoCupon] = useState('');
+  const [cuponAplicado, setCuponAplicado] = useState(null); // { id, codigo, tipoDescuento, valor, ... } o null
+  const [errorCupon, setErrorCupon] = useState('');
+  const [verificandoCupon, setVerificandoCupon] = useState(false);
 
   const subtotal  = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
   const esEfectivo = formData.metodoPago === 'efectivo';
   const zonasEnvio = config?.zonasEnvio || [];
   const hayEnvioDisponible = zonasEnvio.length > 0;
   const esEnvio = formData.metodoEnvio === 'envio';
-  const descuento = esEfectivo ? Math.round(subtotal * 0.10) : 0;
-  const total     = subtotal - descuento;
+  const descuentoCupon    = cuponAplicado ? calcularDescuentoCupon(cuponAplicado, subtotal) : 0;
+  const subtotalPostCupon = subtotal - descuentoCupon;
+  const descuentoEfectivo = esEfectivo ? Math.round(subtotalPostCupon * 0.10) : 0;
+  const total = subtotalPostCupon - descuentoEfectivo;
 
   const fechasDisponibles = generarFechasRetiro(config?.diasAbiertos, config?.horarioDesde, config?.horarioHasta);
   const horasDisponibles = formData.fechaRetiro
@@ -181,6 +189,34 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
     : [];
 
   const handleChange = e => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleAplicarCupon = async () => {
+    const codigo = codigoCupon.trim();
+    if (!codigo) return;
+    setVerificandoCupon(true);
+    setErrorCupon('');
+    try {
+      const cupon = await buscarCupon(codigo);
+      if (!cupon) { setErrorCupon('Cupón no encontrado'); return; }
+
+      const cantidadUsosCliente = formData.email ? await obtenerUsosCliente(cupon.id, formData.email) : 0;
+      const { valido, motivo } = validarCupon(cupon, { subtotal, cantidadUsosCliente });
+      if (!valido) { setErrorCupon(motivo.charAt(0).toUpperCase() + motivo.slice(1)); return; }
+
+      setCuponAplicado(cupon);
+      setCodigoCupon('');
+    } catch (err) {
+      console.error('Error aplicando cupón:', err);
+      setErrorCupon('No se pudo validar el cupón, intentá nuevamente');
+    } finally {
+      setVerificandoCupon(false);
+    }
+  };
+
+  const handleQuitarCupon = () => {
+    setCuponAplicado(null);
+    setErrorCupon('');
+  };
 
   const checkoutTracked = useRef(false);
   const handleFirstFocus = () => {
@@ -194,7 +230,16 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
   const handleSubmit = e => {
     e.preventDefault();
     if (carrito.length === 0) { setToast({ message: 'El carrito está vacío', type: 'error' }); return; }
-    onConfirmar({ ...formData, subtotal, descuento, totalFinal: total });
+    onConfirmar({
+      ...formData,
+      subtotal,
+      descuentoCupon,
+      descuentoEfectivo,
+      descuento: descuentoCupon + descuentoEfectivo,
+      totalFinal: total,
+      cuponId: cuponAplicado ? cuponAplicado.id : '',
+      cuponCodigo: cuponAplicado ? cuponAplicado.codigo : '',
+    });
   };
 
   return (
@@ -232,19 +277,52 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
               )}
             </div>
           ))}
+          <div className="tw-cupon">
+            {cuponAplicado ? (
+              <div className="tw-cupon__aplicado">
+                <span>🎟 Cupón <strong>{cuponAplicado.codigo}</strong> aplicado</span>
+                <button type="button" className="tw-cupon__quitar" onClick={handleQuitarCupon}>Quitar</button>
+              </div>
+            ) : mostrarCupon ? (
+              <div className="tw-cupon__form">
+                <input
+                  className="tw-input tw-input--code"
+                  type="text"
+                  value={codigoCupon}
+                  onChange={e => setCodigoCupon(e.target.value.toUpperCase())}
+                  placeholder="Código de cupón"
+                  disabled={verificandoCupon}
+                />
+                <button type="button" className="tw-cupon__aplicar" onClick={handleAplicarCupon} disabled={verificandoCupon || !codigoCupon.trim()}>
+                  {verificandoCupon ? 'Verificando…' : 'Aplicar'}
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="tw-cupon__toggle" onClick={() => setMostrarCupon(true)}>¿Tenés un cupón?</button>
+            )}
+            {errorCupon && <p className="tw-cupon__error">{errorCupon}</p>}
+          </div>
+
+          {(cuponAplicado || esEfectivo) && (
+            <div className="tw-resumen__row tw-resumen__row--sub">
+              <span className="tw-resumen__qty" />
+              <span className="tw-resumen__nombre" style={{ color: '#8a7e76' }}>Subtotal</span>
+              <span className="tw-resumen__precio" style={{ color: '#8a7e76' }}>{formatPrecio(subtotal)}</span>
+            </div>
+          )}
+          {cuponAplicado && (
+            <div className="tw-resumen__row tw-resumen__row--descuento">
+              <span className="tw-resumen__qty">🎟</span>
+              <span className="tw-resumen__nombre tw-resumen__descuento-label">Cupón {cuponAplicado.codigo}</span>
+              <span className="tw-resumen__precio tw-resumen__descuento-val">−{formatPrecio(descuentoCupon)}</span>
+            </div>
+          )}
           {esEfectivo && (
-            <>
-              <div className="tw-resumen__row tw-resumen__row--sub">
-                <span className="tw-resumen__qty" />
-                <span className="tw-resumen__nombre" style={{ color: '#8a7e76' }}>Subtotal</span>
-                <span className="tw-resumen__precio" style={{ color: '#8a7e76' }}>{formatPrecio(subtotal)}</span>
-              </div>
-              <div className="tw-resumen__row tw-resumen__row--descuento">
-                <span className="tw-resumen__qty">🏷</span>
-                <span className="tw-resumen__nombre tw-resumen__descuento-label">10% descuento efectivo</span>
-                <span className="tw-resumen__precio tw-resumen__descuento-val">−{formatPrecio(descuento)}</span>
-              </div>
-            </>
+            <div className="tw-resumen__row tw-resumen__row--descuento">
+              <span className="tw-resumen__qty">🏷</span>
+              <span className="tw-resumen__nombre tw-resumen__descuento-label">10% descuento efectivo</span>
+              <span className="tw-resumen__precio tw-resumen__descuento-val">−{formatPrecio(descuentoEfectivo)}</span>
+            </div>
           )}
           {esEnvio && (
             <div className="tw-resumen__row tw-resumen__row--envio">
@@ -254,7 +332,7 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
             </div>
           )}
           <div className="tw-resumen__total">
-            <span>Total{esEfectivo ? ' a pagar' : ''}</span>
+            <span>Total{(esEfectivo || cuponAplicado) ? ' a pagar' : ''}</span>
             <span>{formatPrecio(total)}</span>
           </div>
           <p className="tw-resumen__nota">
