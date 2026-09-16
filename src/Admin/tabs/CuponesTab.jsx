@@ -18,6 +18,9 @@ function CuponesTab() {
   const [editando, setEditando] = useState(null); // id del cupón (código) o null
   const [form, setForm] = useState(FORM_INICIAL);
   const [guardando, setGuardando] = useState(false);
+  const [historialDe, setHistorialDe] = useState(null); // id del cupón cuyo historial se está viendo, o null
+  const [historial, setHistorial] = useState([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
 
   useEffect(() => { cargar(); }, []);
 
@@ -112,6 +115,21 @@ function CuponesTab() {
       setCupones(cupones.filter(x => x.id !== c.id));
     } catch {
       alert('Error al eliminar el cupón');
+    }
+  };
+
+  const verHistorial = async (c) => {
+    setHistorialDe(c.id);
+    setCargandoHistorial(true);
+    try {
+      const snap = await getDocs(collection(db, 'selvaggio_cupones', c.id, 'usos'));
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      items.sort((a, b) => (b.fecha?.toMillis?.() || 0) - (a.fecha?.toMillis?.() || 0));
+      setHistorial(items);
+    } catch (err) {
+      console.error('Error cargando historial:', err);
+    } finally {
+      setCargandoHistorial(false);
     }
   };
 
@@ -237,12 +255,46 @@ function CuponesTab() {
                   <td>{fmt(c.ingresosGenerados)}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button className="btn-action" onClick={() => editar(c)} title="Editar">✏️</button>
+                    <button className="btn-action" onClick={() => verHistorial(c)} title="Ver historial de uso">📊</button>
                     <button className="btn-action btn-danger-sm" onClick={() => eliminar(c)} title="Eliminar">🗑️</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {historialDe && (
+        <div className="cal-form" style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="cal-form__title">Historial de uso — {historialDe}</h3>
+            <button className="btn-action btn-danger" onClick={() => setHistorialDe(null)}>Cerrar</button>
+          </div>
+          {cargandoHistorial ? (
+            <div className="loading-state">Cargando...</div>
+          ) : historial.length === 0 ? (
+            <div className="empty-state">Este cupón todavía no fue usado.</div>
+          ) : (
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Descuento</th><th>Total pedido</th></tr>
+                </thead>
+                <tbody>
+                  {historial.map(u => (
+                    <tr key={u.id}>
+                      <td>{u.fecha?.toDate ? u.fecha.toDate().toLocaleString('es-AR') : '-'}</td>
+                      <td>{u.nombre} ({u.email})</td>
+                      <td>{u.numeroPedido}</td>
+                      <td>{fmt(u.descuentoAplicado)}</td>
+                      <td>{fmt(u.totalPedido)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
