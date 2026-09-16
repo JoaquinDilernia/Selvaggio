@@ -12,6 +12,7 @@ import EventosTab from './tabs/EventosTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
 import AdminReservas from './AdminReservas';
 import AdminTakeAway from './AdminTakeAway';
+import CuponesTab from './tabs/CuponesTab';
 
 function AdminNew() {
   const [tabActiva, setTabActiva] = useState('reservas');
@@ -19,6 +20,7 @@ function AdminNew() {
   const tabs = [
     { id: 'reservas',      nombre: 'Reservas',      componente: AdminReservas },
     { id: 'takeaway',      nombre: 'Take Away',     componente: AdminTakeAway },
+    { id: 'cupones',       nombre: 'Cupones',       componente: CuponesTab },
     { id: 'analytics',     nombre: 'Analytics',     componente: AnalyticsTab },
     { id: 'calendario',    nombre: 'Calendario',    componente: CalendarioTab },
     { id: 'eventos',       nombre: 'Eventos',       componente: EventosTab },
