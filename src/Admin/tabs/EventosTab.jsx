@@ -58,7 +58,7 @@ function EventosTab() {
       setForm(prev => ({ ...prev, imagen: url }));
     } catch (err) {
       console.error('Error subiendo imagen:', err);
-      alert('Error al subir la imagen');
+      alert(`Error al subir la imagen: ${err.code || err.message || err}`);
     } finally {
       setUploading(false);
     }
@@ -75,7 +75,7 @@ function EventosTab() {
       setForm(prev => ({ ...prev, popupImagen: url }));
     } catch (err) {
       console.error('Error subiendo imagen popup:', err);
-      alert('Error al subir la imagen del popup');
+      alert(`Error al subir la imagen del popup: ${err.code || err.message || err}`);
     } finally {
       setUploadingPopup(false);
     }
