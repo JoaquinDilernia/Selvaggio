@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -7,6 +7,7 @@ import './EventoPopup.css';
 function EventoPopup({ evento: eventoProp, onClose }) {
   const [isVisible, setIsVisible] = useState(false);
   const [evento, setEvento] = useState(null);
+  const closeBtnRef = useRef(null);
 
   // Mode 1: manual trigger via prop
   useEffect(() => {
@@ -49,6 +50,18 @@ function EventoPopup({ evento: eventoProp, onClose }) {
     if (onClose) onClose();
   };
 
+  // Cerrar con Escape + foco inicial en el botón de cierre
+  useEffect(() => {
+    if (!isVisible) return;
+    closeBtnRef.current?.focus();
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible]);
+
   if (!isVisible || !evento) return null;
 
   const imagenPopup = evento.popupImagen || evento.imagen;
@@ -59,22 +72,30 @@ function EventoPopup({ evento: eventoProp, onClose }) {
 
   return (
     <div className="evento-popup-overlay" onClick={handleClose}>
-      <div className="evento-popup-content" onClick={(e) => e.stopPropagation()}>
-        <button className="evento-popup-close" onClick={handleClose} aria-label="Cerrar">
+      <div
+        className="evento-popup-content"
+        role="dialog"
+        aria-modal="true"
+        aria-label={evento.titulo || 'Promoción Selvaggio Wine'}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button ref={closeBtnRef} className="evento-popup-close" onClick={handleClose} aria-label="Cerrar">
           ✕
         </button>
-        <div className="evento-popup-image-container">
-          <img 
-            src={imagenPopup} 
-            alt={evento.titulo || 'Evento Selvaggio Wine'}
-            className="evento-popup-image"
-          />
+        <div className="evento-popup-card">
+          <div className="evento-popup-image-container">
+            <img
+              src={imagenPopup}
+              alt={evento.titulo || 'Evento Selvaggio Wine'}
+              className="evento-popup-image"
+            />
+          </div>
+          {ctaLink && (
+            <Link to={ctaLink} className="evento-popup-cta" onClick={handleClose}>
+              {ctaTexto}
+            </Link>
+          )}
         </div>
-        {ctaLink && (
-          <Link to={ctaLink} className="evento-popup-cta" onClick={handleClose}>
-            {ctaTexto}
-          </Link>
-        )}
       </div>
     </div>
   );

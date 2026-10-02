@@ -3,13 +3,15 @@
 .evento-popup-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(14, 12, 10, 0.75);
   display: flex;
   align-items: center;
+  align-items: safe center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-modal, 10000);
   padding: 24px;
-  backdrop-filter: blur(4px);
+  overflow-y: auto;
+  backdrop-filter: blur(6px);
   animation: ep-fadeIn 0.25s ease-out;
 }
 
@@ -22,6 +24,7 @@
   position: relative;
   max-width: 420px;
   width: 100%;
+  margin: auto;
   animation: ep-slideUp 0.3s ease-out;
 }
 
@@ -30,15 +33,24 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Close button — minimal top-right X */
+/* Card unificada: imagen + CTA comparten marco, radio y sombra */
+.evento-popup-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--ap-ivory, #f7f4ef);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* Close button — círculo flotante sobre la imagen */
 .evento-popup-close {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
   border: none;
   color: #fff;
   font-size: 15px;
@@ -47,48 +59,63 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.16s ease-out;
   line-height: 1;
   padding: 0;
 }
 .evento-popup-close:hover {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
+}
+.evento-popup-close:active {
+  transform: scale(0.92);
+}
+.evento-popup-close:focus-visible {
+  outline: 2px solid var(--ap-ivory, #f7f4ef);
+  outline-offset: 2px;
 }
 
 /* Image */
 .evento-popup-image-container {
   position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #111;
+  background: var(--ap-dark, #0e0c0a);
 }
 
 .evento-popup-image {
+  display: block;
   width: 100%;
   height: auto;
-  display: block;
+  max-height: 65vh;
+  object-fit: contain;
+  margin: 0 auto;
 }
 
-/* CTA button below image */
+/* CTA button — mismo lenguaje que .ap-btn--dark del resto del sitio */
 .evento-popup-cta {
   display: block;
   width: 100%;
   margin-top: 12px;
   padding: 16px 24px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--font-ui, 'Inter', -apple-system, sans-serif);
   font-size: 15px;
   font-weight: 500;
+  letter-spacing: 0.01em;
   text-align: center;
   text-decoration: none;
-  color: #fff;
-  background: #1c1a17;
+  color: var(--ap-white, #fff);
+  background: var(--ap-ink, #1c1a17);
   border: none;
-  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.22s ease, transform 0.16s ease-out;
 }
 .evento-popup-cta:hover {
-  background: #333028;
+  background: var(--ap-dark-2, #1a1714);
+}
+.evento-popup-cta:active {
+  transform: scale(0.98);
+}
+.evento-popup-cta:focus-visible {
+  outline: 2px solid var(--ap-accent, #7a1c1c);
+  outline-offset: -3px;
 }
 
 /* ── Mobile ───────────────────────────────────────────────── */
@@ -103,15 +130,15 @@
     margin-bottom: 8px;
   }
 
-  .evento-popup-image-container {
-    border-radius: 8px;
+  .evento-popup-card {
+    border-radius: 14px;
   }
 
   .evento-popup-close {
     top: 8px;
     right: 8px;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     font-size: 13px;
   }
 
@@ -119,5 +146,17 @@
     margin-top: 10px;
     padding: 14px 20px;
     font-size: 14px;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .evento-popup-overlay,
+  .evento-popup-content {
+    animation: none;
+  }
+  .evento-popup-cta,
+  .evento-popup-close {
+    transition: none;
   }
 }

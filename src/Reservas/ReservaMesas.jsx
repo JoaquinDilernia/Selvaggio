@@ -4,7 +4,7 @@ import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increme
 import { db } from '../firebase/config';
 import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
-import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
+import { trackViewContent, trackInitiateCheckout, trackLead } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
 import './ReservaMesas.css';
 
@@ -151,7 +151,7 @@ function ReservaMesas() {
         }
       }
 
-      await trackSchedule('mesa', formData);
+      trackLead();
       trackEvento('conversion', 'mesa');
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);

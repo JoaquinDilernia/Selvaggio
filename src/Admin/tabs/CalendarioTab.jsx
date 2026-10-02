@@ -11,6 +11,7 @@ const HORARIOS_EXTENDIDOS = [...HORARIOS_BASE, '22:30','23:00','23:30','00:00','
 function CalendarioTab() {
   const [excepciones, setExcepciones] = useState([]);
   const [eventos, setEventos] = useState([]);
+  const [statsPorDia, setStatsPorDia] = useState({});
   const [cargando, setCargando] = useState(true);
   const [mes, setMes] = useState(() => {
     const hoy = new Date();
@@ -32,12 +33,30 @@ function CalendarioTab() {
   const cargar = async () => {
     setCargando(true);
     try {
-      const [excSnap, evSnap] = await Promise.all([
+      const [excSnap, evSnap, mesasSnap, cavaSnap, takeawaySnap] = await Promise.all([
         getDocs(collection(db, 'selvaggio_calendario')),
-        getDocs(collection(db, 'selvaggio_eventos'))
+        getDocs(collection(db, 'selvaggio_eventos')),
+        getDocs(collection(db, 'selvaggio_reservas_mesas')),
+        getDocs(collection(db, 'selvaggio_reservas_cava')),
+        getDocs(collection(db, 'selvaggio_takeaway_pedidos'))
       ]);
       setExcepciones(excSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setEventos(evSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      const stats = {};
+      const sumar = (fecha, campo) => {
+        if (!fecha) return;
+        if (!stats[fecha]) stats[fecha] = { mesas: 0, cava: 0, takeaway: 0 };
+        stats[fecha][campo]++;
+      };
+      mesasSnap.docs.forEach(d => sumar(d.data().fecha, 'mesas'));
+      cavaSnap.docs.forEach(d => sumar(d.data().fecha, 'cava'));
+      takeawaySnap.docs.forEach(d => {
+        const data = d.data();
+        if (data.estado === 'cancelado') return;
+        sumar(data.fechaRetiro, 'takeaway');
+      });
+      setStatsPorDia(stats);
     } catch (err) {
       console.error('Error cargando calendario:', err);
     } finally {
@@ -115,7 +134,7 @@ function CalendarioTab() {
       let estado = dow === 1 ? 'cerrado' : 'abierto';
       if (exc) estado = exc.tipo === 'abrir' ? 'excepcion-abierto' : 'excepcion-cerrado';
 
-      dias.push({ d, dateStr, dow, estado, esPasado, exc });
+      dias.push({ d, dateStr, dow, estado, esPasado, exc, stats: statsPorDia[dateStr] });
     }
     return dias;
   };
@@ -149,6 +168,7 @@ function CalendarioTab() {
         <span className="cal-leyenda__item"><span className="cal-dot cal-dot--exc-abierto" /> Excepción: abierto</span>
         <span className="cal-leyenda__item"><span className="cal-dot cal-dot--exc-cerrado" /> Excepción: cerrado</span>
         <span className="cal-leyenda__item">🎉 Evento</span>
+        <span className="cal-leyenda__item">🍽️ Reservas de mesa · 🍷 Cava · 🥡 Take away</span>
       </div>
 
       {/* Calendario */}
@@ -197,6 +217,19 @@ function CalendarioTab() {
                 {dia.exc && <span className="cal-cell__badge">{dia.exc.tipo === 'abrir' ? '✓' : '✕'}</span>}
                 {eventos.find(ev => ev.fecha === dia.dateStr) && (
                   <span className="cal-cell__evento" title={eventos.find(ev => ev.fecha === dia.dateStr).titulo}>🎉</span>
+                )}
+                {dia.stats && (dia.stats.mesas > 0 || dia.stats.cava > 0 || dia.stats.takeaway > 0) && (
+                  <div className="cal-cell__stats">
+                    {dia.stats.mesas > 0 && (
+                      <span className="cal-cell__stat" title={`${dia.stats.mesas} reserva${dia.stats.mesas === 1 ? '' : 's'} de mesa`}>🍽️{dia.stats.mesas}</span>
+                    )}
+                    {dia.stats.cava > 0 && (
+                      <span className="cal-cell__stat" title={`${dia.stats.cava} reserva${dia.stats.cava === 1 ? '' : 's'} de cava`}>🍷{dia.stats.cava}</span>
+                    )}
+                    {dia.stats.takeaway > 0 && (
+                      <span className="cal-cell__stat" title={`${dia.stats.takeaway} pedido${dia.stats.takeaway === 1 ? '' : 's'} take away`}>🥡{dia.stats.takeaway}</span>
+                    )}
+                  </div>
                 )}
               </div>
             );

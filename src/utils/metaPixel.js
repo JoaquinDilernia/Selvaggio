@@ -71,6 +71,13 @@ export const trackSchedule = async (tipo, userData = {}) => {
 
 // ─── Take Away ───────────────────────────────────────────────
 
+// Elige método de pago con transferencia o tarjeta (no efectivo)
+export const trackAddPaymentInfo = (metodoPago) =>
+  fbq('track', 'AddPaymentInfo', {
+    content_category: 'Take Away',
+    payment_type: metodoPago,
+  });
+
 // Producto agregado al carrito
 export const trackAddToCart = (item) =>
   fbq('track', 'AddToCart', {
@@ -104,3 +111,11 @@ export const trackTakeAwayPedido = async (total, userData = {}) => {
 
 export const trackContact = () => fbq('track', 'Contact');
 export const trackLead    = () => fbq('track', 'Lead');
+
+// Señal temprana de interés (evento propio, no estándar): se dispara una
+// única vez por sesión a los 15s de navegación, sin depender de que el
+// visitante complete un formulario. Sirve como evento de conversión para
+// campañas de Leads mientras "Cliente potencial" (Lead) no tenga actividad
+// reciente suficiente para ser seleccionable en el Administrador de anuncios.
+export const trackVisitaInteresada = () =>
+  fbq('trackCustom', 'VisitaInteresada', { content_category: 'Interes Sitio' });

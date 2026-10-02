@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect, useRef } from 'react'
 import { ToastProvider } from './components/Toast'
 import ProtectedRoute from './components/ProtectedRoute'
 import LandingDemo from './LandingDemo/LandingDemo'
-import { trackPageView } from './utils/metaPixel'
+import { trackPageView, trackVisitaInteresada } from './utils/metaPixel'
 import { trackEvento } from './utils/nativeAnalytics'
 import './theme.css'
 import './App.css'
@@ -48,11 +48,27 @@ const Privacidad = lazy(() => import('./pages/Privacidad'))
 const Gracias = lazy(() => import('./pages/Gracias'))
 const Formulario = lazy(() => import('./Formulario'))
 
+// Marca "VisitaInteresada" (Meta) a los 15s de sesión, una sola vez.
+// Sirve como conversión de campaña de Leads cuando el evento estándar
+// "Cliente potencial" todavía no tiene actividad reciente en el pixel.
+function VisitaInteresadaTracker() {
+  useEffect(() => {
+    if (sessionStorage.getItem('mp_visita_interesada')) return;
+    const timer = setTimeout(() => {
+      trackVisitaInteresada();
+      sessionStorage.setItem('mp_visita_interesada', '1');
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
+}
+
 function App() {
   return (
     <ToastProvider>
       <Router>
         <RouteTracker />
+        <VisitaInteresadaTracker />
         <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<LandingDemo />} />
