@@ -3,6 +3,7 @@ import {
   collection, getDocs, addDoc, deleteDoc, doc, getDoc, setDoc, updateDoc, serverTimestamp
 } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { prepararImagen, METADATA_CACHE } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
 import './AdminTakeAway.css';
 
@@ -573,11 +574,18 @@ function PicadasTW() {
     } catch {}
   };
 
-  const handleImagenFile = (file) => {
+  const handleImagenFile = async (file) => {
     if (!file) return;
-    setImagenPreview(URL.createObjectURL(file));
-    const storageRef = ref(storage, `tw_picadas/${Date.now()}_${file.name}`);
-    const task = uploadBytesResumable(storageRef, file);
+    let imagen;
+    try {
+      imagen = await prepararImagen(file);
+    } catch (e) {
+      setToast({ message: e.message, type: 'error' });
+      return;
+    }
+    setImagenPreview(URL.createObjectURL(imagen));
+    const storageRef = ref(storage, `tw_picadas/${Date.now()}_${imagen.name}`);
+    const task = uploadBytesResumable(storageRef, imagen, METADATA_CACHE);
     setUploadProgress(0);
     task.on('state_changed',
       snap => setUploadProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),

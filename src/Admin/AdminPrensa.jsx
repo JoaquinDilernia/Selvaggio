@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { prepararImagen, METADATA_CACHE } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
 import { useToast } from '../components/Toast';
 import '../Admin/AdminMaridajes.css';
@@ -70,10 +71,11 @@ function AdminPrensa() {
 
     try {
       const timestamp = Date.now();
-      const fileName = `prensa/${timestamp}_${file.name}`;
+      const imagen = await prepararImagen(file);
+      const fileName = `prensa/${timestamp}_${imagen.name}`;
       const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
+
+      await uploadBytes(storageRef, imagen, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
       
       setNuevaNota({...nuevaNota, imagen: url});

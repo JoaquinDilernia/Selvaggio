@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { prepararImagen } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
 import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
@@ -89,8 +90,11 @@ function ReservaCava() {
   const uploadComprobante = async (file) => {
     setUploading(true);
     try {
-      const storageRef = ref(storage, `comprobantes/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
+      // Sin cache público a propósito: los comprobantes son datos del cliente.
+      // Sí se comprimen: llegaban fotos de 56 MB sacadas del celular.
+      const comprobante = await prepararImagen(file);
+      const storageRef = ref(storage, `comprobantes/${Date.now()}_${comprobante.name}`);
+      await uploadBytes(storageRef, comprobante);
       const url = await getDownloadURL(storageRef);
       setUploading(false);
       return url;

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { prepararImagen, METADATA_CACHE } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
 import { useToast } from '../components/Toast';
 import './AdminMaridajes.css';
@@ -64,11 +65,12 @@ function AdminGaleria() {
     try {
       // Crear nombre único
       const timestamp = Date.now();
-      const nombreArchivo = `galeria/${timestamp}_${archivoImagen.name}`;
+      const imagen = await prepararImagen(archivoImagen);
+      const nombreArchivo = `galeria/${timestamp}_${imagen.name}`;
       const storageRef = ref(storage, nombreArchivo);
-      
+
       // Subir archivo
-      await uploadBytes(storageRef, archivoImagen);
+      await uploadBytes(storageRef, imagen, METADATA_CACHE);
       
       // Obtener URL
       const url = await getDownloadURL(storageRef);

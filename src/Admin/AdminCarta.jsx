@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { validarPeso, METADATA_CACHE } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
 import { useToast } from '../components/Toast';
 import './AdminMaridajes.css';
@@ -55,8 +56,12 @@ function AdminCarta() {
       const timestamp = Date.now();
       const fileName = `carta/carta-selvaggio-${timestamp}.pdf`;
       const storageRef = ref(storage, fileName);
-      
-      await uploadBytes(storageRef, file);
+
+      // La carta la abre cada visitante del sitio: un PDF de 12 MB se paga en
+      // transferencia cada vez. No se puede comprimir acá, pero sí frenar los
+      // exportados sin optimizar.
+      validarPeso(file, 10);
+      await uploadBytes(storageRef, file, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
 
       // Guardar en Firestore

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { prepararImagen, METADATA_CACHE } from '../../utils/subirArchivos';
 import { db, storage } from '../../firebase/config';
 import './TabsShared.css';
 
@@ -52,8 +53,9 @@ function EventosTab() {
     if (!file) return;
     setUploading(true);
     try {
-      const storageRef = ref(storage, `eventos/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
+      const imagen = await prepararImagen(file);
+      const storageRef = ref(storage, `eventos/${Date.now()}_${imagen.name}`);
+      await uploadBytes(storageRef, imagen, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
       setForm(prev => ({ ...prev, imagen: url }));
     } catch (err) {
@@ -69,8 +71,9 @@ function EventosTab() {
     if (!file) return;
     setUploadingPopup(true);
     try {
-      const storageRef = ref(storage, `eventos/popup_${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
+      const imagen = await prepararImagen(file);
+      const storageRef = ref(storage, `eventos/popup_${Date.now()}_${imagen.name}`);
+      await uploadBytes(storageRef, imagen, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
       setForm(prev => ({ ...prev, popupImagen: url }));
     } catch (err) {
