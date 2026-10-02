@@ -175,3 +175,25 @@ El sitio está preparado para funcionar como PWA:
 
 **Selvaggio** - Wine Bar & Delicatessen
 
+
+## 🤖 Bot + Panel (en construcción, Fase 1)
+
+El repo ahora tiene tres partes:
+
+| Carpeta | Qué es | Deploy |
+|---|---|---|
+| `/` (raíz) | Landing pública + admin/caja/cocina actuales (Firestore directo) | Hostinger (`dist/` a mano) |
+| `server/` | Backend Node/Express del bot (adaptado de BOT-BASE) | Railway (root dir `server`) |
+| `panel/` | Panel con login real y Hub: Bot, Gestión, Contenido, Caja, Cocina | Hostinger (`panel/dist/` a mano) |
+
+- El backend usa el **mismo proyecto Firebase** que la landing. Sus colecciones
+  propias llevan prefijo `selvaggio_bot_*` para no mezclarse con las de la landing.
+- Los contactos del bot se cruzan por teléfono con `selvaggio_clientes` (solo
+  lectura): en Conversaciones se ve "Cliente de la web" y el bot recibe ese historial.
+- Gestión/Contenido/Caja/Cocina del Hub por ahora abren las pantallas actuales
+  de la landing (`VITE_LANDING_URL`); se van a ir migrando al panel de a una.
+
+```bash
+cd server && npm install && npm run dev   # puerto 3001 — completar server/.env
+cd panel  && npm install && npm run dev   # puerto 5173 — completar panel/.env
+```
