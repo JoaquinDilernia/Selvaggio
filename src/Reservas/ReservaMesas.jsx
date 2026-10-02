@@ -74,7 +74,11 @@ function ReservaMesas() {
 
   const isLleno = (h) => (reservasPorHorario[h] || 0) >= LIMITE_POR_SLOT;
 
-  const getMinDate = () => new Date().toISOString().split('T')[0];
+  // Fecha local (toISOString usa UTC y después de las 21 hs ya marca el día siguiente)
+  const getMinDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
 
   const getHorarios = () => {
     if (!formData.fecha) return [];
@@ -83,7 +87,11 @@ function ReservaMesas() {
     // Si hay excepción para este día
     if (excepcionDia) {
       if (excepcionDia.tipo === 'cerrar') return [];
-      if (excepcionDia.tipo === 'abrir' && excepcionDia.horarios) return excepcionDia.horarios;
+      if (excepcionDia.tipo === 'abrir' && excepcionDia.horarios) {
+        // Lo de después de medianoche va al final
+        const clave = (h) => (h < '12:00' ? '1' : '0') + h;
+        return [...excepcionDia.horarios].sort((a, b) => clave(a).localeCompare(clave(b)));
+      }
     }
 
     if (dow === 1) return [];  // Lunes cerrado por defecto
@@ -292,7 +300,9 @@ function ReservaMesas() {
                   })}
                 </div>
                 <p className="rf-horarios-hint">
-                  {esFinde ? 'Viernes y sábado: hasta las 02:00 hs' : 'Último horario: 22:00 hs'}
+                  {excepcionDia?.tipo === 'abrir'
+                    ? `Horario especial: de ${horarios[0]} a ${horarios[horarios.length - 1]} hs`
+                    : esFinde ? 'Viernes y sábado: hasta las 02:00 hs' : 'Último horario: 22:00 hs'}
                 </p>
               </>
             )}

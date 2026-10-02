@@ -8,6 +8,16 @@ const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Vier
 const HORARIOS_BASE = ['18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
 const HORARIOS_EXTENDIDOS = [...HORARIOS_BASE, '22:30','23:00','23:30','00:00','00:30','01:00','01:30','02:00'];
 
+// Ordena cronológicamente la noche: lo de después de medianoche va al final
+const claveHorario = (h) => (h < '12:00' ? '1' : '0') + h;
+const ordenarHorarios = (hs) => [...hs].sort((a, b) => claveHorario(a).localeCompare(claveHorario(b)));
+
+// Fecha local (toISOString usa UTC y después de las 21 hs ya marca el día siguiente)
+const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 function CalendarioTab() {
   const [excepciones, setExcepciones] = useState([]);
   const [eventos, setEventos] = useState([]);
@@ -91,7 +101,7 @@ function CalendarioTab() {
       ...prev,
       horariosCustom: prev.horariosCustom.includes(h)
         ? prev.horariosCustom.filter(x => x !== h)
-        : [...prev.horariosCustom, h].sort()
+        : ordenarHorarios([...prev.horariosCustom, h])
     }));
   };
 
@@ -130,7 +140,7 @@ function CalendarioTab() {
   };
 
   const excepcionesFuturas = excepciones
-    .filter(e => new Date(e.fecha + 'T00:00:00') >= new Date(new Date().setHours(0, 0, 0, 0)))
+    .filter(e => e.fecha >= hoyLocal())
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   const dias = generarDias();
@@ -179,9 +189,15 @@ function CalendarioTab() {
                 onClick={() => {
                   if (dia.esPasado) return;
                   if (dia.exc) {
-                    if (window.confirm(`¿Eliminar excepción del ${formatFecha(dia.dateStr)}?`)) {
-                      eliminar(dia.dateStr);
-                    }
+                    // Editar la excepción existente (para eliminarla está la ✕ en la lista)
+                    setForm({
+                      fecha: dia.dateStr,
+                      tipo: dia.exc.tipo,
+                      motivo: dia.exc.motivo || '',
+                      horarioTipo: dia.exc.tipo === 'abrir' ? 'personalizado' : 'normal',
+                      horariosCustom: dia.exc.horarios ? ordenarHorarios(dia.exc.horarios) : []
+                    });
+                    setShowForm(true);
                   } else {
                     setForm(prev => ({
                       ...prev,
@@ -215,7 +231,7 @@ function CalendarioTab() {
       {showForm && (
         <div className="cal-form">
           <h3 className="cal-form__title">
-            {form.tipo === 'abrir' ? '🟢 Abrir día especial' : '🔴 Cerrar día'}
+            {form.tipo === 'abrir' ? '🟢 Abierto con horarios especiales' : '🔴 Cerrado todo el día'}
           </h3>
 
           <div className="cal-form__row">
@@ -225,14 +241,14 @@ function CalendarioTab() {
                 type="date"
                 value={form.fecha}
                 onChange={e => setForm(prev => ({ ...prev, fecha: e.target.value }))}
-                min={new Date().toISOString().split('T')[0]}
+                min={hoyLocal()}
               />
             </div>
             <div className="cal-form__field">
               <label>Tipo</label>
               <select value={form.tipo} onChange={e => setForm(prev => ({ ...prev, tipo: e.target.value }))}>
-                <option value="abrir">Abrir (día normalmente cerrado)</option>
-                <option value="cerrar">Cerrar (día normalmente abierto)</option>
+                <option value="abrir">Abierto solo en ciertos horarios (o abrir un día cerrado)</option>
+                <option value="cerrar">Cerrado todo el día</option>
               </select>
             </div>
           </div>
@@ -319,7 +335,7 @@ function CalendarioTab() {
                   {exc.motivo && <div style={{ color: '#6b635a', fontSize: 14 }}>{exc.motivo}</div>}
                   {exc.tipo === 'abrir' && exc.horarios && (
                     <div style={{ fontSize: 13, color: '#a09890' }}>
-                      Horarios: {exc.horarios[0]} – {exc.horarios[exc.horarios.length - 1]}
+                      Horarios: {ordenarHorarios(exc.horarios)[0]} – {ordenarHorarios(exc.horarios)[exc.horarios.length - 1]}
                     </div>
                   )}
                 </div>
