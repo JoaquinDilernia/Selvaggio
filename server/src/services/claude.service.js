@@ -4,6 +4,13 @@ import { getDb } from './firebase.service.js';
 const MODEL = 'claude-sonnet-5';
 const PRICING = { inputPerMTok: 2.00, outputPerMTok: 10.00 };
 
+// Con adaptive thinking (Sonnet 5) el primer bloque puede ser 'thinking' y no
+// 'text' — leer content[0].text a ciegas devuelve undefined y rompe la respuesta.
+function extractText(response) {
+  const textBlock = response?.content?.find(b => b.type === 'text');
+  return textBlock?.text ?? '';
+}
+
 function logUsage(usage, type) {
   if (!usage?.input_tokens) return;
   const costUSD =
@@ -122,7 +129,7 @@ export async function generateConversationSummary(messages) {
     }],
   });
   logUsage(response.usage, 'summary');
-  return response.content[0].text.trim();
+  return extractText(response).trim();
 }
 
 export async function generateBotResponse(userMessage, conversationHistory, context = {}) {
@@ -139,7 +146,7 @@ export async function generateBotResponse(userMessage, conversationHistory, cont
   });
 
   logUsage(response.usage, 'bot_reply');
-  return response.content[0].text;
+  return extractText(response);
 }
 
 function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = []) {
