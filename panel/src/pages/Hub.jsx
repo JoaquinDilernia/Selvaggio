@@ -25,9 +25,9 @@ export default function Hub() {
     {
       key: 'gestion',
       title: 'Gestión',
-      desc: 'Reservas de mesa y cava, take away, clientes, calendario, eventos y cupones.',
-      href: `${LANDING_URL}/#/admin`,
-      roles: ['admin'],
+      desc: 'Reservas de mesa y La Cava, take away, salón, clientes, mensajes, eventos, invitaciones y cupones.',
+      to: '/gestion/resumen',
+      roles: ['admin', 'atencion_cliente'],
     },
     {
       key: 'contenido',

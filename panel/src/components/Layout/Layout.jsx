@@ -24,7 +24,7 @@ function PageLoader() {
 // minRole: undefined = all, 'atencion_cliente' = not operador, 'admin' = only admin
 const NAV_ITEMS = [
   { to: '/conversations', label: 'Conversaciones',  icon: IconChat },
-  { to: '/reservas',      label: 'Reservas',        icon: IconCalendar,   minRole: 'atencion_cliente' },
+  { to: '/reservas',      label: 'Reservas y pedidos', icon: IconCalendar, minRole: 'atencion_cliente' },
   { to: '/customers',     label: 'Contactos',       icon: IconContacts,   minRole: 'atencion_cliente' },
   { to: '/campaigns',     label: 'Difusiones',      icon: IconMegaphone,  minRole: 'atencion_cliente' },
   { to: '/dashboard',     label: 'Dashboard',       icon: IconDashboard,  minRole: 'atencion_cliente' },
@@ -47,7 +47,7 @@ function canAccess(role, minRole) {
   return true;
 }
 
-export default function Layout() {
+export default function Layout({ items = NAV_ITEMS, subtitle = 'Bot' }) {
   const { agent, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -77,7 +77,7 @@ export default function Layout() {
           <div className={styles.brandLogo}>S</div>
           <div className={styles.brandText}>
             <span className={styles.brandName}>Selvaggio</span>
-            <span className={styles.brandSub}>Bot</span>
+            <span className={styles.brandSub}>{subtitle}</span>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export default function Layout() {
         )}
 
         <nav className={styles.nav}>
-          {NAV_ITEMS.filter(item => canAccess(agent?.role, item.minRole)).map(({ to, label, icon: Icon }) => (
+          {items.filter(item => canAccess(agent?.role, item.minRole)).map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -129,6 +129,32 @@ export default function Layout() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+// Gestión: datos de la landing (reservas, take away, salón, clientes…) dentro del panel.
+const GESTION_ITEMS = [
+  { to: '/gestion/resumen',      label: 'Resumen',       icon: IconDashboard },
+  { to: '/gestion/reservas',     label: 'Reservas',      icon: IconCalendar },
+  { to: '/gestion/takeaway',     label: 'Take Away',     icon: IconBag },
+  { to: '/gestion/comandas',     label: 'Salón',         icon: IconZap },
+  { to: '/gestion/clientes',     label: 'Clientes',      icon: IconContacts },
+  { to: '/gestion/mensajes',     label: 'Mensajes',      icon: IconChat },
+  { to: '/gestion/eventos',      label: 'Eventos',       icon: IconMegaphone },
+  { to: '/gestion/invitaciones', label: 'Invitaciones',  icon: IconUsers },
+  { to: '/gestion/cupones',      label: 'Cupones',       icon: IconTag },
+  { to: '/gestion/resenas',      label: 'Reseñas',       icon: IconBook },
+];
+
+export function GestionLayout() {
+  return <Layout items={GESTION_ITEMS} subtitle="Gestión" />;
+}
+
+function IconBag({ className }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+    </svg>
   );
 }
 

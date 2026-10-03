@@ -4,7 +4,7 @@ import admin from 'firebase-admin';
 import {
   disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava,
 } from '../services/reservas.service.js';
-import { previewCupon, crearPedidoTakeaway } from '../services/takeaway.service.js';
+import { previewCupon, crearPedidoTakeaway, listarPedidosBot } from '../services/takeaway.service.js';
 import { subirArchivo } from '../services/storage.service.js';
 
 // Comprobantes: imagen (ya comprimida en el navegador) o PDF, hasta 10 MB.
@@ -106,3 +106,4 @@ publicReservasRouter.use((err, req, res, next) => {
 
 export const reservasRouter = Router();
 reservasRouter.get('/bot', handle(() => listarReservasBot()));
+reservasRouter.get('/bot-pedidos', handle(() => listarPedidosBot()));

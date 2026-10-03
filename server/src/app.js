@@ -20,6 +20,7 @@ import areaRoutes from './routes/area.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
 import redirectRoutes from './routes/redirect.routes.js';
 import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
+import gestionRoutes from './routes/gestion.routes.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
 import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
@@ -89,6 +90,7 @@ app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtenc
 // la lectura la necesita cualquier operador para derivar conversaciones.
 app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
 app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
+app.use('/api/gestion',       requireAuth, requireBotAccess, requireAtLeastAtencionCliente, gestionRoutes);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
 // Health check
