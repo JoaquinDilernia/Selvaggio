@@ -22,7 +22,7 @@ const formatPrecio = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
 
 /* ─── Success screen ─── */
-function SuccessScreen({ pedidoNum, retiroLabel }) {
+function SuccessScreen({ pedidoNum, retiroLabel, tel4 }) {
   return (
     <div className="tw-page">
       <nav className="tw-nav">
@@ -48,7 +48,7 @@ function SuccessScreen({ pedidoNum, retiroLabel }) {
           <span className="tw-success__num-label">Tu número de pedido</span>
           <span className="tw-success__num-val">{pedidoNum}</span>
         </div>
-        <Link to={`/take-away/seguimiento?id=${pedidoNum}`} className="tw-success__btn">Seguir mi pedido →</Link>
+        <Link to={`/take-away/seguimiento?id=${pedidoNum}&tel=${tel4}`} className="tw-success__btn">Seguir mi pedido →</Link>
         <Link to="/" className="tw-success__volver">← Volver al inicio</Link>
       </div>
     </div>
@@ -924,7 +924,7 @@ function TakeAway() {
   );
 
   // 3. Flujo de pedido en curso — ANTES de los gates de horario
-  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} retiroLabel={retiroLabel} />;
+  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} retiroLabel={retiroLabel} tel4={formData.telefono.replace(/\D/g, '').slice(-4)} />;
 
   if (step === 'verificacion' && pendingFormData) return (
     <>

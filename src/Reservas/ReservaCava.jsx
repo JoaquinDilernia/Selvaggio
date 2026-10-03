@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, setDoc, increment } from 'firebase/firestore';
+import { apiGet } from '../utils/api';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { prepararImagen } from '../utils/subirArchivos';
 import { db, storage } from '../firebase/config';
@@ -47,8 +48,13 @@ function ReservaCava() {
 
   const fetchReservedDates = async () => {
     try {
-      const snap = await getDocs(collection(db, 'selvaggio_reservas_cava'));
-      setReservedDates(snap.docs.map(d => d.data().fecha));
+      // Solo las fechas tomadas (antes se bajaban todas las reservas, con
+      // nombres y teléfonos, al navegador).
+      const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const desde = new Date();
+      const hasta = new Date(); hasta.setFullYear(hasta.getFullYear() + 1);
+      const { ocupadas } = await apiGet('/api/public/cava/ocupadas', { desde: iso(desde), hasta: iso(hasta) });
+      setReservedDates(ocupadas);
     } catch {}
   };
 

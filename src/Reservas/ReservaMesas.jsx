@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, getDocs, doc, getDoc, query, where, setDoc, increment } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { apiGet, apiPost } from '../utils/api';
 import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
 import { trackViewContent, trackInitiateCheckout, trackLead } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
 import './ReservaMesas.css';
-
-const LIMITE_POR_SLOT = 4;
 
 function ReservaMesas() {
   const [formData, setFormData] = useState({
@@ -29,8 +26,8 @@ function ReservaMesas() {
   const [toast, setToast] = useState(null);
   const [reservaExitosa, setReservaExitosa] = useState(false);
   const [fechaReservada, setFechaReservada] = useState('');
-  const [reservasPorHorario, setReservasPorHorario] = useState({});
-  const [excepcionDia, setExcepcionDia] = useState(null);
+  // { fecha, dia, abierto, motivo?, excepcion, horarios: [{ hora, disponible, lugares }] }
+  const [disponibilidad, setDisponibilidad] = useState(null);
 
   useEffect(() => {
     trackViewContent('Reserva Mesa', 'Reservas');
@@ -47,32 +44,26 @@ function ReservaMesas() {
   };
 
   useEffect(() => {
-    if (formData.fecha) {
-      fetchDisponibilidad(formData.fecha);
-      fetchExcepcion(formData.fecha);
-    }
+    if (formData.fecha) fetchDisponibilidad(formData.fecha);
   }, [formData.fecha]);
 
-  const fetchExcepcion = async (fecha) => {
-    try {
-      const snap = await getDoc(doc(db, 'selvaggio_calendario', fecha));
-      setExcepcionDia(snap.exists() ? snap.data() : null);
-    } catch { setExcepcionDia(null); }
-  };
-
+  // El backend calcula horarios y cupos (antes se bajaban TODAS las reservas
+  // de Firestore al navegador). Las reglas son las mismas: ver
+  // server/src/services/reservas.service.js.
   const fetchDisponibilidad = async (fecha) => {
+    setDisponibilidad(null);
     try {
-      const snapshot = await getDocs(collection(db, 'selvaggio_reservas_mesas'));
-      const conteo = {};
-      snapshot.docs
-        .map(d => d.data())
-        .filter(r => r.fecha === fecha && r.estado !== 'cancelada')
-        .forEach(r => { if (r.horario) conteo[r.horario] = (conteo[r.horario] || 0) + 1; });
-      setReservasPorHorario(conteo);
-    } catch {}
+      setDisponibilidad(await apiGet('/api/public/mesas/disponibilidad', { fecha }));
+    } catch {
+      setDisponibilidad({ fecha, abierto: false, error: true, horarios: [] });
+    }
   };
 
-  const isLleno = (h) => (reservasPorHorario[h] || 0) >= LIMITE_POR_SLOT;
+  const excepcionDia = disponibilidad?.excepcion
+    ? { tipo: disponibilidad.excepcion, motivo: disponibilidad.motivo }
+    : null;
+  const slot = (h) => disponibilidad?.horarios.find(x => x.hora === h);
+  const isLleno = (h) => !slot(h)?.disponible;
 
   // Fecha local (toISOString usa UTC y después de las 21 hs ya marca el día siguiente)
   const getMinDate = () => {
@@ -81,24 +72,8 @@ function ReservaMesas() {
   };
 
   const getHorarios = () => {
-    if (!formData.fecha) return [];
-    const dow = new Date(formData.fecha + 'T00:00:00').getDay();
-
-    // Si hay excepción para este día
-    if (excepcionDia) {
-      if (excepcionDia.tipo === 'cerrar') return [];
-      if (excepcionDia.tipo === 'abrir' && excepcionDia.horarios) {
-        // Lo de después de medianoche va al final
-        const clave = (h) => (h < '12:00' ? '1' : '0') + h;
-        return [...excepcionDia.horarios].sort((a, b) => clave(a).localeCompare(clave(b)));
-      }
-    }
-
-    if (dow === 1) return [];  // Lunes cerrado por defecto
-    const base = ['18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
-    if (dow === 5 || dow === 6)
-      return [...base, '22:30','23:00','23:30','00:00','00:30','01:00','01:30','02:00'];
-    return base;
+    if (!formData.fecha || disponibilidad?.fecha !== formData.fecha) return [];
+    return disponibilidad.horarios.map(h => h.hora);
   };
 
   const handleChange = (e) => {
@@ -128,44 +103,24 @@ function ReservaMesas() {
     }
     setLoading(true);
     try {
-      await addDoc(collection(db, 'selvaggio_reservas_mesas'), {
-        ...formData, estado: 'pendiente', createdAt: new Date().toISOString()
-      });
-
-      // Upsert cliente
-      if (formData.email) {
-        const clienteId = formData.email.toLowerCase().trim();
-        const clienteRef = doc(db, 'selvaggio_clientes', clienteId);
-        const clienteSnap = await getDoc(clienteRef);
-        if (clienteSnap.exists()) {
-          await setDoc(clienteRef, {
-            nombre: formData.nombre + (formData.apellido ? ' ' + formData.apellido : ''),
-            telefono: formData.telefono || clienteSnap.data().telefono || '',
-            ...(formData.fechaNacimiento ? { fechaNacimiento: formData.fechaNacimiento } : {}),
-            totalReservas: increment(1),
-            ultimaReserva: new Date().toISOString()
-          }, { merge: true });
-        } else {
-          await setDoc(clienteRef, {
-            nombre: formData.nombre + (formData.apellido ? ' ' + formData.apellido : ''),
-            email: clienteId,
-            telefono: formData.telefono || '',
-            fechaNacimiento: formData.fechaNacimiento || '',
-            totalReservas: 1,
-            totalPedidos: 0,
-            ultimaReserva: new Date().toISOString(),
-            creado: new Date().toISOString()
-          });
-        }
-      }
+      // El backend vuelve a validar el cupo (en una transacción) y hace el
+      // upsert de selvaggio_clientes.
+      await apiPost('/api/public/reservas/mesas', formData);
 
       trackLead();
       trackEvento('conversion', 'mesa');
       setFechaReservada(formData.fecha);
       setReservaExitosa(true);
       enviarConfirmacionMesas(formData);
-    } catch {
-      setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });
+    } catch (err) {
+      // 409: el horario se llenó mientras completaba el form → refrescar cupos
+      if (err.status === 409) fetchDisponibilidad(formData.fecha);
+      setToast({
+        message: err.status === 409 || err.status === 400 || err.status === 429
+          ? err.message
+          : 'Error al procesar la reserva. Intentá nuevamente.',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -174,7 +129,8 @@ function ReservaMesas() {
   const dow = formData.fecha ? new Date(formData.fecha + 'T00:00:00').getDay() : null;
   const horarios = getHorarios();
   const esFinde = dow === 5 || dow === 6;
-  const diaCerrado = horarios.length === 0 && formData.fecha;
+  const cargandoHorarios = formData.fecha && disponibilidad?.fecha !== formData.fecha;
+  const diaCerrado = horarios.length === 0 && formData.fecha && !cargandoHorarios;
 
   /* ── Success ── */
   if (reservaExitosa) {
@@ -277,6 +233,10 @@ function ReservaMesas() {
             <label className="rf-label rf-label--req">Horario</label>
             {!formData.fecha ? (
               <p className="rf-horarios-hint">Seleccioná una fecha para ver los horarios disponibles</p>
+            ) : cargandoHorarios ? (
+              <p className="rf-horarios-hint">Buscando horarios disponibles…</p>
+            ) : disponibilidad?.error ? (
+              <div className="rf-closed-note">No pudimos cargar los horarios. Revisá tu conexión e intentá de nuevo.</div>
             ) : diaCerrado ? (
               <div className="rf-closed-note">
                 {excepcionDia?.motivo
@@ -288,7 +248,7 @@ function ReservaMesas() {
                 <div className="rf-horarios-grid">
                   {horarios.map(h => {
                     const lleno = isLleno(h);
-                    const disp = LIMITE_POR_SLOT - (reservasPorHorario[h] || 0);
+                    const disp = slot(h)?.lugares ?? 0;
                     return (
                       <button key={h} type="button"
                         className={`rf-chip${formData.horario === h ? ' rf-chip--on' : ''}${lleno ? ' rf-chip--lleno' : ''}`}

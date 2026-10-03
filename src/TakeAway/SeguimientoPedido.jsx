@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { collection, query, where, getDocs, onSnapshot, doc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { apiGet } from '../utils/api';
 import './TakeAway.css';
 import './Seguimiento.css';
 
@@ -25,48 +24,52 @@ const formatPrecio = (n) =>
 function SeguimientoPedido() {
   const [searchParams] = useSearchParams();
   const [busqueda, setBusqueda] = useState(searchParams.get('id') || '');
+  // Últimos 4 del teléfono: el número de pedido solo es adivinable, así que
+  // el backend pide los dos datos (y no devuelve teléfono ni dirección).
+  const [tel4, setTel4] = useState((searchParams.get('tel') || '').replace(/\D/g, '').slice(-4));
   const [pedido, setPedido] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
-  const unsubRef = useRef(null);
+  const pollRef = useRef(null);
 
-  // Auto-search if ID in URL
+  // Auto-search si vienen los datos en la URL (link de la pantalla de éxito)
   useEffect(() => {
-    const id = searchParams.get('id');
-    if (id) buscarPedido(id);
-    return () => { if (unsubRef.current) unsubRef.current(); };
+    if (searchParams.get('id') && tel4.length === 4) buscarPedido();
+    return () => clearInterval(pollRef.current);
   }, []);
 
-  const suscribirPedido = (docId) => {
-    if (unsubRef.current) unsubRef.current();
-    const unsub = onSnapshot(doc(db, 'selvaggio_takeaway_pedidos', docId), (snap) => {
-      if (snap.exists()) setPedido({ id: snap.id, ...snap.data() });
-    });
-    unsubRef.current = unsub;
+  const consultar = (num, tel) =>
+    apiGet('/api/public/takeaway/seguimiento', { numero: num, tel }).then(r => r.pedido);
+
+  // Antes era onSnapshot directo a Firestore; ahora se refresca cada 30 s
+  // mientras el pedido siga en curso.
+  const seguirActualizando = (num, tel) => {
+    clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const p = await consultar(num, tel);
+        setPedido(p);
+        if (['entregado', 'cancelado'].includes(p.estado)) clearInterval(pollRef.current);
+      } catch { /* se reintenta en el próximo ciclo */ }
+    }, 30_000);
   };
 
-  const buscarPedido = async (numero) => {
-    const num = (numero || busqueda).trim().toUpperCase();
-    if (!num) return;
+  const buscarPedido = async () => {
+    const num = busqueda.trim().toUpperCase();
+    if (!num || tel4.length !== 4) return;
     setCargando(true);
     setError('');
     setPedido(null);
-    if (unsubRef.current) { unsubRef.current(); unsubRef.current = null; }
+    clearInterval(pollRef.current);
     try {
-      const q = query(
-        collection(db, 'selvaggio_takeaway_pedidos'),
-        where('numeroPedido', '==', num)
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        setError('No encontramos un pedido con ese número. Verificá que esté bien escrito (ej: TW-0001).');
-      } else {
-        const d = snap.docs[0];
-        setPedido({ id: d.id, ...d.data() });
-        suscribirPedido(d.id); // real-time updates
-      }
-    } catch {
-      setError('Error al buscar. Intentá nuevamente.');
+      const p = await consultar(num, tel4);
+      setPedido(p);
+      if (!['entregado', 'cancelado'].includes(p.estado)) seguirActualizando(num, tel4);
+    } catch (err) {
+      setError(err.status === 404
+        ? 'No encontramos un pedido con esos datos. Revisá el número (ej: TW-AB12CD) y los últimos 4 dígitos del teléfono que dejaste.'
+        : err.status === 429 ? err.message : 'Error al buscar. Intentá nuevamente.');
     } finally {
       setCargando(false);
     }
@@ -103,10 +106,21 @@ function SeguimientoPedido() {
             type="text"
             value={busqueda}
             onChange={e => setBusqueda(e.target.value.toUpperCase())}
-            placeholder="Ej: TW-0001"
+            placeholder="Nº de pedido"
+            aria-label="Número de pedido"
             maxLength={10}
           />
-          <button type="submit" className="sg-search__btn" disabled={cargando || !busqueda.trim()}>
+          <input
+            className="sg-search__input sg-search__input--tel"
+            type="text"
+            inputMode="numeric"
+            value={tel4}
+            onChange={e => setTel4(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            placeholder="Últ. 4 del tel."
+            aria-label="Últimos 4 dígitos del teléfono"
+            maxLength={4}
+          />
+          <button type="submit" className="sg-search__btn" disabled={cargando || !busqueda.trim() || tel4.length !== 4}>
             {cargando ? '…' : 'Buscar'}
           </button>
         </form>

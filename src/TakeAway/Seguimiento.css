@@ -47,6 +47,12 @@
   transition: border-color 0.2s;
 }
 .sg-search__input:focus { border-color: #2a2420; }
+.sg-search__input--tel { flex: 0 0 9.5em; min-width: 0; }
+@media (max-width: 480px) {
+  .sg-search { flex-wrap: wrap; }
+  .sg-search__input { flex: 1 1 100%; }
+  .sg-search__btn { flex: 1 1 100%; }
+}
 .sg-search__input::placeholder { font-weight: 400; letter-spacing: 0; color: #b0a89e; }
 .sg-search__btn {
   padding: 13px 22px;
