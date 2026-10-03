@@ -1,6 +1,6 @@
 import { getDb } from './firebase.service.js';
 
-const COLLECTION = 'selvaggio_bot_knowledge_base';
+const COLLECTION = 'bot-selvaggio_knowledge_base';
 
 /**
  * Obtiene toda la knowledge base activa como string para inyectar al prompt.

@@ -6,9 +6,9 @@ import { getOrCreateConversation, appendMessage, updateMessageStatus } from './c
 import { sendWhatsAppTemplate } from './meta.service.js';
 import { toWaContactId } from './phone.js';
 
-const CAMPAIGNS = 'selvaggio_bot_campaigns';
-const SENDS = 'selvaggio_bot_campaign_sends';
-const LINKS = 'selvaggio_bot_short_links';
+const CAMPAIGNS = 'bot-selvaggio_campaigns';
+const SENDS = 'bot-selvaggio_campaign_sends';
+const LINKS = 'bot-selvaggio_short_links';
 
 const SEND_THROTTLE_MS = 250; // ritmo prudente por defecto para no pegarle al rate-limit de Meta
 

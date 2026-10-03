@@ -1,7 +1,7 @@
 import { getDb } from './firebase.service.js';
 import { fetchMetaTemplateStatuses, createMetaTemplate } from './meta.service.js';
 
-const COLLECTION = 'selvaggio_bot_whatsapp_templates';
+const COLLECTION = 'bot-selvaggio_whatsapp_templates';
 
 export async function getAllTemplates() {
   const db = getDb();

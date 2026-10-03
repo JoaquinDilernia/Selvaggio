@@ -154,7 +154,7 @@ async function processIncomingMessageInternal(msg) {
       getKnowledgeBasePrompt().catch(() => ''),
       getOrCreateCustomer(from, channel, contactName),
       getAllLabels().catch(() => []),
-      getDb().collection('selvaggio_bot_config').doc('bot_config').get().catch(() => ({ exists: false, data: () => ({}) })),
+      getDb().collection('bot-selvaggio_config').doc('bot_config').get().catch(() => ({ exists: false, data: () => ({}) })),
       getActiveAreas().catch(() => []),
     ]);
   } catch (err) {

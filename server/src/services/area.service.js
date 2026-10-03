@@ -1,8 +1,8 @@
 import { getDb } from './firebase.service.js';
 import admin from 'firebase-admin';
 
-const COLLECTION = 'selvaggio_bot_areas';
-const AGENTS_COLLECTION = 'selvaggio_bot_agents';
+const COLLECTION = 'bot-selvaggio_areas';
+const AGENTS_COLLECTION = 'bot-selvaggio_agents';
 
 const SEED_AREAS = [
   {

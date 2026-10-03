@@ -187,7 +187,7 @@ El repo ahora tiene tres partes:
 | `panel/` | Panel con login real y Hub: Bot, Gestión, Contenido, Caja, Cocina | Hostinger (`panel/dist/` a mano) |
 
 - El backend usa el **mismo proyecto Firebase** que la landing. Sus colecciones
-  propias llevan prefijo `selvaggio_bot_*` para no mezclarse con las de la landing.
+  propias llevan prefijo `bot-selvaggio_*` para no mezclarse con las de la landing.
 - Los contactos del bot se cruzan por teléfono con `selvaggio_clientes` (solo
   lectura): en Conversaciones se ve "Cliente de la web" y el bot recibe ese historial.
 - Gestión/Contenido/Caja/Cocina del Hub por ahora abren las pantallas actuales

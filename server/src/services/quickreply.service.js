@@ -1,6 +1,6 @@
 import { getDb } from './firebase.service.js';
 
-const COLLECTION = 'selvaggio_bot_quick_replies';
+const COLLECTION = 'bot-selvaggio_quick_replies';
 
 export async function getAllQuickReplies() {
   const db = getDb();

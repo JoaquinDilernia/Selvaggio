@@ -135,7 +135,7 @@ router.post('/start', async (req, res) => {
     }
 
     const db = getDb();
-    const updated = await db.collection('selvaggio_bot_conversations').doc(normalizedPhone).get();
+    const updated = await db.collection('bot-selvaggio_conversations').doc(normalizedPhone).get();
     res.status(201).json({ id: updated.id, ...updated.data() });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -298,7 +298,7 @@ router.post('/:contactId/reply', async (req, res) => {
     }
 
     const db = getDb();
-    const doc = await db.collection('selvaggio_bot_conversations').doc(contactId).get();
+    const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
 
     const { channel, status } = doc.data();
@@ -363,7 +363,7 @@ router.post('/:contactId/send-template', async (req, res) => {
     }
 
     const db = getDb();
-    const doc = await db.collection('selvaggio_bot_conversations').doc(contactId).get();
+    const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
 
     const { channel } = doc.data();
@@ -439,7 +439,7 @@ router.post('/:contactId/media', uploadSingle('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
 
     const db = getDb();
-    const doc = await db.collection('selvaggio_bot_conversations').doc(contactId).get();
+    const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
     const { channel, status } = doc.data();
 
@@ -563,7 +563,7 @@ router.post('/forward', async (req, res) => {
     const db = getDb();
     const results = [];
     for (const contactId of targets) {
-      const doc = await db.collection('selvaggio_bot_conversations').doc(contactId).get();
+      const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
       if (!doc.exists) { results.push({ contactId, ok: false, error: 'Conversación no encontrada' }); continue; }
       const { channel, status, lastClientMessageAt, contactName } = doc.data();
       const name = contactName || contactId;
@@ -644,7 +644,7 @@ router.post('/:contactId/media/:mediaId/transcribe', async (req, res) => {
 router.get('/:contactId/summary', async (req, res) => {
   try {
     const db = getDb();
-    const doc = await db.collection('selvaggio_bot_conversations').doc(req.params.contactId).get();
+    const doc = await db.collection('bot-selvaggio_conversations').doc(req.params.contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
     res.json({ summary: doc.data().aiSummary ?? null });
   } catch (err) {
@@ -657,7 +657,7 @@ router.post('/:contactId/summary', async (req, res) => {
     const { contactId } = req.params;
     const db = getDb();
     const [doc, messages] = await Promise.all([
-      db.collection('selvaggio_bot_conversations').doc(contactId).get(),
+      db.collection('bot-selvaggio_conversations').doc(contactId).get(),
       getConversationHistory(contactId),
     ]);
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
@@ -665,7 +665,7 @@ router.post('/:contactId/summary', async (req, res) => {
     const metrics = calcConvMetrics(messages, convData);
     const text = await generateConversationSummary(messages);
     const summary = { text, generatedAt: new Date(), metrics };
-    await db.collection('selvaggio_bot_conversations').doc(contactId).update({ aiSummary: summary });
+    await db.collection('bot-selvaggio_conversations').doc(contactId).update({ aiSummary: summary });
     res.json({ summary });
   } catch (err) {
     res.status(500).json({ error: err.message });

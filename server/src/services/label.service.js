@@ -1,6 +1,6 @@
 import { getDb } from './firebase.service.js';
 
-const COLLECTION = 'selvaggio_bot_labels';
+const COLLECTION = 'bot-selvaggio_labels';
 
 export async function getAllLabels() {
   const db = getDb();

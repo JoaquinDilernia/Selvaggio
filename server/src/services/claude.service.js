@@ -16,7 +16,7 @@ function logUsage(usage, type) {
   const costUSD =
     (usage.input_tokens / 1e6) * PRICING.inputPerMTok +
     (usage.output_tokens / 1e6) * PRICING.outputPerMTok;
-  getDb().collection('selvaggio_bot_usage_logs').add({
+  getDb().collection('bot-selvaggio_usage_logs').add({
     service: 'claude',
     model: MODEL,
     inputTokens: usage.input_tokens,

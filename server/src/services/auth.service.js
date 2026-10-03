@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { getDb } from './firebase.service.js';
 
-const COLLECTION = 'selvaggio_bot_agents';
+const COLLECTION = 'bot-selvaggio_agents';
 
 function hashPassword(password) {
   return createHash('sha256').update(password).digest('hex');

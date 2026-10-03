@@ -8,7 +8,7 @@ const CONFIG_DOC = 'bot_config';
 router.get('/', async (req, res) => {
   try {
     const db = getDb();
-    const doc = await db.collection('selvaggio_bot_config').doc(CONFIG_DOC).get();
+    const doc = await db.collection('bot-selvaggio_config').doc(CONFIG_DOC).get();
     const config = doc.exists ? doc.data() : getDefaultConfig();
     res.json({ config });
   } catch (err) {
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 router.put('/', requireAtLeastAtencionCliente, async (req, res) => {
   try {
     const db = getDb();
-    await db.collection('selvaggio_bot_config').doc(CONFIG_DOC).set(
+    await db.collection('bot-selvaggio_config').doc(CONFIG_DOC).set(
       { ...req.body, updatedAt: new Date() },
       { merge: true }
     );

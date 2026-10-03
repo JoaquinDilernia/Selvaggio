@@ -103,14 +103,14 @@ router.get('/', async (req, res) => {
     const endMs = end.getTime();
 
     const [snap, agentsSnap, areasSnap, urgentSnap, awaitingSnap] = await Promise.all([
-      db.collection('selvaggio_bot_conversations')
+      db.collection('bot-selvaggio_conversations')
         .where('updatedAt', '>=', startTs)
         .where('updatedAt', '<=', endTs)
         .get(),
-      db.collection('selvaggio_bot_agents').get(),
-      db.collection('selvaggio_bot_areas').get(),
-      db.collection('selvaggio_bot_conversations').where('urgent', '==', true).get(),
-      db.collection('selvaggio_bot_conversations').where('status', '==', 'escalated').get(),
+      db.collection('bot-selvaggio_agents').get(),
+      db.collection('bot-selvaggio_areas').get(),
+      db.collection('bot-selvaggio_conversations').where('urgent', '==', true).get(),
+      db.collection('bot-selvaggio_conversations').where('status', '==', 'escalated').get(),
     ]);
 
     const conversations = snap.docs.map(d => ({ id: d.id, ...d.data() }));

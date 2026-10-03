@@ -1,7 +1,7 @@
 import { getDb } from './firebase.service.js';
 import { findLandingClient } from './landingClients.service.js';
 
-const COLLECTION = 'selvaggio_bot_customers';
+const COLLECTION = 'bot-selvaggio_customers';
 
 export async function getOrCreateCustomer(contactId, channel, contactName = null) {
   const db = getDb();

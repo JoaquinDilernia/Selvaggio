@@ -1,7 +1,7 @@
 import { getDb } from './firebase.service.js';
 import admin from 'firebase-admin';
 
-const COLLECTION = 'selvaggio_bot_conversations';
+const COLLECTION = 'bot-selvaggio_conversations';
 
 // Valid statuses: bot, escalated, bot_archived, resolved
 // 'urgent' is now a boolean flag (data.urgent), not a status
