@@ -107,6 +107,8 @@ export async function disponibilidadMesas(fecha, { now = new Date(), incluirSand
     contarPorHorario(db, fecha, incluirSandbox),
   ]);
   const excepcion = excSnap.exists ? excSnap.data() : null;
+  // 'cerrar' | 'abrir' | null — la web lo usa para el texto (cerrado / horario especial).
+  base.excepcion = excepcion?.tipo ?? null;
   const horas = horariosDelDia(fecha, excepcion);
   if (!horas.length) {
     const motivo = excepcion?.tipo === 'cerrar' ? (excepcion.motivo || 'cerrado ese día') : 'los lunes está cerrado';
