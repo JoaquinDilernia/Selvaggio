@@ -133,21 +133,51 @@ export async function generateConversationSummary(messages) {
 }
 
 export async function generateBotResponse(userMessage, conversationHistory, context = {}) {
-  const { knowledgeBase = '', customerContext = null, availableLabels = [], botConfig = {}, imageData = null, areas = [] } = context;
+  const {
+    knowledgeBase = '', customerContext = null, availableLabels = [], botConfig = {}, imageData = null, areas = [],
+    tools = [], runTool = null, extraSystem = '',
+  } = context;
 
-  const systemContent = buildSystemPrompt(botConfig, knowledgeBase, customerContext, availableLabels, areas);
+  let systemContent = buildSystemPrompt(botConfig, knowledgeBase, customerContext, availableLabels, areas);
+  if (extraSystem) systemContent += `\n\n${extraSystem}`;
   const messages = buildMessages(conversationHistory, userMessage, imageData);
 
-  const response = await callAnthropicAPI({
-    model: MODEL,
-    max_tokens: 1024,
-    system: systemContent,
-    messages,
-  });
+  // Loop de tool-use: mientras Claude pida tools, se ejecutan y se le
+  // devuelven los resultados. El turno del asistente se reenvía con su
+  // `content` COMPLETO (incluidos los bloques thinking) y todos los
+  // tool_result van juntos en un único mensaje de usuario.
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const response = await callAnthropicAPI({
+      model: MODEL,
+      max_tokens: 2048,
+      system: systemContent,
+      messages,
+      ...(tools.length && { tools }),
+    });
+    logUsage(response.usage, round === 0 ? 'bot_reply' : 'bot_reply_tool');
 
-  logUsage(response.usage, 'bot_reply');
-  return extractText(response);
+    if (response.stop_reason !== 'tool_use' || !runTool) return extractText(response);
+
+    const calls = response.content.filter(b => b.type === 'tool_use');
+    const results = await Promise.all(calls.map(async (call) => {
+      const output = await runTool(call.name, call.input ?? {});
+      console.log(`[claude] tool ${call.name}`, JSON.stringify(call.input), '→', JSON.stringify(output).slice(0, 300));
+      return {
+        type: 'tool_result',
+        tool_use_id: call.id,
+        content: JSON.stringify(output),
+        ...(output?.error && { is_error: true }),
+      };
+    }));
+    messages.push({ role: 'assistant', content: response.content });
+    messages.push({ role: 'user', content: results });
+  }
+
+  console.warn('[claude] Se alcanzó el máximo de rondas de tools sin respuesta final');
+  return 'Perdón, se me complicó revisar eso. ¿Me lo repetís o preferís que te pase con alguien del equipo?';
 }
+
+const MAX_TOOL_ROUNDS = 6;
 
 function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = []) {
   const botName = botConfig.botName || 'Asistente';

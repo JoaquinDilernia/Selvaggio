@@ -19,6 +19,7 @@ import { initFirebase } from './services/firebase.service.js';
 import areaRoutes from './routes/area.routes.js';
 import campaignRoutes from './routes/campaign.routes.js';
 import redirectRoutes from './routes/redirect.routes.js';
+import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
 import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
@@ -61,6 +62,7 @@ app.use('/api/auth', authRoutes);
 // Redirect de links cortos de difusiones — lo clickea el destinatario final
 // desde WhatsApp, no un agente logueado, así que va sin requireAuth.
 app.use('/r', redirectRoutes);
+app.use('/api/public', publicReservasRouter);
 
 // Routes (protected)
 // Operador can access: conversations (filtered), labels
@@ -86,6 +88,7 @@ app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtenc
 // El propio router ya restringe crear/editar/borrar a requireAdmin —
 // la lectura la necesita cualquier operador para derivar conversaciones.
 app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
+app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
 // Health check

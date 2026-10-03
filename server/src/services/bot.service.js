@@ -17,6 +17,7 @@ import { getAllLabels, createLabel } from './label.service.js';
 import { getActiveAreas } from './area.service.js';
 import { getDb } from './firebase.service.js';
 import { toWaContactId } from './phone.js';
+import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
 
 const URGENCY_KEYWORDS = [
   /urgente/i, /urgencia/i, /reclamo/i, /estafa/i, /fraude/i,
@@ -289,6 +290,11 @@ async function processIncomingMessageInternal(msg) {
       botConfig,
       imageData,
       areas,
+      // Crear reservas solo por WhatsApp: el contacto ES el teléfono de la
+      // reserva. En otros canales el bot solo puede consultar disponibilidad.
+      tools: channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => t.name !== 'crear_reserva_mesa'),
+      runTool: (name, input) => runReservaTool(name, input, { contactId: from, contactName, channel }),
+      extraSystem: reservasPrompt(),
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);

@@ -19,6 +19,7 @@ import Users         from './pages/Users.jsx';
 import Customers     from './pages/Customers.jsx';
 import Campaigns     from './pages/Campaigns.jsx';
 import Hub           from './pages/Hub.jsx';
+import Reservas      from './pages/Reservas.jsx';
 
 const BOT_ROLES = ['admin', 'atencion_cliente', 'operador'];
 
@@ -52,6 +53,7 @@ function AppRoutes() {
           <Route path="conversations" element={<Conversations />} />
           <Route path="customers"     element={<Customers />} />
           <Route path="campaigns"     element={<Campaigns />} />
+          <Route path="reservas"      element={<Reservas />} />
           <Route path="simulator"     element={<Simulator />} />
           <Route path="knowledge"     element={<KnowledgeBase />} />
           <Route path="config"        element={<Config />} />
