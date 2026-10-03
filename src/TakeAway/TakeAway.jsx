@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  collection, getDocs, getDoc, doc, setDoc, increment, Timestamp
-} from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { apiPost } from '../utils/api';
 import Toast from '../components/Toast';
 import { trackAddToCart, trackInitiateCheckout, trackTakeAwayPedido, trackViewContent } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
 import { enviarNotificacionPedidoTakeAway, enviarCodigoVerificacion } from '../utils/emailService';
-import { buscarCupon, calcularDescuentoCupon, validarCupon, obtenerUsosCliente } from '../utils/cupones';
-import { canjearCupon, CuponInvalidoError } from '../utils/cupones';
+import { calcularDescuentoCupon } from '../utils/cupones';
 import './TakeAway.css';
 
 const METODOS_PAGO = [
@@ -20,6 +18,16 @@ const METODOS_PAGO = [
 
 const formatPrecio = n =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+
+// Lo que viaja al backend del carrito: qué se eligió, nunca precios.
+const itemsParaApi = (carrito) => carrito.map(i => i.adicionalId
+  ? { adicionalId: i.adicionalId, cantidad: i.cantidad }
+  : {
+      picadaId: i.picadaId, cantidad: i.cantidad, cartId: i.cartId,
+      selecciones: Object.fromEntries(
+        Object.entries(i.selecciones || {}).map(([secId, s]) => [secId, (s.items || []).map(x => x.id)])
+      ),
+    });
 
 /* ─── Success screen ─── */
 function SuccessScreen({ pedidoNum, retiroLabel, tel4 }) {
@@ -197,18 +205,18 @@ function CheckoutScreen({ carrito, onVolver, onConfirmar, loading, config }) {
     setVerificandoCupon(true);
     setErrorCupon('');
     try {
-      const cupon = await buscarCupon(codigo);
-      if (!cupon) { setErrorCupon('Cupón no encontrado'); return; }
+      // El backend valida vigencia, mínimo y límites (los contadores del cupón
+      // ya no se leen desde el navegador). Se vuelve a validar al confirmar.
+      const r = await apiPost('/api/public/takeaway/cupon', {
+        codigo, email: formData.email, metodoPago: formData.metodoPago, items: itemsParaApi(carrito),
+      });
+      if (!r.valido) { setErrorCupon(r.motivo); return; }
 
-      const cantidadUsosCliente = formData.email ? await obtenerUsosCliente(cupon.id, formData.email) : 0;
-      const { valido, motivo } = validarCupon(cupon, { subtotal, cantidadUsosCliente });
-      if (!valido) { setErrorCupon(motivo.charAt(0).toUpperCase() + motivo.slice(1)); return; }
-
-      setCuponAplicado(cupon);
+      setCuponAplicado(r.cupon);
       setCodigoCupon('');
     } catch (err) {
       console.error('Error aplicando cupón:', err);
-      setErrorCupon('No se pudo validar el cupón, intentá nuevamente');
+      setErrorCupon(err.status === 400 || err.status === 409 ? err.message : 'No se pudo validar el cupón, intentá nuevamente');
     } finally {
       setVerificandoCupon(false);
     }
@@ -695,6 +703,8 @@ function TakeAway() {
   const [step, setStep] = useState('catalogo');
   const [pedidoNum, setPedidoNum] = useState('');
   const [retiroLabel, setRetiroLabel] = useState('');
+  // Últimos 4 del teléfono del pedido: el link de seguimiento los necesita.
+  const [telPedido4, setTelPedido4] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
   const [toast, setToast] = useState(null);
@@ -789,71 +799,33 @@ function TakeAway() {
   const handleConfirmarFinalConData = async (formData) => {
     setLoading(true);
     try {
-      const pedidoData = {
+      // El backend recalcula precios, cupón y descuentos con el catálogo y
+      // crea el pedido (+ uso del cupón + cliente) en una transacción. Del
+      // carrito solo viajan ids, cantidades y las opciones elegidas.
+      const pedido = await apiPost('/api/public/takeaway/pedidos', {
         nombre: formData.nombre, apellido: formData.apellido,
         email: formData.email, telefono: formData.telefono,
-        items: carrito.map(i => ({ ...i, subtotal: i.precio * i.cantidad })),
-        subtotal: formData.subtotal,
-        descuentoCupon: formData.descuentoCupon || 0,
-        descuentoEfectivo: formData.descuentoEfectivo || 0,
-        descuento: formData.descuento || 0,
-        cuponCodigo: formData.cuponCodigo || '',
-        cuponId: formData.cuponId || '',
-        total: formData.totalFinal,
-        metodoPago: formData.metodoPago,
-        comentarios: formData.comentarios,
-        fechaRetiro: formData.fechaRetiro || '',
-        horaRetiro: formData.horaRetiro || '',
+        metodoPago: formData.metodoPago, comentarios: formData.comentarios,
+        fechaRetiro: formData.fechaRetiro || '', horaRetiro: formData.horaRetiro || '',
         metodoEnvio: formData.metodoEnvio || 'retiro',
-        localidadEnvio: formData.metodoEnvio === 'envio' ? (formData.localidadEnvio || '') : '',
-        direccionEnvio: formData.metodoEnvio === 'envio' ? (formData.direccionEnvio || '') : '',
-        pisoDeptoEnvio: formData.metodoEnvio === 'envio' ? (formData.pisoDeptoEnvio || '') : '',
-        referenciaEnvio: formData.metodoEnvio === 'envio' ? (formData.referenciaEnvio || '') : '',
-        estado: 'pendiente',
-        createdAt: Timestamp.now(),
-      };
-
-      const { numeroPedido: numStr } = await canjearCupon({
-        cuponId: formData.cuponId || null,
-        email: formData.email,
-        subtotal: formData.subtotal,
-        pedidoData,
+        localidadEnvio: formData.localidadEnvio, direccionEnvio: formData.direccionEnvio,
+        pisoDeptoEnvio: formData.pisoDeptoEnvio, referenciaEnvio: formData.referenciaEnvio,
+        cuponId: formData.cuponId || '',
+        items: itemsParaApi(carrito),
       });
+      const numStr = pedido.numeroPedido;
 
-      if (formData.email) {
-        const clienteId = formData.email.toLowerCase().trim();
-        const clienteRef = doc(db, 'selvaggio_clientes', clienteId);
-        const snap = await getDoc(clienteRef);
-        const nombreCompleto = formData.nombre + (formData.apellido ? ' ' + formData.apellido : '');
-        if (snap.exists()) {
-          await setDoc(clienteRef, {
-            nombre: nombreCompleto,
-            telefono: formData.telefono || snap.data().telefono || '',
-            totalPedidos: increment(1),
-            ultimoPedido: new Date().toISOString(),
-          }, { merge: true });
-        } else {
-          await setDoc(clienteRef, {
-            nombre: nombreCompleto, email: clienteId,
-            telefono: formData.telefono || '',
-            totalReservas: 0, totalPedidos: 1,
-            ultimoPedido: new Date().toISOString(),
-            creado: new Date().toISOString(),
-          });
-        }
-      }
-
-      // Notificar al local apenas entra el pedido
+      // Notificar al local apenas entra el pedido (con los montos del backend)
       enviarNotificacionPedidoTakeAway({
         numeroPedido: numStr,
         nombre: formData.nombre,
         apellido: formData.apellido,
         email: formData.email,
         telefono: formData.telefono,
-        items: carrito,
-        subtotal: formData.subtotal,
-        descuento: formData.descuento || 0,
-        total: formData.totalFinal,
+        items: pedido.items,
+        subtotal: pedido.subtotal,
+        descuento: pedido.descuento,
+        total: pedido.total,
         metodoPago: formData.metodoPago,
         comentarios: formData.comentarios,
         fechaRetiro: formData.fechaRetiro || '',
@@ -865,9 +837,10 @@ function TakeAway() {
         referenciaEnvio: formData.metodoEnvio === 'envio' ? (formData.referenciaEnvio || '') : '',
       });
 
-      await trackTakeAwayPedido(formData.totalFinal, formData);
-      trackEvento('conversion', 'takeaway', formData.totalFinal);
+      await trackTakeAwayPedido(pedido.total, formData);
+      trackEvento('conversion', 'takeaway', pedido.total);
       setPedidoNum(numStr);
+      setTelPedido4((formData.telefono || '').replace(/\D/g, '').slice(-4));
       if (formData.fechaRetiro && formData.horaRetiro) {
         const [y, m, d] = formData.fechaRetiro.split('-').map(Number);
         const fecha = new Date(y, m - 1, d);
@@ -879,8 +852,10 @@ function TakeAway() {
       setStep('exito');
     } catch (err) {
       console.error(err);
-      const mensaje = err instanceof CuponInvalidoError
-        ? `El cupón ya no es válido (${err.motivo}). Volvé a intentar tu pedido.`
+      // 400/409: el backend explica qué pasó (cupón vencido, horario tomado,
+      // picada agotada…); 429: demasiados intentos seguidos.
+      const mensaje = [400, 409, 429].includes(err.status)
+        ? err.message
         : 'Error al procesar el pedido. Intentá nuevamente.';
       setToast({ message: mensaje, type: 'error' });
       setStep(verificacionActiva ? 'verificacion' : 'checkout');
@@ -924,7 +899,7 @@ function TakeAway() {
   );
 
   // 3. Flujo de pedido en curso — ANTES de los gates de horario
-  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} retiroLabel={retiroLabel} tel4={formData.telefono.replace(/\D/g, '').slice(-4)} />;
+  if (step === 'exito') return <SuccessScreen pedidoNum={pedidoNum} retiroLabel={retiroLabel} tel4={telPedido4} />;
 
   if (step === 'verificacion' && pendingFormData) return (
     <>

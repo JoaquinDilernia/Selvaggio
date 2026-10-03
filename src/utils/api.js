@@ -6,7 +6,10 @@ const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 async function request(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+    // Con FormData el navegador pone el Content-Type (multipart + boundary).
+    headers: options.body instanceof FormData
+      ? (options.headers ?? {})
+      : { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.error || 'No se pudo conectar con el servidor'), { status: res.status });
@@ -18,3 +21,7 @@ export const apiGet = (path, params = {}) =>
 
 export const apiPost = (path, body) =>
   request(path, { method: 'POST', body: JSON.stringify(body) });
+
+/** POST multipart (archivos). */
+export const apiPostForm = (path, formData) =>
+  request(path, { method: 'POST', body: formData });

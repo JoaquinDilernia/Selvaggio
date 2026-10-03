@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, addDoc, doc, getDoc, setDoc, increment } from 'firebase/firestore';
-import { apiGet } from '../utils/api';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { apiGet, apiPostForm } from '../utils/api';
 import { prepararImagen } from '../utils/subirArchivos';
-import { db, storage } from '../firebase/config';
 import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
 import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
@@ -93,20 +90,19 @@ function ReservaCava() {
     setFormData(p => ({ ...p, cantidadPersonas: Math.max(10, p.cantidadPersonas + delta) }));
   };
 
-  const uploadComprobante = async (file) => {
+  // El comprobante se comprime acá (llegaban fotos de 56 MB del celular) y
+  // viaja junto con los datos al backend, que lo guarda y crea la reserva.
+  const enviarReserva = async () => {
     setUploading(true);
     try {
-      // Sin cache público a propósito: los comprobantes son datos del cliente.
-      // Sí se comprimen: llegaban fotos de 56 MB sacadas del celular.
-      const comprobante = await prepararImagen(file);
-      const storageRef = ref(storage, `comprobantes/${Date.now()}_${comprobante.name}`);
-      await uploadBytes(storageRef, comprobante);
-      const url = await getDownloadURL(storageRef);
+      const comprobante = await prepararImagen(formData.comprobante);
+      const fd = new FormData();
+      ['nombre', 'telefono', 'email', 'fechaNacimiento', 'cantidadPersonas', 'traeTorta', 'fecha', 'horario']
+        .forEach(k => fd.append(k, formData[k] ?? ''));
+      fd.append('comprobante', comprobante, comprobante.name);
+      return await apiPostForm('/api/public/reservas/cava', fd);
+    } finally {
       setUploading(false);
-      return url;
-    } catch (err) {
-      setUploading(false);
-      throw err;
     }
   };
 
@@ -133,56 +129,22 @@ function ReservaCava() {
     }
     setLoading(true);
     try {
-      const comprobanteUrl = await uploadComprobante(formData.comprobante);
-      await addDoc(collection(db, 'selvaggio_reservas_cava'), {
-        nombre: formData.nombre,
-        telefono: formData.telefono,
-        email: formData.email,
-        fechaNacimiento: formData.fechaNacimiento,
-        cantidadPersonas: formData.cantidadPersonas,
-        traeTorta: formData.traeTorta,
-        fecha: formData.fecha,
-        horario: formData.horario,
-        comprobanteUrl,
-        estado: 'confirmada',
-        seña: 100000,
-        createdAt: new Date().toISOString()
-      });
-
-      // Upsert cliente
-      if (formData.email) {
-        const clienteId = formData.email.toLowerCase().trim();
-        const clienteRef = doc(db, 'selvaggio_clientes', clienteId);
-        const clienteSnap = await getDoc(clienteRef);
-        if (clienteSnap.exists()) {
-          await setDoc(clienteRef, {
-            nombre: formData.nombre || clienteSnap.data().nombre || '',
-            telefono: formData.telefono || clienteSnap.data().telefono || '',
-            ...(formData.fechaNacimiento ? { fechaNacimiento: formData.fechaNacimiento } : {}),
-            totalReservas: increment(1),
-            ultimaReserva: new Date().toISOString()
-          }, { merge: true });
-        } else {
-          await setDoc(clienteRef, {
-            nombre: formData.nombre || '',
-            email: clienteId,
-            telefono: formData.telefono || '',
-            fechaNacimiento: formData.fechaNacimiento || '',
-            totalReservas: 1,
-            totalPedidos: 0,
-            ultimaReserva: new Date().toISOString(),
-            creado: new Date().toISOString()
-          });
-        }
-      }
+      // El backend sube el comprobante, bloquea el día (transacción) y hace
+      // el upsert de selvaggio_clientes.
+      await enviarReserva();
 
       trackSchedule('cava', formData);
       trackEvento('conversion', 'cava');
       setReservaExitosa(true);
       enviarConfirmacionCava(formData);
       fetchReservedDates();
-    } catch {
-      setToast({ message: 'Error al procesar la reserva. Intentá nuevamente.', type: 'error' });
+    } catch (err) {
+      // 409: alguien reservó ese día mientras completaba el form
+      if (err.status === 409) fetchReservedDates();
+      setToast({
+        message: [400, 409, 429].includes(err.status) ? err.message : (err.message?.includes('MB') ? err.message : 'Error al procesar la reserva. Intentá nuevamente.'),
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
