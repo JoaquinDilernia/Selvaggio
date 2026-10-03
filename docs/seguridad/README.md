@@ -46,21 +46,36 @@ away con y sin cupón, seguimiento de pedido, formulario de contacto y
 "trabajá con nosotros", y en el staff: admin (cada tab), caja carga, cocina
 cambia estado/borra.
 
-## Etapa B — pendiente
+## Etapa B — código listo (backend en producción, landing en la rama `etapa-b-landing`)
 
-Las 4 colecciones que todavía se leen desde el navegador:
-- **Disponibilidad de reservas** (`getDocs` de TODAS las reservas para ver qué
-  días/horarios quedan) → endpoint del backend que devuelva solo fechas/cupos.
-- **Alta de reservas y upsert de `selvaggio_clientes`** → endpoint del backend.
-- **Seguimiento de take away** (busca por `numeroPedido`, que es adivinable) →
-  endpoint que devuelva solo estado/horario.
-- **Total del pedido y cupón** se calculan en el navegador → validar en backend.
+Lo que la landing hacía desde el navegador ahora lo hace el backend
+(`/api/public/*`, ver `server/src/routes/reservas.routes.js`):
 
-## Storage — pendiente
+| Antes (navegador → Firestore) | Ahora |
+|---|---|
+| Bajaba TODAS las reservas de mesa/cava para calcular cupos | `GET mesas/disponibilidad`, `GET cava/ocupadas` (solo cupos/fechas) |
+| `addDoc` de la reserva + upsert de `selvaggio_clientes` | `POST reservas/mesas` (cupo revalidado en transacción) |
+| Subía el comprobante a `comprobantes/` (escritura pública) y creaba la reserva de cava | `POST reservas/cava` multipart → `selvaggio/comprobantes/`, día bloqueado en transacción |
+| Calculaba precios, cupón y descuento y escribía el pedido con el total que quisiera | `POST takeaway/cupon` (preview) y `POST takeaway/pedidos`: todo recalculado con el catálogo |
+| Seguimiento por número (adivinable) con `onSnapshot` | `GET takeaway/seguimiento` con número + últimos 4 del teléfono |
+| Admin subía a `carta/`, `galeria/`, `prensa/`, `tw_picadas/`, `eventos/` | `selvaggio/<carpeta>/` |
 
-`galeria/`, `prensa/`, `carta/`, `eventos/`, `tw_picadas/`, `comprobantes/`
-están en la raíz del bucket compartido y hoy aceptan escritura pública (en
-`comprobantes/` hay archivos que no son comprobantes). `galeria/` tiene al
-menos un archivo que parece de otro proyecto, así que no se pueden cerrar por
-nombre de carpeta sin riesgo: el plan es mover las subidas de Selvaggio a
-`selvaggio/<carpeta>/` y cerrar ese prefijo.
+Siguen leyendo Firestore directo (y está bien): catálogo de take away,
+carta, vinos, eventos, galería, calendario, config. El admin/caja/cocina
+siguen escribiendo directo, pero ahora autenticados (claim `selvaggioRole`).
+
+## Orden del corte (cuando se decida)
+
+1. Mergear `etapa-b-landing` a `master`, `npm run build`, subir `dist/` a
+   Hostinger. Probar: reserva de mesa, reserva de cava con comprobante,
+   pedido take away con y sin cupón (MOMENTO10 está activo), seguimiento,
+   y en el admin subir una imagen.
+2. Publicar **`firestore-propuesta-etapa-b.rules`** (Etapa A + cierra
+   cupones, reservas, take away y clientes al público). Si la landing vieja
+   sigue online, publicar en su lugar `firestore-propuesta-fase2.rules`.
+3. Publicar **`storage-propuesta-etapa-b.rules`**: cierra el prefijo
+   `selvaggio/` (lectura pública solo de imágenes/carta, escritura solo admin,
+   `comprobantes/` sin acceso desde el navegador). Las carpetas viejas de la
+   raíz (`galeria/`, `comprobantes/`…) NO se tocan: pueden ser de otros
+   proyectos; cuando se confirme que no, se pueden cerrar o migrar.
+4. Para volver atrás: pegar los `*-live-*.rules` correspondientes.

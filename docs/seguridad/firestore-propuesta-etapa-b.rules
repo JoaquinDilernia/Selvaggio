@@ -1,0 +1,41 @@
+rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { function isAdmin() { return request.auth != null && exists(/databases/$(database)/documents/alma_admins/$(request.auth.uid)); } function isSignedIn() { return request.auth != null; } match /alma_site_content/{document} { allow read: if true; allow write: if isAdmin(); } match /alma_admins/{uid} { allow read: if request.auth != null; allow write: if request.auth != null && get(/databases/$(database)/documents/alma_admins/$(request.auth.uid)).data.role == 'superadmin'; } match /alma_leads_empresas/{document} { allow create: if true; allow read: if isAdmin(); allow update, delete: if false; } match /alma_categorias/{document} { allow read: if true; allow write: if isAdmin(); } match /alma_config/{document} { allow read: if true; allow write: if isAdmin(); } match /alma_productos/{document} { allow read: if true; allow create, delete: if isAdmin(); allow update: if isAdmin() || isValidStockDecrement(); function isValidStockDecrement() { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) && request.resource.data.stock < resource.data.stock && request.resource.data.stock >= 0; } } match /alma_pedidos/{document} { allow create: if true; allow read, update: if isAdmin(); allow delete: if false; } match /alma_contadores/{document} { allow read: if true; allow create: if request.resource.data.keys().hasOnly(['ultimoNumero']) && request.resource.data.ultimoNumero == 1; allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ultimoNumero']) && request.resource.data.ultimoNumero == resource.data.ultimoNumero + 1; allow delete: if false; } match /alma_guarniciones/{document} { allow read: if true; allow write: if isAdmin(); } match /alma_metodos_pago/{document} { allow read: if true; allow write: if isAdmin(); } match /alma_zonas_envio/{document} { allow read: if true; allow write: if isAdmin(); } 
+    // ═════════════ SELVAGGIO (landing + panel) ═════════════
+    // Roles via custom token del backend Selvaggio (claim selvaggioRole).
+    function svRole() { return request.auth != null ? request.auth.token.get('selvaggioRole', null) : null; }
+    function svAdmin() { return svRole() == 'admin'; }
+    function svStaff() { return svRole() in ['admin', 'caja', 'cocina']; }
+
+    // Contenido público de la web: lo lee cualquiera, lo edita el admin.
+    match /{c}/{id} {
+      allow read: if c in ['selvaggio_configuracion', 'selvaggio_config', 'selvaggio_eventos', 'selvaggio_galeria',
+        'selvaggio_prensa', 'selvaggio_productos', 'selvaggio_vinos', 'selvaggio_maridajes', 'selvaggio_reseñas',
+        'selvaggio_tw_picadas', 'selvaggio_tw_ingredientes', 'selvaggio_tw_adicionales', 'selvaggio_takeaway_productos',
+        'selvaggio_calendario', 'selvaggio_badges'];
+      allow write: if svAdmin() && c in ['selvaggio_configuracion', 'selvaggio_config', 'selvaggio_eventos', 'selvaggio_galeria',
+        'selvaggio_prensa', 'selvaggio_productos', 'selvaggio_vinos', 'selvaggio_maridajes', 'selvaggio_reseñas',
+        'selvaggio_tw_picadas', 'selvaggio_tw_ingredientes', 'selvaggio_tw_adicionales', 'selvaggio_takeaway_productos',
+        'selvaggio_calendario', 'selvaggio_badges'];
+    }
+
+    // Bandejas de entrada: el público solo crea; leer/gestionar es del admin.
+    match /{c}/{id} {
+      allow create: if c in ['selvaggio_contacto', 'selvaggio_postulaciones', 'selvaggio_newsletter', 'selvaggio_analytics_eventos'];
+      allow read, update, delete: if svAdmin() && c in ['selvaggio_contacto', 'selvaggio_postulaciones', 'selvaggio_newsletter', 'selvaggio_analytics_eventos', 'selvaggio_invitaciones'];
+      allow create: if svAdmin() && c == 'selvaggio_invitaciones';
+    }
+
+    // Comandas del salón (Caja carga, Cocina despacha).
+    match /selvaggio_pedidos/{id} {
+      allow read, write: if svStaff();
+    }
+
+    // Etapa B: reservas, pedidos de take away, clientes y cupones ya no se
+    // leen ni escriben desde el navegador público; lo hace el backend (Admin
+    // SDK, no pasa por estas reglas). Desde el navegador solo el staff.
+    match /selvaggio_cupones/{id=**} { allow read, write: if svAdmin(); }
+    match /selvaggio_reservas_mesas/{id} { allow read, write: if svAdmin(); }
+    match /selvaggio_reservas_cava/{id}  { allow read, write: if svAdmin(); }
+    match /selvaggio_takeaway_pedidos/{id} { allow read, write: if svStaff(); }
+    match /selvaggio_clientes/{id} { allow read, write: if svAdmin(); }
+
+    match /{collection}/{document=**} { function isAlma() { return collection.matches('^alma_.*'); } function isServerOnly() { return collection.matches('^bot-.*') || collection.matches('^gineza_.*') || collection.matches('^promonube_.*') || collection in ['stores', 'subscriptions', 'coupon_usage', 'spin_wheel_results', 'giftcard_products', 'giftcard_transactions', 'giftcard_v2_config'] || collection.matches('^gastos_.*') || collection in ['customers', 'conversations', 'config', 'labels', 'knowledge_base', 'usage_logs', 'whatsapp_templates']; } function isSelvaggio() { return collection.matches('^selvaggio_.*'); } function isWinbiz() { return collection.matches('^winbiz.*'); } function isVetPrivate() { return collection.matches('^vet_.*'); } allow read: if isServerOnly() || isSelvaggio() ? false : isAlma() ? false : isWinbiz() ? true : isVetPrivate() ? isSignedIn() : true; allow write: if isServerOnly() || isSelvaggio() ? false : isAlma() ? false : isWinbiz() ? isSignedIn() : isVetPrivate() ? isSignedIn() : true; } } }

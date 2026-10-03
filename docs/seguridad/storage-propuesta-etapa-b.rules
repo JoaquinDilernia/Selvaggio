@@ -1,0 +1,9 @@
+rules_version = '2'; service firebase.storage { match /b/{bucket}/o { match /{topSegment}/{restPath=**} { function isSignedIn() { return request.auth != null; } function topFolder() { return topSegment; } function isPromonubeWidgetAsset() { return topFolder() in ['promonube-search-logos', 'promonube-search-suggestions']; } function isGinezaAssets() { return topFolder() == 'gineza'; } function isSelvaggio() { return topFolder() == 'selvaggio'; } function isWinbiz() { return topFolder() == 'winbiz'; } allow read: if !isGinezaAssets() && !isSelvaggio(); allow write: if isGinezaAssets() || isPromonubeWidgetAsset() || isSelvaggio() ? false : isWinbiz() ? isSignedIn() : true; } match /selvaggio/{carpeta}/{archivo=**} {
+      // Imágenes y carta de la web: públicas para leer, solo el admin sube.
+      // comprobantes/ no aparece: lo sube y lo lee solo el backend (las URLs
+      // con token que guarda la reserva siguen funcionando para el admin).
+      allow read: if carpeta in ['carta', 'galeria', 'prensa', 'tw_picadas', 'eventos'];
+      allow write: if request.auth != null && request.auth.token.get('selvaggioRole', null) == 'admin'
+        && carpeta in ['carta', 'galeria', 'prensa', 'tw_picadas', 'eventos']
+        && (request.resource == null || request.resource.size < 25 * 1024 * 1024);
+    } match /eventos/{fileName=**} { allow read: if true; allow write: if request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*'); } } }
