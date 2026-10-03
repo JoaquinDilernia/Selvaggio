@@ -1,4 +1,5 @@
 import { getDb } from './firebase.service.js';
+import { colEscritura } from './testWrites.js';
 
 // Reservas de mesa y La Cava, del lado del servidor. Replica EXACTAMENTE las
 // reglas que hoy aplica la landing en el navegador (src/Reservas/*.jsx) para
@@ -175,7 +176,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   if (!slot) throw Object.assign(new Error(`El horario ${r.horario} no existe ese día. Horarios: ${disp.horarios.map(h => h.hora).join(', ')}`), { status: 409 });
 
   const db = getDb();
-  const destino = real ? COL.mesas : COL.sandboxMesas;
+  const destino = real ? colEscritura(COL.mesas) : COL.sandboxMesas;
   const ref = db.collection(destino).doc();
 
   await db.runTransaction(async (tx) => {
@@ -207,7 +208,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 
 async function upsertCliente(r) {
   const db = getDb();
-  const ref = db.collection('selvaggio_clientes').doc(r.email);
+  const ref = db.collection(colEscritura('selvaggio_clientes')).doc(r.email);
   const nombre = r.nombre + (r.apellido ? ' ' + r.apellido : '');
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -254,6 +255,52 @@ export async function cavaOcupada(desde, hasta) {
     .where('fecha', '>=', desde).where('fecha', '<=', hasta).get();
   const fechas = new Set(snap.docs.map(d => d.data()).filter(r => r.estado !== 'cancelada').map(r => r.fecha));
   return [...fechas].sort();
+}
+
+export const HORARIOS_CAVA = ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
+
+/**
+ * Alta de reserva de La Cava desde la web, con el comprobante de la seña ya
+ * subido (comprobanteUrl). Mismo criterio que src/Reservas/ReservaCava.jsx:
+ * queda 'confirmada' al tener comprobante y bloquea el día entero.
+ */
+export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath }, { now = new Date() } = {}) {
+  const r = {
+    nombre: limpiar(datos.nombre, 80),
+    telefono: limpiar(datos.telefono, 40),
+    email: limpiar(datos.email, 120).toLowerCase(),
+    fechaNacimiento: /^\d{4}-\d{2}-\d{2}$/.test(datos.fechaNacimiento ?? '') ? datos.fechaNacimiento : '',
+    cantidadPersonas: parseInt(datos.cantidadPersonas, 10),
+    traeTorta: datos.traeTorta === true || datos.traeTorta === 'true',
+    fecha: limpiar(datos.fecha, 10),
+    horario: limpiar(datos.horario, 5),
+  };
+  const errores = [];
+  if (!r.nombre) errores.push('falta el nombre');
+  if (!r.telefono) errores.push('falta el teléfono');
+  if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
+  if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < MINIMO_CAVA) errores.push(`mínimo ${MINIMO_CAVA} personas`);
+  if (!FECHA_RE.test(r.fecha)) errores.push('fecha inválida');
+  else if (r.fecha < ahoraAR(now).fecha) errores.push('la fecha ya pasó');
+  if (!HORARIOS_CAVA.includes(r.horario)) errores.push('horario inválido');
+  if (!comprobanteUrl) errores.push('falta el comprobante de la seña');
+  if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
+
+  const db = getDb();
+  const ref = db.collection(colEscritura(COL.cava)).doc();
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(db.collection(COL.cava).where('fecha', '==', r.fecha));
+    if (snap.docs.some(d => d.data().estado !== 'cancelada')) {
+      throw Object.assign(new Error('Ese día La Cava ya está reservada. Elegí otra fecha.'), { status: 409 });
+    }
+    tx.set(ref, {
+      ...r, comprobanteUrl, comprobantePath, estado: 'confirmada', seña: CAVA.seña,
+      origen: 'web', createdAt: new Date().toISOString(),
+    });
+  });
+
+  if (r.email) await upsertCliente({ ...r, apellido: '' }).catch(e => console.error('[reservas] upsert cliente cava:', e.message));
+  return { id: ref.id, ...r, estado: 'confirmada' };
 }
 
 // ── Seguimiento de take away ─────────────────────────────────────────────

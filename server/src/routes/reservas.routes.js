@@ -1,7 +1,18 @@
 import { Router } from 'express';
+import multer from 'multer';
+import admin from 'firebase-admin';
 import {
-  disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava,
 } from '../services/reservas.service.js';
+import { previewCupon, crearPedidoTakeaway } from '../services/takeaway.service.js';
+import { subirArchivo } from '../services/storage.service.js';
+
+// Comprobantes: imagen (ya comprimida en el navegador) o PDF, hasta 10 MB.
+const uploadComprobante = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype) || file.mimetype === 'application/pdf'),
+});
 
 // ── Público (Etapa B): lo que hoy la landing lee directo de Firestore ────
 // Devuelven solo lo mínimo (cupos, días ocupados, estado de un pedido), sin
@@ -47,6 +58,29 @@ publicReservasRouter.post('/reservas/mesas', altaRateLimit, handle(async req => 
   return { ok: true, id: reserva.id, fecha: reserva.fecha, horario: reserva.horario };
 }));
 publicReservasRouter.get('/cava/ocupadas', handle(async req => ({ ocupadas: await cavaOcupada(req.query.desde, req.query.hasta) })));
+
+// Alta de La Cava con el comprobante de la seña (multipart: campos + `comprobante`).
+// Si el día se ocupó mientras subía, se borra el archivo que ya se había subido.
+publicReservasRouter.post('/reservas/cava', altaRateLimit, uploadComprobante.single('comprobante'), handle(async req => {
+  if (!req.file) throw Object.assign(new Error('Adjuntá el comprobante de la seña (imagen o PDF, hasta 10 MB)'), { status: 400 });
+  const { url, path } = await subirArchivo(req.file.buffer, {
+    carpeta: 'comprobantes', nombre: req.file.originalname, contentType: req.file.mimetype,
+  });
+  try {
+    const reserva = await crearReservaCava(req.body ?? {}, { comprobanteUrl: url, comprobantePath: path });
+    return { ok: true, id: reserva.id, fecha: reserva.fecha };
+  } catch (e) {
+    const bucketName = process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
+    await admin.storage().bucket(bucketName).file(path).delete().catch(() => {});
+    throw e;
+  }
+}));
+
+// ── Take away ────────────────────────────────────────────────────────────
+// El navegador manda solo qué eligió (ids y cantidades); precios, descuentos
+// y cupón se calculan acá con el catálogo.
+publicReservasRouter.post('/takeaway/cupon', handle(req => previewCupon(req.body ?? {})));
+publicReservasRouter.post('/takeaway/pedidos', altaRateLimit, handle(req => crearPedidoTakeaway(req.body ?? {})));
 publicReservasRouter.get('/takeaway/seguimiento', handle(async req => {
   const pedido = await seguimientoTakeaway(req.query.numero, req.query.tel);
   if (!pedido) throw Object.assign(new Error('No encontramos un pedido con esos datos'), { status: 404 });
