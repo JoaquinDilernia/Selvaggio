@@ -87,6 +87,21 @@ publicReservasRouter.get('/takeaway/seguimiento', handle(async req => {
   return { pedido };
 }));
 
+// Errores de multer (archivo > 10 MB, más de un archivo) y JSON mal formado:
+// respuesta JSON con mensaje para la persona en vez del 500 en HTML de Express.
+// eslint-disable-next-line no-unused-vars
+publicReservasRouter.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'El comprobante pesa más de 10 MB. Mandá una foto o un PDF más liviano.'
+      : 'No se pudo leer el archivo adjunto';
+    return res.status(400).json({ error: msg });
+  }
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Datos inválidos' });
+  console.error('[public]', err);
+  res.status(500).json({ error: 'Error interno' });
+});
+
 // ── Panel: reservas tomadas por el bot ───────────────────────────────────
 
 export const reservasRouter = Router();
