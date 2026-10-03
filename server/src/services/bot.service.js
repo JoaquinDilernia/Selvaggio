@@ -292,7 +292,7 @@ async function processIncomingMessageInternal(msg) {
       areas,
       // Crear reservas solo por WhatsApp: el contacto ES el teléfono de la
       // reserva. En otros canales el bot solo puede consultar disponibilidad.
-      tools: channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => t.name !== 'crear_reserva_mesa'),
+      tools: channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'crear_pedido_takeaway', 'mis_pedidos_takeaway'].includes(t.name)),
       runTool: (name, input) => runReservaTool(name, input, { contactId: from, contactName, channel }),
       extraSystem: reservasPrompt(),
     });

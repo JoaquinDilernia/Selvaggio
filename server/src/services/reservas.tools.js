@@ -2,6 +2,7 @@ import {
   disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR,
   PREFERENCIAS, MINIMO_CAVA, CAVA, LIMITE_POR_SLOT,
 } from './reservas.service.js';
+import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
 
 // Tools que Claude puede llamar durante una conversación. El teléfono de la
 // reserva sale del contacto (no se le pide al cliente ni se acepta del modelo).
@@ -59,6 +60,92 @@ export const RESERVAS_TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'ver_menu_takeaway',
+    description: 'Menú de Take Away: picadas (con sus secciones y opciones para elegir), adicionales, precios, días/horario de retiro, zonas de envío gratis y medios de pago. Usala antes de ofrecer o armar un pedido.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'horarios_retiro_takeaway',
+    description: 'Horarios disponibles para retirar (o recibir) un pedido de Take Away en una fecha.',
+    input_schema: {
+      type: 'object',
+      properties: { fecha: { type: 'string', description: 'AAAA-MM-DD' } },
+      required: ['fecha'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'cotizar_pedido_takeaway',
+    description: 'Calcula el total de un pedido SIN crearlo (precios del catálogo, cupón y 10% por efectivo). Usala para mostrarle el resumen al cliente antes de confirmar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Ítems con los ids de ver_menu_takeaway. Picada: { picadaId, cantidad, selecciones: { <seccionId>: [<opcionId>, ...] } }. Adicional: { adicionalId, cantidad }.',
+          items: {
+            type: 'object',
+            properties: {
+              picadaId: { type: 'string' },
+              adicionalId: { type: 'string' },
+              cantidad: { type: 'integer', minimum: 1 },
+              selecciones: { type: 'object', additionalProperties: { type: 'array', items: { type: 'string' } } },
+            },
+            required: ['cantidad'],
+          },
+        },
+        metodoPago: { type: 'string', enum: ['efectivo', 'transferencia', 'tarjeta'] },
+        cuponCodigo: { type: 'string' },
+        email: { type: 'string' },
+      },
+      required: ['items', 'metodoPago'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'crear_pedido_takeaway',
+    description: 'Crea el pedido de Take Away. Llamala solo después de mostrar el resumen de cotizar_pedido_takeaway y que el cliente confirme explícitamente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+        apellido: { type: 'string' },
+        email: { type: 'string', description: 'Opcional.' },
+        items: {
+          type: 'array',
+          description: 'Ítems con los ids de ver_menu_takeaway. Picada: { picadaId, cantidad, selecciones: { <seccionId>: [<opcionId>, ...] } }. Adicional: { adicionalId, cantidad }.',
+          items: {
+            type: 'object',
+            properties: {
+              picadaId: { type: 'string' },
+              adicionalId: { type: 'string' },
+              cantidad: { type: 'integer', minimum: 1 },
+              selecciones: { type: 'object', additionalProperties: { type: 'array', items: { type: 'string' } } },
+            },
+            required: ['cantidad'],
+          },
+        },
+        metodoPago: { type: 'string', enum: ['efectivo', 'transferencia', 'tarjeta'] },
+        fechaRetiro: { type: 'string', description: 'AAAA-MM-DD' },
+        horaRetiro: { type: 'string', description: 'HH:MM, de horarios_retiro_takeaway' },
+        metodoEnvio: { type: 'string', enum: ['retiro', 'envio'] },
+        localidadEnvio: { type: 'string', description: 'Solo si es envío: una de envioGratisA.' },
+        direccionEnvio: { type: 'string' },
+        pisoDeptoEnvio: { type: 'string' },
+        referenciaEnvio: { type: 'string' },
+        cuponCodigo: { type: 'string' },
+        comentarios: { type: 'string' },
+      },
+      required: ['nombre', 'items', 'metodoPago', 'fechaRetiro', 'horaRetiro', 'metodoEnvio'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'mis_pedidos_takeaway',
+    description: 'Estado de los últimos pedidos de Take Away de este cliente (por su teléfono).',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
 ];
 
 /** Texto para el system prompt: reglas fijas + la fecha de hoy. */
@@ -78,7 +165,14 @@ MESAS (hasta ${MINIMO_CAVA - 1} personas):
 LA CAVA (eventos privados, desde ${MINIMO_CAVA} personas):
 - $${CAVA.precioPersona.toLocaleString('es-AR')} por persona: degustación completa con maridaje libre hasta las 00:00, panera y agua. Seña de $${CAVA.seña.toLocaleString('es-AR')} por transferencia.
 - Una sola reserva por día: usá consultar_fechas_cava para ver qué días están tomados.
-- Por WhatsApp NO se reserva La Cava (requiere el comprobante de la seña): pasá el link https://selvaggio.com.ar/#/reserva-cava o derivá al equipo si tienen dudas.`;
+- Por WhatsApp NO se reserva La Cava (requiere el comprobante de la seña): pasá el link https://selvaggio.com.ar/#/reserva-cava o derivá al equipo si tienen dudas.
+
+TAKE AWAY (picadas para llevar o con envío):
+- Usá ver_menu_takeaway para conocer picadas, opciones y precios: nunca inventes productos ni precios. Si una picada tiene secciones obligatorias, preguntá qué elige en cada una (respetando "elegirHasta").
+- Para el retiro usá horarios_retiro_takeaway. Envío gratis solo a las localidades de envioGratisA (pedí dirección).
+- Antes de confirmar, usá cotizar_pedido_takeaway y mostrá el resumen con el total (efectivo tiene 10% de descuento). Recién con el "sí" llamá a crear_pedido_takeaway. El teléfono ya lo tenemos.
+- Al crear, pasale al cliente el número de pedido (TW-XXXXXX). El pago es al retirar/recibir.
+- Si preguntan cómo va su pedido, usá mis_pedidos_takeaway.`;
 }
 
 /**
@@ -106,6 +200,33 @@ export async function runReservaTool(name, input, ctx) {
         if (!(dias >= 0 && dias <= 62)) return { error: 'El rango tiene que ser de 0 a 62 días' };
         return { desde: input.desde, hasta: input.hasta, ocupadas: await cavaOcupada(input.desde, input.hasta) };
       }
+
+      case 'ver_menu_takeaway':
+        return await menuTakeaway();
+
+      case 'horarios_retiro_takeaway':
+        return await horariosRetiro(input.fecha);
+
+      case 'cotizar_pedido_takeaway':
+        return await cotizarPedido({ ...input, email: input.email });
+
+      case 'crear_pedido_takeaway': {
+        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden crear pedidos; pasale el link https://selvaggio.com.ar/#/take-away' };
+        let cuponId = '';
+        if (input.cuponCodigo) {
+          const c = await cotizarPedido({ items: input.items, metodoPago: input.metodoPago, cuponCodigo: input.cuponCodigo, email: input.email });
+          if (c.avisoCupon) return { error: c.avisoCupon };
+          cuponId = c.cuponId;
+        }
+        const p = await crearPedidoTakeaway(
+          { ...input, telefono: ctx.contactId, cuponId },
+          { origen: 'bot', contactId: ctx.contactId },
+        );
+        return { ok: true, numeroPedido: p.numeroPedido, total: p.total, estado: 'pendiente' };
+      }
+
+      case 'mis_pedidos_takeaway':
+        return { pedidos: await pedidosDelContacto(ctx.contactId) };
 
       default:
         return { error: `Tool desconocida: ${name}` };

@@ -10,10 +10,10 @@ import { colEscritura } from './testWrites.js';
 //     con `horarios` propios
 //   - La Cava: un evento por día, mínimo 10 personas
 //
-// MODO: mientras RESERVAS_MODE !== 'live', lo que se CREA desde acá va a una
-// colección sandbox del bot y no toca las colecciones que usa la web. La
-// disponibilidad siempre se calcula con las reservas reales (solo lectura)
-// más las del sandbox, así las pruebas se comportan como en producción.
+// MODO: mientras BOT_MODE !== 'live', lo que CREA EL BOT (reservas acá,
+// pedidos en takeaway.service) va a colecciones sandbox y no toca lo que usa
+// la web. La disponibilidad siempre se calcula con las reservas reales (solo
+// lectura) más las del sandbox, así las pruebas se comportan como en producción.
 
 export const LIMITE_POR_SLOT = 4;
 export const MINIMO_CAVA = 10;
@@ -32,7 +32,8 @@ const COL = {
 };
 
 export function isLive() {
-  return process.env.RESERVAS_MODE === 'live';
+  // RESERVAS_MODE: nombre viejo del mismo interruptor (antes solo reservas).
+  return process.env.BOT_MODE === 'live' || process.env.RESERVAS_MODE === 'live';
 }
 
 // ── Fechas (siempre hora de Buenos Aires, nunca UTC) ─────────────────────

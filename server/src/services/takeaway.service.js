@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { getDb } from './firebase.service.js';
-import { ahoraAR } from './reservas.service.js';
+import { ahoraAR, isLive } from './reservas.service.js';
+import { toWaContactId } from './phone.js';
 import { colEscritura } from './testWrites.js';
 
 // Checkout de Take Away del lado del servidor. Hoy la landing calcula precios,
@@ -19,6 +20,7 @@ const COL = {
   adicionales: 'selvaggio_tw_adicionales',
   cupones: 'selvaggio_cupones',
   config: 'selvaggio_configuracion',
+  sandboxPedidos: 'bot-selvaggio_takeaway_sandbox',
 };
 
 export const METODOS_PAGO = ['efectivo', 'transferencia', 'tarjeta'];
@@ -199,8 +201,15 @@ export async function previewCupon({ codigo, email, items, metodoPago }, { now =
 
 // ── Alta del pedido ──────────────────────────────────────────────────────
 
-export async function crearPedidoTakeaway(body, { now = new Date() } = {}) {
+/**
+ * @param {object} opts.origen     'web' | 'bot'
+ * @param {string} opts.contactId  contacto de WhatsApp (pedidos del bot)
+ * Un pedido del bot fuera de BOT_MODE=live va al sandbox: no aparece en
+ * Admin/Cocina, no suma usos a cupones reales y no toca selvaggio_clientes.
+ */
+export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'web', contactId = null } = {}) {
   const db = getDb();
+  const sandbox = origen === 'bot' && !isLive();
   const catalogo = await cargarCatalogo(db);
   if (catalogo.config.activo === false) throw err(409, 'El take away no está tomando pedidos en este momento');
 
@@ -234,7 +243,7 @@ export async function crearPedidoTakeaway(body, { now = new Date() } = {}) {
   const subtotal = items.reduce((a, i) => a + i.subtotal, 0);
   const cuponId = limpiar(body.cuponId, 40).toUpperCase() || null;
 
-  const pedidoRef = db.collection(colEscritura(COL.pedidos)).doc();
+  const pedidoRef = db.collection(sandbox ? COL.sandboxPedidos : colEscritura(COL.pedidos)).doc();
   const numeroPedido = 'TW-' + pedidoRef.id.slice(-6).toUpperCase();
   let totales;
 
@@ -255,10 +264,10 @@ export async function crearPedidoTakeaway(body, { now = new Date() } = {}) {
     tx.set(pedidoRef, {
       ...d, ...envio, items, ...totales,
       cuponCodigo: cupon ? (cupon.codigo ?? cupon.id) : '', cuponId: cupon ? cupon.id : '',
-      estado: 'pendiente', origen: 'web', numeroPedido, createdAt: new Date(),
+      estado: 'pendiente', origen, ...(contactId && { contactId }), numeroPedido, createdAt: new Date(),
     });
 
-    if (cupon) {
+    if (cupon && !sandbox) {
       const { FieldValue } = admin.firestore;
       tx.update(cuponRef, {
         usosTotales: FieldValue.increment(1),
@@ -274,8 +283,8 @@ export async function crearPedidoTakeaway(body, { now = new Date() } = {}) {
     }
   });
 
-  if (d.email) await upsertClientePedido(db, d).catch(e => console.error('[takeaway] upsert cliente:', e.message));
-  return { numeroPedido, items, ...totales };
+  if (d.email && !sandbox) await upsertClientePedido(db, d).catch(e => console.error('[takeaway] upsert cliente:', e.message));
+  return { numeroPedido, items, ...totales, sandbox };
 }
 
 async function upsertClientePedido(db, d) {
@@ -293,4 +302,87 @@ async function upsertClientePedido(db, d) {
       tx.set(ref, { nombre, email: d.email, telefono: d.telefono || '', totalReservas: 0, totalPedidos: 1, ultimoPedido: ahora, creado: ahora });
     }
   });
+}
+
+// ── Para el bot ──────────────────────────────────────────────────────────
+
+const NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+/** Menú compacto (ids + nombres + precios) para que Claude arme el pedido. */
+export async function menuTakeaway() {
+  const { picadas, ingredientes, adicionales, config } = await cargarCatalogo(getDb());
+  const orden = (a, b) => (a.orden || 0) - (b.orden || 0);
+  return {
+    activo: config.activo !== false,
+    dias: (config.diasAbiertos || []).map(d => NOMBRES_DIA[d]),
+    horario: config.horarioDesde != null ? `${config.horarioDesde}:00 a ${config.horarioHasta}:00` : null,
+    envioGratisA: config.zonasEnvio || [],
+    mediosDePago: ['efectivo (10% de descuento)', 'transferencia', 'tarjeta'],
+    picadas: [...picadas.values()].filter(p => p.disponible !== false).sort(orden).map(p => ({
+      id: p.id, nombre: p.nombre, precio: p.precio, descripcion: p.descripcion || undefined,
+      secciones: (p.secciones || []).map(s => ({
+        id: s.id, nombre: s.nombre, elegirHasta: s.limite, obligatoria: !s.opcional,
+        opciones: (s.ingredienteIds || []).filter(id => ingredientes.has(id)).map(id => ({ id, nombre: ingredientes.get(id).nombre })),
+      })),
+    })),
+    adicionales: [...adicionales.values()].filter(a => a.disponible !== false).sort(orden)
+      .map(a => ({ id: a.id, nombre: a.nombre, precio: a.precio })),
+  };
+}
+
+/** Horarios de retiro disponibles para una fecha (AAAA-MM-DD). */
+export async function horariosRetiro(fecha, { now = new Date() } = {}) {
+  const { config } = await cargarCatalogo(getDb());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) throw err(400, 'Fecha inválida (formato AAAA-MM-DD)');
+  const dias = config.diasAbiertos || [];
+  if (dias.length && !dias.includes(new Date(`${fecha}T12:00:00Z`).getUTCDay())) {
+    return { fecha, horarios: [], motivo: `ese día no hay retiros (días: ${dias.map(d => NOMBRES_DIA[d]).join(', ')})` };
+  }
+  return { fecha, horarios: horasRetiro(fecha, config.horarioDesde, config.horarioHasta, { now }) };
+}
+
+/** Cotiza sin crear nada: ítems armados con el catálogo + totales (+ cupón). */
+export async function cotizarPedido({ items, metodoPago, cuponCodigo, email }, { now = new Date() } = {}) {
+  const db = getDb();
+  const catalogo = await cargarCatalogo(db);
+  const armados = armarItems(items, catalogo);
+  const subtotal = armados.reduce((a, i) => a + i.subtotal, 0);
+  let cupon = null; let avisoCupon;
+  if (cuponCodigo) {
+    const snap = await db.collection(COL.cupones).doc(limpiar(cuponCodigo, 40).toUpperCase()).get();
+    const c = snap.exists ? { id: snap.id, ...snap.data() } : null;
+    const { cantidad } = await usosCliente(db, c?.id, email);
+    const v = validarCupon(c, { subtotal, cantidadUsosCliente: cantidad, hoy: ahoraAR(now).fecha });
+    if (v.valido) cupon = c; else avisoCupon = `Cupón no aplicado: ${v.motivo}`;
+  }
+  return {
+    items: armados.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, subtotal: i.subtotal,
+      elecciones: Object.values(i.selecciones || {}).map(s => `${s.nombre}: ${s.items.map(x => x.nombre).join(', ') || '—'}`) })),
+    ...calcularTotales({ subtotal, cupon, metodoPago }),
+    ...(cupon && { cuponId: cupon.id }),
+    ...(avisoCupon && { avisoCupon }),
+  };
+}
+
+/** Últimos pedidos de un contacto de WhatsApp (por teléfono normalizado). */
+export async function pedidosDelContacto(contactId, { limit = 3 } = {}) {
+  const db = getDb();
+  const cols = [COL.pedidos, ...(isLive() ? [] : [COL.sandboxPedidos])];
+  const snaps = await Promise.all(cols.map(c => db.collection(c).orderBy('createdAt', 'desc').limit(60).get()));
+  return snaps.flatMap(s => s.docs.map(d => d.data()))
+    .filter(p => p.contactId === contactId || toWaContactId(p.telefono) === contactId)
+    .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+    .slice(0, limit)
+    .map(p => ({ numeroPedido: p.numeroPedido, estado: p.estado, total: p.total, fechaRetiro: p.fechaRetiro, horaRetiro: p.horaRetiro, metodoEnvio: p.metodoEnvio }));
+}
+
+/** Pedidos creados por el bot (panel). */
+export async function listarPedidosBot({ limit = 100 } = {}) {
+  const col = isLive() ? COL.pedidos : COL.sandboxPedidos;
+  const snap = await getDb().collection(col).where('origen', '==', 'bot').get();
+  return {
+    sandbox: !isLive(),
+    pedidos: snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate?.().toISOString() ?? null }))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, limit),
+  };
 }
