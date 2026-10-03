@@ -54,7 +54,7 @@ function AdminCarta() {
     try {
       // Subir nuevo PDF
       const timestamp = Date.now();
-      const fileName = `carta/carta-selvaggio-${timestamp}.pdf`;
+      const fileName = `selvaggio/carta/carta-selvaggio-${timestamp}.pdf`;
       const storageRef = ref(storage, fileName);
 
       // La carta la abre cada visitante del sitio: un PDF de 12 MB se paga en

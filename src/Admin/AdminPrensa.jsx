@@ -72,7 +72,7 @@ function AdminPrensa() {
     try {
       const timestamp = Date.now();
       const imagen = await prepararImagen(file);
-      const fileName = `prensa/${timestamp}_${imagen.name}`;
+      const fileName = `selvaggio/prensa/${timestamp}_${imagen.name}`;
       const storageRef = ref(storage, fileName);
 
       await uploadBytes(storageRef, imagen, METADATA_CACHE);

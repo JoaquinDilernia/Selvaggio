@@ -54,7 +54,7 @@ function EventosTab() {
     setUploading(true);
     try {
       const imagen = await prepararImagen(file);
-      const storageRef = ref(storage, `eventos/${Date.now()}_${imagen.name}`);
+      const storageRef = ref(storage, `selvaggio/eventos/${Date.now()}_${imagen.name}`);
       await uploadBytes(storageRef, imagen, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
       setForm(prev => ({ ...prev, imagen: url }));
@@ -72,7 +72,7 @@ function EventosTab() {
     setUploadingPopup(true);
     try {
       const imagen = await prepararImagen(file);
-      const storageRef = ref(storage, `eventos/popup_${Date.now()}_${imagen.name}`);
+      const storageRef = ref(storage, `selvaggio/eventos/popup_${Date.now()}_${imagen.name}`);
       await uploadBytes(storageRef, imagen, METADATA_CACHE);
       const url = await getDownloadURL(storageRef);
       setForm(prev => ({ ...prev, popupImagen: url }));

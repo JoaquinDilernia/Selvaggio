@@ -66,7 +66,7 @@ function AdminGaleria() {
       // Crear nombre único
       const timestamp = Date.now();
       const imagen = await prepararImagen(archivoImagen);
-      const nombreArchivo = `galeria/${timestamp}_${imagen.name}`;
+      const nombreArchivo = `selvaggio/galeria/${timestamp}_${imagen.name}`;
       const storageRef = ref(storage, nombreArchivo);
 
       // Subir archivo

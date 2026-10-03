@@ -584,7 +584,7 @@ function PicadasTW() {
       return;
     }
     setImagenPreview(URL.createObjectURL(imagen));
-    const storageRef = ref(storage, `tw_picadas/${Date.now()}_${imagen.name}`);
+    const storageRef = ref(storage, `selvaggio/tw_picadas/${Date.now()}_${imagen.name}`);
     const task = uploadBytesResumable(storageRef, imagen, METADATA_CACHE);
     setUploadProgress(0);
     task.on('state_changed',
