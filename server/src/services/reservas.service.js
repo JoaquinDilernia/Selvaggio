@@ -71,8 +71,14 @@ export function horariosDelDia(fecha, excepcion = null) {
   return dow === 5 || dow === 6 ? HORARIOS_FINDE : HORARIOS_BASE;
 }
 
-async function contarPorHorario(db, fecha) {
-  const cols = [COL.mesas, ...(isLive() ? [] : [COL.sandboxMesas])];
+// Colecciones que ocupan cupo. El sandbox del bot solo cuenta para el bot:
+// la web nunca ve (ni pierde lugar por) reservas de prueba.
+function colsQueOcupan(incluirSandbox) {
+  return [COL.mesas, ...(incluirSandbox && !isLive() ? [COL.sandboxMesas] : [])];
+}
+
+async function contarPorHorario(db, fecha, incluirSandbox) {
+  const cols = colsQueOcupan(incluirSandbox);
   const snaps = await Promise.all(cols.map(c => db.collection(c).where('fecha', '==', fecha).get()));
   const conteo = {};
   for (const snap of snaps) {
@@ -89,7 +95,7 @@ async function contarPorHorario(db, fecha) {
  * @returns {{ fecha, dia, abierto, motivo?, horarios: {hora, disponible}[] }}
  * No expone datos de otras reservas: solo si cada horario tiene lugar.
  */
-export async function disponibilidadMesas(fecha, { now = new Date() } = {}) {
+export async function disponibilidadMesas(fecha, { now = new Date(), incluirSandbox = false } = {}) {
   if (!FECHA_RE.test(fecha ?? '')) throw Object.assign(new Error('Fecha inválida (formato AAAA-MM-DD)'), { status: 400 });
   const hoy = ahoraAR(now);
   const base = { fecha, dia: NOMBRES_DIA[diaSemana(fecha)] };
@@ -98,7 +104,7 @@ export async function disponibilidadMesas(fecha, { now = new Date() } = {}) {
   const db = getDb();
   const [excSnap, conteo] = await Promise.all([
     db.collection(COL.calendario).doc(fecha).get(),
-    contarPorHorario(db, fecha),
+    contarPorHorario(db, fecha, incluirSandbox),
   ]);
   const excepcion = excSnap.exists ? excSnap.data() : null;
   const horas = horariosDelDia(fecha, excepcion);
@@ -127,7 +133,8 @@ function limpiar(s, max = 300) {
  * personas que piden el último lugar a la vez no pueden pasar las dos).
  * @param {object} datos  nombre, telefono, cantidadPersonas, fecha, horario,
  *                        preferencia, [apellido, email, restricciones, comentarios]
- * @param {object} meta   { origen: 'bot'|'web', contactId? }
+ * @param {object} meta   { origen: 'bot'|'web', contactId? } — lo de la web va
+ *                        siempre a la colección real; lo del bot, solo en modo live.
  */
 export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = {}) {
   const r = {
@@ -141,29 +148,34 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
     preferencia: limpiar(datos.preferencia, 20),
     restricciones: limpiar(datos.restricciones),
     comentarios: limpiar(datos.comentarios),
+    fechaNacimiento: /^d{4}-d{2}-d{2}$/.test(datos.fechaNacimiento ?? '') ? datos.fechaNacimiento : '',
   };
+  const esWeb = meta.origen === 'web';
+  const real = isLive() || esWeb;
 
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
   if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1) errores.push('cantidad de personas inválida');
-  if (r.cantidadPersonas >= MINIMO_CAVA) errores.push(`para ${MINIMO_CAVA} o más personas se reserva La Cava, no una mesa`);
+  // La web no tiene tope (hoy permite cualquier cantidad); el bot deriva los
+  // grupos grandes a La Cava.
+  if (meta.origen === 'bot' && r.cantidadPersonas >= MINIMO_CAVA) errores.push(`para ${MINIMO_CAVA} o más personas se reserva La Cava, no una mesa`);
   if (!PREFERENCIAS.includes(r.preferencia)) errores.push(`la preferencia tiene que ser ${PREFERENCIAS.join(' o ')}`);
   if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
 
-  const disp = await disponibilidadMesas(r.fecha, { now });
+  const disp = await disponibilidadMesas(r.fecha, { now, incluirSandbox: !esWeb });
   if (!disp.abierto) throw Object.assign(new Error(`Ese día no se puede reservar (${disp.motivo})`), { status: 409 });
   const slot = disp.horarios.find(h => h.hora === r.horario);
   if (!slot) throw Object.assign(new Error(`El horario ${r.horario} no existe ese día. Horarios: ${disp.horarios.map(h => h.hora).join(', ')}`), { status: 409 });
 
   const db = getDb();
-  const destino = isLive() ? COL.mesas : COL.sandboxMesas;
+  const destino = real ? COL.mesas : COL.sandboxMesas;
   const ref = db.collection(destino).doc();
 
   await db.runTransaction(async (tx) => {
     // Re-chequeo del cupo adentro de la transacción.
-    const cols = [COL.mesas, ...(isLive() ? [] : [COL.sandboxMesas])];
+    const cols = colsQueOcupan(!esWeb);
     let ocupados = 0;
     for (const c of cols) {
       const snap = await tx.get(db.collection(c).where('fecha', '==', r.fecha).where('horario', '==', r.horario));
@@ -183,9 +195,9 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 
   // El upsert de selvaggio_clientes (por email, como hace la web) solo en
   // modo live: en sandbox no se toca nada que vea la web.
-  if (isLive() && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente:', err.message));
+  if (real && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente:', err.message));
 
-  return { id: ref.id, sandbox: !isLive(), ...r, estado: 'pendiente' };
+  return { id: ref.id, sandbox: !real, ...r, estado: 'pendiente' };
 }
 
 async function upsertCliente(r) {
@@ -199,12 +211,13 @@ async function upsertCliente(r) {
       tx.set(ref, {
         nombre,
         telefono: r.telefono || snap.data().telefono || '',
+        ...(r.fechaNacimiento && { fechaNacimiento: r.fechaNacimiento }),
         totalReservas: (snap.data().totalReservas || 0) + 1,
         ultimaReserva: ahora,
       }, { merge: true });
     } else {
       tx.set(ref, {
-        nombre, email: r.email, telefono: r.telefono || '', fechaNacimiento: '',
+        nombre, email: r.email, telefono: r.telefono || '', fechaNacimiento: r.fechaNacimiento || '',
         totalReservas: 1, totalPedidos: 0, ultimaReserva: ahora, creado: ahora,
       });
     }

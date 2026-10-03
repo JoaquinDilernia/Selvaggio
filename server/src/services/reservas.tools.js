@@ -90,7 +90,7 @@ export async function runReservaTool(name, input, ctx) {
   try {
     switch (name) {
       case 'consultar_disponibilidad_mesas':
-        return await disponibilidadMesas(input.fecha);
+        return await disponibilidadMesas(input.fecha, { incluirSandbox: true });
 
       case 'crear_reserva_mesa': {
         if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden crear reservas; pasale el link https://selvaggio.com.ar/#/reserva-mesas' };

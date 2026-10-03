@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  disponibilidadMesas, cavaOcupada, seguimientoTakeaway, listarReservasBot,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot,
 } from '../services/reservas.service.js';
 
 // ── Público (Etapa B): lo que hoy la landing lee directo de Firestore ────
@@ -22,6 +22,17 @@ function rateLimit(req, res, next) {
 }
 publicReservasRouter.use(rateLimit);
 
+// Altas: 5 cada 10 minutos por IP (una familia reservando dos veces pasa;
+// un script llenando cupos, no).
+const altas = new Map();
+function altaRateLimit(req, res, next) {
+  const now = Date.now();
+  const arr = (altas.get(req.ip) ?? []).filter(t => now - t < 10 * 60_000);
+  if (arr.length >= 5) return res.status(429).json({ error: 'Demasiadas reservas seguidas, probá en unos minutos' });
+  arr.push(now); altas.set(req.ip, arr);
+  next();
+}
+
 function handle(fn) {
   return async (req, res) => {
     try { res.json(await fn(req)); }
@@ -30,6 +41,11 @@ function handle(fn) {
 }
 
 publicReservasRouter.get('/mesas/disponibilidad', handle(req => disponibilidadMesas(req.query.fecha)));
+// Alta de reserva de mesa desde la web (reemplaza el addDoc directo).
+publicReservasRouter.post('/reservas/mesas', altaRateLimit, handle(async req => {
+  const reserva = await crearReservaMesa(req.body ?? {}, { origen: 'web' });
+  return { ok: true, id: reserva.id, fecha: reserva.fecha, horario: reserva.horario };
+}));
 publicReservasRouter.get('/cava/ocupadas', handle(async req => ({ ocupadas: await cavaOcupada(req.query.desde, req.query.hasta) })));
 publicReservasRouter.get('/takeaway/seguimiento', handle(async req => {
   const pedido = await seguimientoTakeaway(req.query.numero, req.query.tel);
