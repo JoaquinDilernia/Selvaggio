@@ -13,6 +13,7 @@ import {
   exportCustomersCsv,
 } from '../services/customer.service.js';
 import { normalizeArgPhone } from './conversation.routes.js';
+import { sincronizarClientesWeb } from '../services/clientesSync.service.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -26,6 +27,15 @@ router.get('/', async (req, res) => {
     const tags = req.query.tags ? String(req.query.tags).split(',').filter(Boolean) : undefined;
     const customers = await listCustomers({ q, channel, tags });
     res.json({ customers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Fuerza la sincronización de clientes de la web → contactos.
+router.post('/sync-web', async (req, res) => {
+  try {
+    res.json(await sincronizarClientesWeb({ forzar: true }));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

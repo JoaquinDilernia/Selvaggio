@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authFetch, BASE_URL } from '../lib/api';
 import styles from './Customers.module.css';
 
@@ -29,6 +30,7 @@ async function downloadCsv(url, filename) {
 }
 
 export default function Customers() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,10 +167,10 @@ export default function Customers() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Contactos</h1>
+          <h1 className={styles.title}>Clientes</h1>
           <p className={styles.subtitle}>
-            Lista de contactos para segmentar y mandar difusiones. Se completa sola con quien
-            escribe al bot, pero también podés cargar o importar contactos a mano.
+            Lista única: clientes de la web (reservas y take away) y quienes escriben por WhatsApp,
+            una ficha por teléfono. Sirve para segmentar difusiones y la promo de cumpleaños.
           </p>
         </div>
         {!form && (
@@ -327,10 +329,12 @@ export default function Customers() {
         ) : (
           <div className={styles.table}>
             <div className={styles.tableHead}>
-              <span>Contacto</span>
-              <span>Canal</span>
+              <span>Cliente</span>
+              <span>Origen</span>
+              <span>Reservas · Pedidos</span>
+              <span>Cumpleaños</span>
               <span>Tags</span>
-              <span>Últ. contacto</span>
+              <span>Últ. actividad</span>
               <span></span>
             </div>
             {shown.map(c => (
@@ -342,14 +346,25 @@ export default function Customers() {
                     <span className={styles.custId}>{c.contactId}</span>
                   </div>
                 </div>
-                <span className={styles.channelBadge}>{CHANNEL_LABEL[c.channel] ?? c.channel}</span>
+                <span className={styles.channelBadge}>
+                  {c.web && c.lastContactAt ? 'Web + WhatsApp' : c.web ? 'Web' : (CHANNEL_LABEL[c.channel] ?? c.channel)}
+                </span>
+                <span className={styles.dateCell}>
+                  {c.web ? `${c.web.totalReservas || 0} · ${c.web.totalPedidos || 0}` : '—'}
+                </span>
+                <span className={styles.dateCell}>
+                  {c.cumpleanos ? c.cumpleanos.split('-').reverse().join('/') : (c.cumpleanosNoQuiere ? 'No quiso' : '—')}
+                </span>
                 <div className={styles.tagsCell}>
                   {(c.tags ?? []).length === 0 ? <span className={styles.noTags}>—</span> : c.tags.map(t => (
                     <span key={t} className={styles.deptTag}>{t}</span>
                   ))}
                 </div>
-                <span className={styles.dateCell}>{formatDate(c.lastContactAt)}</span>
+                <span className={styles.dateCell}>{formatDate(c.ultimaActividad || c.lastContactAt)}</span>
                 <div className={styles.rowActions}>
+                  {c.lastContactAt && (
+                    <button className={styles.actionBtn} onClick={() => navigate(`/conversations?contact=${c.contactId}`)}>Chat</button>
+                  )}
                   <button className={styles.actionBtn} onClick={() => openEdit(c)}>Editar</button>
                   <button className={`${styles.actionBtn} ${styles.actionBtnDanger}`} onClick={() => handleDelete(c)}>Eliminar</button>
                 </div>

@@ -1,5 +1,6 @@
 import { getDb } from './firebase.service.js';
 import { findLandingClient } from './landingClients.service.js';
+import { cumpleDelCliente, formatearCumple } from './cumpleanos.service.js';
 
 const COLLECTION = 'bot-selvaggio_customers';
 
@@ -68,8 +69,13 @@ export function buildCustomerContext(customer) {
     lines.push(`\nYa es cliente de Selvaggio (registrado desde la web):`);
     if (lc.totalReservas) lines.push(`- Reservas hechas: ${lc.totalReservas}${lc.ultimaReserva ? ` (última: ${formatDate(lc.ultimaReserva)})` : ''}`);
     if (lc.totalPedidos) lines.push(`- Pedidos de take away: ${lc.totalPedidos}${lc.ultimoPedido ? ` (último: ${formatDate(lc.ultimoPedido)})` : ''}`);
-    if (lc.fechaNacimiento) lines.push(`- Fecha de nacimiento: ${lc.fechaNacimiento}`);
   }
+
+  // Cumpleaños: el bot lo pide una sola vez si no lo tenemos (ver reservasPrompt).
+  const cumple = cumpleDelCliente(customer);
+  if (cumple.estado === 'conocido') lines.push(`\nCumpleaños: ${formatearCumple(cumple.mmdd)} (ya lo tenemos, NO lo preguntes)`);
+  else if (cumple.estado === 'no_quiere') lines.push('\nCumpleaños: prefirió no darlo (NO lo vuelvas a preguntar)');
+  else lines.push('\nCumpleaños: NO LO TENEMOS (pedilo una vez, según las reglas de CUMPLEAÑOS)');
 
   if (customer.agentNotes) {
     lines.push(`\nNotas del equipo: ${customer.agentNotes}`);
@@ -100,6 +106,16 @@ function norm(s) {
   return (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[^\x20-\x7e]/g, '');
 }
 
+// Lo más reciente entre el último mensaje de WhatsApp y la última reserva o
+// pedido de la web (ISO string, para ordenar la lista única).
+function ultimaActividad(data) {
+  const ms = (ts) => (ts?._seconds ? ts._seconds * 1000 : ts?.toMillis ? ts.toMillis() : ts ? new Date(ts).getTime() : 0) || 0;
+  // createdAt solo como último recurso: en los importados de la web es la
+  // fecha de la sincronización, no de actividad real del cliente.
+  const t = Math.max(ms(data.lastContactAt), ms(data.web?.ultimaReserva), ms(data.web?.ultimoPedido), ms(data.web?.creado)) || ms(data.createdAt);
+  return t ? new Date(t).toISOString() : null;
+}
+
 function mapCustomerDoc(doc) {
   const data = doc.data();
   return {
@@ -110,6 +126,12 @@ function mapCustomerDoc(doc) {
     email: data.email ?? null,
     tags: data.tags ?? [],
     agentNotes: data.agentNotes ?? '',
+    cumpleanos: data.cumpleanos ?? null,
+    fechaNacimiento: data.fechaNacimiento ?? null,
+    cumpleanosNoQuiere: !!data.cumpleanosNoQuiere,
+    // Datos de la web (reservas/take away), sincronizados por clientesSync.service
+    web: data.web ?? null,
+    ultimaActividad: ultimaActividad(data),
     source: data.source ?? 'bot',
     firstContactAt: data.firstContactAt ?? null,
     lastContactAt: data.lastContactAt ?? null,
@@ -158,10 +180,11 @@ export async function listCustomers(filters = {}) {
   }
   const q = norm(filters.q).trim();
   if (q) {
-    docs = docs.filter(c => norm(c.contactName).includes(q) || norm(c.contactId).includes(q) || norm(c.email).includes(q));
+    docs = docs.filter(c => norm(c.contactName).includes(q) || norm(c.contactId).includes(q) || norm(c.email).includes(q)
+      || (c.web?.ids ?? []).some(e => norm(e).includes(q)));
   }
 
-  docs.sort((a, b) => tsToMs(b.lastContactAt ?? b.createdAt) - tsToMs(a.lastContactAt ?? a.createdAt));
+  docs.sort((a, b) => (b.ultimaActividad || '').localeCompare(a.ultimaActividad || ''));
   return docs;
 }
 

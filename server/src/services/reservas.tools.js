@@ -3,12 +3,25 @@ import {
   PREFERENCIAS, MINIMO_CAVA, CAVA, LIMITE_POR_SLOT,
 } from './reservas.service.js';
 import { describirHorario } from './horario.js';
+import { guardarCumple } from './cumpleanos.service.js';
 import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
 
 // Tools que Claude puede llamar durante una conversación. El teléfono de la
 // reserva sale del contacto (no se le pide al cliente ni se acepta del modelo).
 
 export const RESERVAS_TOOLS = [
+  {
+    name: 'guardar_cumpleanos',
+    description: 'Guarda el cumpleaños del cliente en su ficha (para mandarle la promo de cumpleaños), o registra que prefirió no darlo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fecha: { type: 'string', description: 'Lo que dijo el cliente normalizado: DD/MM o DD/MM/AAAA (el año es opcional).' },
+        noQuiere: { type: 'boolean', description: 'true si prefiere no darlo.' },
+      },
+      additionalProperties: false,
+    },
+  },
   {
     name: 'consultar_agenda',
     description:
@@ -172,6 +185,8 @@ Hoy es ${dia} ${hoy.fecha} y son las ${hoy.hora} (hora de Argentina). Convertí 
 
 HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especiales (feriados, cierres) o eventos usá consultar_agenda. Un día especial del calendario manda sobre el horario habitual. No inventes eventos ni horarios.
 
+CUMPLEAÑOS: si en el PERFIL DEL CONTACTO dice "Cumpleaños: NO LO TENEMOS", pedíselo UNA sola vez, en un momento natural: después de resolver lo que vino a buscar (por ejemplo, al confirmar una reserva o pedido), nunca antes ni interrumpiendo. Algo como: "¿Me pasás tu fecha de cumpleaños? Es para mandarte una promo especial cuando se acerque 🎂". Es opcional: si no quiere, respetalo. Cuando lo diga, guardalo con guardar_cumpleanos (día y mes alcanzan; el año solo si lo da). Si no quiere, llamá guardar_cumpleanos con noQuiere=true. Si ya lo tenemos o no quiso darlo, no lo menciones.
+
 MESAS (hasta ${MINIMO_CAVA - 1} personas):
 - Antes de ofrecer horarios usá consultar_disponibilidad_mesas. Ofrecé solo horarios con disponible=true.
 - Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
@@ -200,6 +215,10 @@ TAKE AWAY (picadas para llevar o con envío):
 export async function runReservaTool(name, input, ctx) {
   try {
     switch (name) {
+      case 'guardar_cumpleanos':
+        if (ctx.channel !== 'whatsapp') return { error: 'Solo se guarda desde WhatsApp' };
+        return await guardarCumple(ctx.contactId, { fecha: input.fecha, noQuiere: input.noQuiere === true, landingClient: ctx.customer?.landingClient });
+
       case 'consultar_agenda':
         return await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
 

@@ -315,45 +315,6 @@ export function Comandas() {
   );
 }
 
-// ── Clientes ─────────────────────────────────────────────────────────────
-
-export function Clientes() {
-  const navigate = useNavigate();
-  const [q, setQ] = useState('');
-  const [busqueda, setBusqueda] = useState('');
-  useEffect(() => { const t = setTimeout(() => setBusqueda(q), 300); return () => clearTimeout(t); }, [q]);
-  const { data, error } = useGestion(`/api/gestion/clientes?q=${encodeURIComponent(busqueda)}`);
-  return (
-    <Pagina
-      titulo="Clientes"
-      subtitulo={data ? `${data.total.toLocaleString('es-AR')} clientes registrados desde la web (reservas y take away).` : 'Clientes registrados desde la web.'}
-      acciones={<input className={styles.search} placeholder="Buscar nombre, email o teléfono…" value={q} onChange={e => setQ(e.target.value)} />}
-    >
-      <Estado data={data} error={error}>
-        <Tabla
-          filas={data?.clientes ?? []}
-          vacio="No hay clientes que coincidan."
-          columnas={[
-            { label: 'Nombre', key: 'nombre' },
-            { label: 'Email', key: 'email' },
-            { label: 'Teléfono', key: 'telefono' },
-            { label: 'Reservas', key: 'totalReservas', num: true },
-            { label: 'Pedidos', key: 'totalPedidos', num: true },
-            { label: 'Última actividad', render: c => fechaHora(c.ultimaReserva || c.ultimoPedido || c.creado) },
-            { label: 'Cumpleaños', render: c => (c.fechaNacimiento ? c.fechaNacimiento.slice(5).split('-').reverse().join('/') : '—') },
-            {
-              label: 'WhatsApp', render: c => (c.enBot
-                ? <button className={styles.link} onClick={() => navigate(`/conversations?contact=${c.contactId}`)}>Ver chat</button>
-                : <span className={styles.muted}>—</span>),
-            },
-          ]}
-        />
-        {data && data.clientes.length === 300 && <p className={styles.muted}>Se muestran los 300 más recientes. Usá el buscador para encontrar al resto.</p>}
-      </Estado>
-    </Pagina>
-  );
-}
-
 // ── Mensajes ─────────────────────────────────────────────────────────────
 
 export function Mensajes() {

@@ -1,6 +1,5 @@
 import { getDb } from './firebase.service.js';
 import { ahoraAR } from './reservas.service.js';
-import { toWaContactId } from './phone.js';
 
 // Vistas de SOLO LECTURA sobre los datos que hoy carga la landing (reservas,
 // take away, comandas, clientes, mensajes, eventos, cupones, invitaciones,
@@ -61,27 +60,6 @@ export async function comandas({ limit = 150 } = {}) {
   return { comandas: docs(snap) };
 }
 
-// ── Clientes (web) cruzados con contactos del bot ────────────────────────
-
-export async function clientes({ q = '' } = {}) {
-  const todos = await cacheado('clientes', 60_000, async () => {
-    const db = getDb();
-    const [web, bot] = await Promise.all([
-      db.collection('selvaggio_clientes').get(),
-      db.collection('bot-selvaggio_customers').get(),
-    ]);
-    const conWhatsApp = new Set(bot.docs.map(d => d.id));
-    return docs(web).map(c => {
-      const wa = toWaContactId(c.telefono);
-      return { ...c, contactId: wa, enBot: wa ? conWhatsApp.has(wa) : false };
-    }).sort((a, b) => (b.ultimaReserva || b.ultimoPedido || b.creado || '').localeCompare(a.ultimaReserva || a.ultimoPedido || a.creado || ''));
-  });
-  const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const n = norm(q).trim();
-  const lista = n ? todos.filter(c => norm(`${c.nombre} ${c.email} ${c.telefono}`).includes(n)) : todos;
-  return { total: todos.length, clientes: lista.slice(0, 300) };
-}
-
 // ── Mensajes, eventos, cupones, invitaciones, reseñas ────────────────────
 
 export async function mensajes() {
@@ -117,7 +95,7 @@ export async function resumen() {
       clientes, mesasProx, cavaProx, mesasHoy, takeawayPend, takeawayTotal,
       comandasTotal, contactoNoLeidos, postulaciones, invitaciones, conversaciones, proximas,
     ] = await Promise.all([
-      count(db.collection('selvaggio_clientes')),
+      count(db.collection('bot-selvaggio_customers')), // lista única (web + WhatsApp)
       count(db.collection('selvaggio_reservas_mesas').where('fecha', '>=', hoy).where('fecha', '<=', en7)),
       count(db.collection('selvaggio_reservas_cava').where('fecha', '>=', hoy)),
       count(db.collection('selvaggio_reservas_mesas').where('fecha', '==', hoy)),

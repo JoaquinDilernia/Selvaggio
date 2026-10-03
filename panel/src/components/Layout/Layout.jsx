@@ -25,7 +25,7 @@ function PageLoader() {
 const NAV_ITEMS = [
   { to: '/conversations', label: 'Conversaciones',  icon: IconChat },
   { to: '/reservas',      label: 'Reservas y pedidos', icon: IconCalendar, minRole: 'atencion_cliente' },
-  { to: '/customers',     label: 'Contactos',       icon: IconContacts,   minRole: 'atencion_cliente' },
+  { to: '/customers',     label: 'Clientes',       icon: IconContacts,   minRole: 'atencion_cliente' },
   { to: '/campaigns',     label: 'Difusiones',      icon: IconMegaphone,  minRole: 'atencion_cliente' },
   { to: '/dashboard',     label: 'Dashboard',       icon: IconDashboard,  minRole: 'atencion_cliente' },
   { to: '/stats',         label: 'Estadísticas',    icon: IconChart,      minRole: 'atencion_cliente' },

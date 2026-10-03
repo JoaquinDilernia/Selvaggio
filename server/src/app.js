@@ -21,6 +21,7 @@ import campaignRoutes from './routes/campaign.routes.js';
 import redirectRoutes from './routes/redirect.routes.js';
 import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
 import gestionRoutes from './routes/gestion.routes.js';
+import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
 import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
@@ -36,6 +37,8 @@ app.set('trust proxy', 1);
 initFirebase();
 seedAgentsIfNeeded().catch(err => console.error('[seed] Error seeding agents:', err));
 seedAreasIfNeeded().catch(err => console.error('[seed] Error seeding areas:', err));
+// Lista única de clientes: copia los clientes de la web a los contactos (cada 15 min).
+iniciarSyncClientes();
 
 // Middleware
 const allowedOrigins = [

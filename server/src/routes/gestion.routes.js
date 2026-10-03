@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  resumen, reservas, pedidosTakeaway, comandas, clientes, mensajes, coleccion,
+  resumen, reservas, pedidosTakeaway, comandas, mensajes, coleccion,
 } from '../services/gestion.service.js';
 
 // Gestión (solo lectura) de los datos de la landing dentro del panel.
@@ -20,7 +20,6 @@ router.get('/resumen', handle(() => resumen()));
 router.get('/reservas', handle(req => reservas({ desde: req.query.desde, hasta: req.query.hasta })));
 router.get('/takeaway', handle(() => pedidosTakeaway()));
 router.get('/comandas', handle(() => comandas()));
-router.get('/clientes', handle(req => clientes({ q: req.query.q })));
 router.get('/mensajes', handle(() => mensajes()));
 router.get('/coleccion/:nombre', handle(req => coleccion(req.params.nombre)));
 

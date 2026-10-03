@@ -2,7 +2,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { setLogoutHandler } from './lib/api';
 import Layout, { GestionLayout } from './components/Layout/Layout.jsx';
-import { Resumen, Reservas as GReservas, TakeAway as GTakeAway, Comandas, Clientes, Mensajes, Coleccion } from './pages/gestion/Gestion.jsx';
+import { Resumen, Reservas as GReservas, TakeAway as GTakeAway, Comandas, Mensajes, Coleccion } from './pages/gestion/Gestion.jsx';
 import Dashboard     from './pages/Dashboard.jsx';
 import Conversations from './pages/Conversations.jsx';
 import Simulator     from './pages/Simulator.jsx';
@@ -54,7 +54,7 @@ function AppRoutes() {
           <Route path="reservas"     element={<GReservas />} />
           <Route path="takeaway"     element={<GTakeAway />} />
           <Route path="comandas"     element={<Comandas />} />
-          <Route path="clientes"     element={<Clientes />} />
+          <Route path="clientes"     element={<Customers />} />{/* misma lista única que Bot → Clientes */}
           <Route path="mensajes"     element={<Mensajes />} />
           <Route path="eventos"      element={<Coleccion nombre="eventos" />} />
           <Route path="invitaciones" element={<Coleccion nombre="invitaciones" />} />

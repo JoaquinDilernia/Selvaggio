@@ -2165,6 +2165,14 @@ export default function Conversations() {
                     <span className={styles.profileVal}>{formatDate(customer.firstContactAt)}</span>
                   </div>
                 )}
+                {(customer.cumpleanos || customer.cumpleanosNoQuiere) && (
+                  <div className={styles.profileRow}>
+                    <span className={styles.profileKey}>Cumpleaños</span>
+                    <span className={styles.profileVal}>
+                      {customer.cumpleanos ? customer.cumpleanos.split('-').reverse().join('/') + (customer.fechaNacimiento ? ` (${customer.fechaNacimiento.slice(0, 4)})` : '') : 'Prefirió no darlo'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Cruce por teléfono con selvaggio_clientes (reservas / take away de la landing) */}

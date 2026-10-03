@@ -75,3 +75,9 @@ export async function findLandingClient(contactId) {
 }
 
 export { mergeClients as _mergeClientsForTest };
+
+/** Todos los clientes web indexados por teléfono canónico (refresca el índice). */
+export async function clientesWebPorTelefono() {
+  _index = { at: 0, byPhone: null };
+  return getIndex();
+}
