@@ -333,3 +333,48 @@ export async function seguimientoTakeaway(numeroPedido, ultimos4) {
     fechaRetiro: p.fechaRetiro ?? null,
   };
 }
+
+// ── Agenda (para el bot): horario, días especiales y eventos ─────────────
+
+/**
+ * Lo que necesita el bot para contestar "¿a qué hora abren?", "¿abren el
+ * feriado?" o "¿qué eventos hay?": horario habitual (Configuración del
+ * panel), excepciones de selvaggio_calendario y eventos visibles de
+ * selvaggio_eventos — los mismos que maneja el admin de la web.
+ */
+export async function agenda({ desde, hasta, horarioHabitual = null } = {}, { now = new Date() } = {}) {
+  const hoy = ahoraAR(now).fecha;
+  desde = FECHA_RE.test(desde || '') && desde >= hoy ? desde : hoy;
+  const tope = new Date(`${desde}T12:00:00Z`); tope.setUTCDate(tope.getUTCDate() + 90);
+  const maximo = tope.toISOString().slice(0, 10);
+  hasta = FECHA_RE.test(hasta || '') && hasta >= desde && hasta <= maximo ? hasta : (() => {
+    const d = new Date(`${desde}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 45); return d.toISOString().slice(0, 10);
+  })();
+
+  const db = getDb();
+  const [cal, ev] = await Promise.all([
+    db.collection(COL.calendario).where('fecha', '>=', desde).where('fecha', '<=', hasta).get(),
+    db.collection('selvaggio_eventos').where('fecha', '>=', desde).where('fecha', '<=', hasta).get(),
+  ]);
+  return {
+    desde, hasta,
+    horarioHabitual,
+    diasEspeciales: cal.docs.map(d => d.data()).sort((a, b) => a.fecha.localeCompare(b.fecha)).map(e => ({
+      fecha: e.fecha,
+      dia: NOMBRES_DIA[diaSemana(e.fecha)],
+      tipo: e.tipo === 'cerrar' ? 'cerrado todo el día' : 'abierto con horario especial',
+      ...(e.tipo === 'abrir' && Array.isArray(e.horarios) && { horariosDeReserva: ordenarHorarios(e.horarios) }),
+      ...(e.motivo && { motivo: e.motivo }),
+    })),
+    eventos: ev.docs.map(d => d.data()).filter(e => e.visible !== false)
+      .sort((a, b) => `${a.fecha} ${a.horaInicio || ''}`.localeCompare(`${b.fecha} ${b.horaInicio || ''}`))
+      .map(e => ({
+        titulo: e.titulo,
+        fecha: e.fecha,
+        dia: NOMBRES_DIA[diaSemana(e.fecha)],
+        horario: [e.horaInicio, e.horaFin].filter(Boolean).join(' a ') || null,
+        descripcion: e.descripcion || null,
+        ...(e.ctaLink && { link: e.ctaLink }),
+      })),
+  };
+}

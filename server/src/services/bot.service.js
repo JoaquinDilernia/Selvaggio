@@ -17,6 +17,10 @@ import { getAllLabels, createLabel } from './label.service.js';
 import { getActiveAreas } from './area.service.js';
 import { getDb } from './firebase.service.js';
 import { toWaContactId } from './phone.js';
+import { getDefaultConfig } from '../routes/config.routes.js';
+import { isWithinBusinessHours, describirHorario } from './horario.js';
+
+export { isWithinBusinessHours };
 import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
 
 const URGENCY_KEYWORDS = [
@@ -24,34 +28,16 @@ const URGENCY_KEYWORDS = [
   /muy enojad/i, /indignado/i, /hablar con una persona/i, /quiero hablar/i,
 ];
 
-// Returns true if current Argentina time is within business hours
-export function isWithinBusinessHours(botConfig = {}) {
-  const tz = 'America/Argentina/Buenos_Aires';
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
-  const day = now.getDay(); // 0=Sun, 1=Mon ... 6=Sat
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const timeMin = hour * 60 + minute;
-
-  const startH = botConfig.businessHoursStart ?? 9;
-  const endH   = botConfig.businessHoursEnd   ?? 18;
-  const days   = botConfig.businessDays        ?? [1, 2, 3, 4, 5]; // lun-vie
-
-  return days.includes(day) && timeMin >= startH * 60 && timeMin < endH * 60;
-}
-
 function buildEscalationMessage(areaName, botConfig = {}) {
   const within = isWithinBusinessHours(botConfig);
-  const startH = botConfig.businessHoursStart ?? 9;
-  const endH   = botConfig.businessHoursEnd   ?? 18;
-  const hoursStr = `${startH}:00 a ${endH}:00hs, lunes a viernes`;
+  const hoursStr = describirHorario(botConfig);
   const label = areaName ? `*${areaName}*` : 'nuestro equipo';
 
   if (within) {
-    return `Tu consulta fue derivada a ${label} 👋\n\nUn agente va a atenderte en breve. Por favor aguardá unos minutos.\n\n🕐 Horario de atención: ${hoursStr}.`;
-  } else {
-    return `Tu consulta fue derivada a ${label} 👋\n\nEn este momento estamos fuera del horario de atención (${hoursStr}). Tu mensaje fue registrado y un agente te va a responder cuando retomemos.\n\n¡Gracias por tu paciencia!`;
+    return `Tu consulta fue derivada a ${label} 👋\n\nUna persona del equipo te va a responder en breve. Por favor aguardá unos minutos.`
+      + (hoursStr ? `\n\n🕐 Horario de atención: ${hoursStr}.` : '');
   }
+  return `Tu consulta fue derivada a ${label} 👋\n\nEn este momento estamos fuera del horario de atención${hoursStr ? ` (${hoursStr})` : ''}. Tu mensaje quedó registrado y te respondemos apenas retomemos.\n\n¡Gracias por tu paciencia!`;
 }
 
 function parseEscalationMarker(text, areas = []) {
@@ -162,7 +148,8 @@ async function processIncomingMessageInternal(msg) {
     console.error('[bot] Error cargando contexto para', from, err.message);
     return;
   }
-  const botConfig = configDoc.exists ? configDoc.data() : {};
+  // Sin config guardada (o con campos faltantes) se usan los defaults de Selvaggio.
+  const botConfig = { ...getDefaultConfig(), ...(configDoc.exists ? configDoc.data() : {}) };
   console.log(`[bot] Contexto cargado para ${from} — humanMode: ${conversation.humanMode}, status: ${conversation.status}`);
   const replyTo = resolveReplyTo(history, replyToWaMsgId);
 
@@ -293,7 +280,7 @@ async function processIncomingMessageInternal(msg) {
       // Crear reservas solo por WhatsApp: el contacto ES el teléfono de la
       // reserva. En otros canales el bot solo puede consultar disponibilidad.
       tools: channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'crear_pedido_takeaway', 'mis_pedidos_takeaway'].includes(t.name)),
-      runTool: (name, input) => runReservaTool(name, input, { contactId: from, contactName, channel }),
+      runTool: (name, input) => runReservaTool(name, input, { contactId: from, contactName, channel, botConfig }),
       extraSystem: reservasPrompt(),
     });
   } catch (err) {

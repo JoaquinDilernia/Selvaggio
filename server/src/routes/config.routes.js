@@ -29,7 +29,9 @@ router.put('/', requireAtLeastAtencionCliente, async (req, res) => {
   }
 });
 
-function getDefaultConfig() {
+// Horario por defecto = el del local según la web (src/Reservas/ReservaMesas.jsx):
+// lunes cerrado, vie/sáb hasta las 02. Se edita en Configuración del panel.
+export function getDefaultConfig() {
   return {
     businessName: 'Selvaggio Wine Bar & Delicatessen',
     botName: 'Asistente',
@@ -37,16 +39,16 @@ function getDefaultConfig() {
     welcomeMessage: '¡Hola! Soy el asistente virtual de Selvaggio 🍷 ¿En qué te puedo ayudar? Reservas, La Cava, take away o eventos.',
     offHoursMessage: 'Hola! En este momento estamos fuera de horario, pero te respondemos a la brevedad.',
     businessHours: {
-      enabled: false,
+      enabled: true,
       timezone: 'America/Argentina/Buenos_Aires',
       schedule: {
-        monday: { open: '09:00', close: '18:00', active: true },
-        tuesday: { open: '09:00', close: '18:00', active: true },
-        wednesday: { open: '09:00', close: '18:00', active: true },
-        thursday: { open: '09:00', close: '18:00', active: true },
-        friday: { open: '09:00', close: '18:00', active: true },
-        saturday: { open: '10:00', close: '14:00', active: true },
-        sunday: { open: null, close: null, active: false },
+        monday: { open: null, close: null, active: false },
+        tuesday: { open: '18:00', close: '00:00', active: true },
+        wednesday: { open: '18:00', close: '00:00', active: true },
+        thursday: { open: '18:00', close: '00:00', active: true },
+        friday: { open: '18:00', close: '02:00', active: true },
+        saturday: { open: '18:00', close: '02:00', active: true },
+        sunday: { open: '18:00', close: '00:00', active: true },
       },
     },
     channels: { whatsapp: true, instagram: false },

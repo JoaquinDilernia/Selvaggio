@@ -7,15 +7,15 @@ const AGENTS_COLLECTION = 'bot-selvaggio_agents';
 const SEED_AREAS = [
   {
     id: 'ventas',
-    name: 'Ventas / Leads',
-    description: 'Gente interesada en comprar o contratar que todavía no es cliente: pide información de productos, servicios, precios, o quiere coordinar algo antes de decidir.',
+    name: 'Reservas y eventos',
+    description: 'Eventos privados y corporativos, La Cava, grupos grandes, cumpleaños, propuestas especiales o cualquier reserva que el bot no pueda resolver solo.',
     active: true,
     order: 1,
   },
   {
     id: 'soporte',
-    name: 'Soporte',
-    description: 'Clientes existentes con dudas de uso, problemas o consultas sobre algo ya contratado.',
+    name: 'Atención al cliente',
+    description: 'Pedidos de take away ya hechos, cambios o cancelaciones de reservas, reclamos, objetos olvidados y consultas que necesitan a una persona del equipo.',
     active: true,
     order: 2,
   },

@@ -1,13 +1,28 @@
 import {
-  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda,
   PREFERENCIAS, MINIMO_CAVA, CAVA, LIMITE_POR_SLOT,
 } from './reservas.service.js';
+import { describirHorario } from './horario.js';
 import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
 
 // Tools que Claude puede llamar durante una conversación. El teléfono de la
 // reserva sale del contacto (no se le pide al cliente ni se acepta del modelo).
 
 export const RESERVAS_TOOLS = [
+  {
+    name: 'consultar_agenda',
+    description:
+      'Horario habitual de apertura, días especiales del calendario (cerrado o con horario especial, feriados, etc.) y eventos publicados. ' +
+      'Usala SIEMPRE que pregunten a qué hora abren, si abren tal día, por feriados o por eventos/actividades. No supongas horarios.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        desde: { type: 'string', description: 'AAAA-MM-DD (por defecto hoy)' },
+        hasta: { type: 'string', description: 'AAAA-MM-DD (por defecto 45 días después; máximo 90)' },
+      },
+      additionalProperties: false,
+    },
+  },
   {
     name: 'consultar_disponibilidad_mesas',
     description:
@@ -155,6 +170,8 @@ export function reservasPrompt(now = new Date()) {
   return `--- RESERVAS ---
 Hoy es ${dia} ${hoy.fecha} y son las ${hoy.hora} (hora de Argentina). Convertí "el sábado", "mañana", etc. a AAAA-MM-DD a partir de esta fecha.
 
+HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especiales (feriados, cierres) o eventos usá consultar_agenda. Un día especial del calendario manda sobre el horario habitual. No inventes eventos ni horarios.
+
 MESAS (hasta ${MINIMO_CAVA - 1} personas):
 - Antes de ofrecer horarios usá consultar_disponibilidad_mesas. Ofrecé solo horarios con disponible=true.
 - Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
@@ -183,6 +200,9 @@ TAKE AWAY (picadas para llevar o con envío):
 export async function runReservaTool(name, input, ctx) {
   try {
     switch (name) {
+      case 'consultar_agenda':
+        return await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
+
       case 'consultar_disponibilidad_mesas':
         return await disponibilidadMesas(input.fecha, { incluirSandbox: true });
 
