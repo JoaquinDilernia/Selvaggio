@@ -190,6 +190,11 @@ El repo ahora tiene tres partes:
   propias llevan prefijo `bot-selvaggio_*` para no mezclarse con las de la landing.
 - Los contactos del bot se cruzan por teléfono con `selvaggio_clientes` (solo
   lectura): en Conversaciones se ve "Cliente de la web" y el bot recibe ese historial.
+- Usuarios y roles (admin, atencion_cliente, operador, caja, cocina) se manejan
+  desde el panel. Las pantallas internas de la landing (`/admin`, `/caja`,
+  `/cocina`...) piden ese mismo usuario: el backend da un custom token de
+  Firebase con el claim `selvaggioRole` (ya no hay `VITE_ADMIN_PASSWORD`).
+  La landing necesita `VITE_API_URL` en su `.env`.
 - Gestión/Contenido/Caja/Cocina del Hub por ahora abren las pantallas actuales
   de la landing (`VITE_LANDING_URL`); se van a ir migrando al panel de a una.
 

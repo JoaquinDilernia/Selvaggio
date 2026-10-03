@@ -262,6 +262,7 @@
 .roleAdmin     { background: var(--color-primary-subtle); color: var(--color-primary); }
 .roleAtencion  { background: var(--color-status-escalated-bg); color: var(--color-status-escalated); }
 .roleOperador  { background: var(--color-status-bot-bg); color: var(--color-status-bot); }
+.roleLocal     { background: var(--color-status-waiting-bg); color: var(--color-status-waiting); }
 
 /* ---- Row actions ---- */
 .rowActions {

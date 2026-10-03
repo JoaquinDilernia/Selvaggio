@@ -1,13 +1,39 @@
 import { Router } from 'express';
+import admin from 'firebase-admin';
 import {
   validateCredentials, generateToken, updateProfile,
-  createUser, listUsers, deleteUser, updateUser,
+  createUser, listUsers, deleteUser, updateUser, VALID_ROLES, getAgentById,
 } from '../services/auth.service.js';
 import { requireAuth, requireAdmin, requireAtLeastAtencionCliente } from '../middleware/requireAuth.js';
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
+// Corta la sesión de Firebase (landing: admin/caja/cocina) de un usuario al
+// borrarlo o cambiarle el rol — si no, seguiría entrando con el claim viejo.
+async function revokeFirebaseSession(agentId) {
+  const uid = `selvaggio:${agentId}`;
+  try {
+    await admin.auth().revokeRefreshTokens(uid);
+  } catch (err) {
+    // auth/user-not-found: nunca entró a la landing, no hay sesión que cortar
+    if (err.code !== 'auth/user-not-found') console.error('[auth] Error revocando sesión:', err.message);
+  }
+}
+
+// 8 intentos cada 15 min por IP+email (mismo criterio que BOT-PMCSALUD).
+const loginHits = new Map();
+function loginRateLimit(req, res, next) {
+  const email = (req.body?.email ?? '').toLowerCase().trim();
+  const key = `${req.ip}:${email}`;
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const arr = (loginHits.get(key) ?? []).filter(t => now - t < windowMs);
+  if (arr.length >= 8) return res.status(429).json({ error: 'Demasiados intentos. Probá de nuevo en unos minutos.' });
+  arr.push(now); loginHits.set(key, arr);
+  next();
+}
+
+router.post('/login', loginRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
     const agent = await validateCredentials(email, password);
@@ -21,6 +47,22 @@ router.post('/login', async (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ agent: req.agent });
+});
+
+// Token de Firebase Auth para las pantallas que todavía viven en la landing
+// (admin, contenidos, caja, cocina) y hablan directo con Firestore: la landing
+// se loguea contra este backend y con este token hace signInWithCustomToken.
+// El claim `selvaggioRole` es lo que miran ProtectedRoute y las reglas.
+router.post('/firebase-token', requireAuth, async (req, res) => {
+  try {
+    const firebaseToken = await admin.auth().createCustomToken(`selvaggio:${req.agent.id}`, {
+      selvaggioRole: req.agent.role,
+    });
+    res.json({ firebaseToken, agent: req.agent });
+  } catch (err) {
+    console.error('[auth] Error creando custom token:', err.message);
+    res.status(500).json({ error: 'No se pudo iniciar sesión en Firebase' });
+  }
 });
 
 router.put('/profile', requireAuth, async (req, res) => {
@@ -65,14 +107,15 @@ router.post('/users', requireAuth, requireAdmin, async (req, res) => {
 router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { name, role, areaIds } = req.body;
-    const VALID_ROLES = ['admin', 'atencion_cliente', 'operador'];
     if (role && !VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Rol inválido. Válidos: ${VALID_ROLES.join(', ')}` });
     }
     if (req.params.id === req.agent.id && role && role !== req.agent.role) {
       return res.status(400).json({ error: 'No podés cambiar tu propio rol' });
     }
+    const before = role ? await getAgentById(req.params.id) : null;
     const updated = await updateUser(req.params.id, { name, role, areaIds });
+    if (before && before.role !== updated.role) await revokeFirebaseSession(req.params.id);
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -83,6 +126,7 @@ router.delete('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     if (req.params.id === req.agent.id) return res.status(400).json({ error: 'No podés eliminarte a vos mismo' });
     await deleteUser(req.params.id);
+    await revokeFirebaseSession(req.params.id);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

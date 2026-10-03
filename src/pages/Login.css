@@ -99,3 +99,36 @@
     padding: 36px 24px;
   }
 }
+
+.login__btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.login__hint {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(236, 231, 224, 0.45);
+  font-family: var(--font-body, system-ui);
+}
+
+/* Botón de salida en las pantallas internas (admin, caja, cocina) */
+.staff-logout {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(67, 10, 51, 0.25);
+  background: rgba(255, 255, 255, 0.92);
+  color: #430a33;
+  font-size: 12px;
+  font-family: var(--font-body, system-ui);
+  cursor: pointer;
+}
+
+.staff-logout:hover {
+  background: #fff;
+}

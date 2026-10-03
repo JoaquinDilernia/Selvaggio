@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './Hub.module.css';
 
 // URL pública de la landing (sin barra final). Gestión, Contenido, Caja y
-// Cocina todavía viven ahí (Firestore directo + contraseña propia); se van a
+// Cocina todavía viven ahí (Firestore directo; login con el mismo usuario del
+// panel vía /api/auth/firebase-token); se van a
 // ir migrando a este panel de a una, y cuando eso pase la tarjeta pasa de
 // `href` a `to`.
 const LANDING_URL = (import.meta.env.VITE_LANDING_URL ?? '').replace(/\/$/, '');
@@ -11,7 +12,7 @@ const LANDING_URL = (import.meta.env.VITE_LANDING_URL ?? '').replace(/\/$/, '');
 export default function Hub() {
   const { agent, logout } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = agent?.role === 'admin';
+  const role = agent?.role;
 
   const areas = [
     {
@@ -19,36 +20,37 @@ export default function Hub() {
       title: 'Bot de WhatsApp',
       desc: 'Conversaciones, contactos, difusiones, base de conocimiento y estadísticas.',
       to: '/conversations',
+      roles: ['admin', 'atencion_cliente', 'operador'],
     },
     {
       key: 'gestion',
       title: 'Gestión',
       desc: 'Reservas de mesa y cava, take away, clientes, calendario, eventos y cupones.',
       href: `${LANDING_URL}/#/admin`,
-      adminOnly: true,
+      roles: ['admin'],
     },
     {
       key: 'contenido',
       title: 'Contenido web',
       desc: 'Galería, reseñas, prensa y carta de la landing.',
       href: `${LANDING_URL}/#/admin-contenidos`,
-      adminOnly: true,
+      roles: ['admin'],
     },
     {
       key: 'caja',
       title: 'Caja',
       desc: 'Carga de pedidos del salón.',
       href: `${LANDING_URL}/#/caja`,
-      adminOnly: true,
+      roles: ['admin', 'caja'],
     },
     {
       key: 'cocina',
       title: 'Cocina',
       desc: 'Comandas en tiempo real.',
       href: `${LANDING_URL}/#/cocina`,
-      adminOnly: true,
+      roles: ['admin', 'cocina'],
     },
-  ].filter(a => !a.adminOnly || isAdmin);
+  ].filter(a => a.roles.includes(role));
 
   function open(a) {
     if (a.to) navigate(a.to);

@@ -1,4 +1,4 @@
-import { verifyToken, getAgentById } from '../services/auth.service.js';
+import { verifyToken, getAgentById, BOT_ROLES } from '../services/auth.service.js';
 
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -25,6 +25,15 @@ export function requireAtLeastAtencionCliente(req, res, next) {
   const role = req.agent?.role;
   if (role !== 'admin' && role !== 'atencion_cliente') {
     return res.status(403).json({ error: 'Acceso no disponible para operadores' });
+  }
+  next();
+}
+
+// Roles del local (caja, cocina) no ven nada del bot: ni conversaciones ni
+// contactos (datos personales de clientes). Va después de requireAuth.
+export function requireBotAccess(req, res, next) {
+  if (!BOT_ROLES.includes(req.agent?.role)) {
+    return res.status(403).json({ error: 'Tu usuario no tiene acceso al bot' });
   }
   next();
 }

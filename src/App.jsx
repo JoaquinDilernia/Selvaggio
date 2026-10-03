@@ -76,11 +76,11 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute><AdminNew /></ProtectedRoute>} />
           <Route path="/admin-contenidos" element={<ProtectedRoute><AdminContenidos /></ProtectedRoute>} />
           <Route path="/importar-productos" element={<ProtectedRoute><ImportarProductosExcel /></ProtectedRoute>} />
-          <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
-          <Route path="/cocina" element={<ProtectedRoute><Cocina /></ProtectedRoute>} />
-          <Route path="/cargar-datos" element={<CargarDatosPrueba />} />
-          <Route path="/limpiar-duplicados" element={<LimpiarDuplicados />} />
-          <Route path="/organizar-fotos" element={<OrganizadorFotos />} />
+          <Route path="/caja" element={<ProtectedRoute roles={['caja']}><Caja /></ProtectedRoute>} />
+          <Route path="/cocina" element={<ProtectedRoute roles={['cocina']}><Cocina /></ProtectedRoute>} />
+          <Route path="/cargar-datos" element={<ProtectedRoute><CargarDatosPrueba /></ProtectedRoute>} />
+          <Route path="/limpiar-duplicados" element={<ProtectedRoute><LimpiarDuplicados /></ProtectedRoute>} />
+          <Route path="/organizar-fotos" element={<ProtectedRoute><OrganizadorFotos /></ProtectedRoute>} />
           <Route path="/take-away" element={<TakeAway />} />
           <Route path="/take-away/seguimiento" element={<SeguimientoPedido />} />
           <Route path="/reserva-cava" element={<ReservaCava />} />

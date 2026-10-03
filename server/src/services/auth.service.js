@@ -1,11 +1,34 @@
 import jwt from 'jsonwebtoken';
 import { createHash } from 'crypto';
+import bcrypt from 'bcryptjs';
 import { getDb } from './firebase.service.js';
 
 const COLLECTION = 'bot-selvaggio_agents';
+const BCRYPT_ROUNDS = 12;
+
+// Roles: los tres del bot (BOT-BASE) + los del local. caja/cocina NO entran
+// al bot; solo a sus pantallas (ver requireBotAccess y el token de Firebase).
+export const BOT_ROLES = ['admin', 'atencion_cliente', 'operador'];
+export const VALID_ROLES = [...BOT_ROLES, 'caja', 'cocina'];
+
+// Hashes nuevos: bcrypt (con salt). Los que ya existan en SHA-256 sin salt
+// (esquema de BOT-BASE) se migran solos al bcrypt en el próximo login
+// exitoso — mismo esquema que BOT-PMCSALUD.
+function legacySha256(password) {
+  return createHash('sha256').update(password).digest('hex');
+}
+
+function isBcryptHash(hash) {
+  return typeof hash === 'string' && /^\$2[aby]\$/.test(hash);
+}
 
 function hashPassword(password) {
-  return createHash('sha256').update(password).digest('hex');
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+async function verifyPassword(password, storedHash) {
+  if (isBcryptHash(storedHash)) return bcrypt.compare(password, storedHash);
+  return storedHash === legacySha256(password);
 }
 
 function docId(email) {
@@ -37,7 +60,7 @@ export async function seedAgentsIfNeeded() {
         email: admin.email,
         name: admin.name,
         role: 'admin',
-        passwordHash: hashPassword(admin.password),
+        passwordHash: await hashPassword(admin.password),
         createdAt: new Date(),
       });
       console.log('[auth] Admin seedeado:', admin.email);
@@ -61,7 +84,11 @@ export async function validateCredentials(email, password) {
   const doc = await db.collection(COLLECTION).doc(id).get();
   if (!doc.exists) return null;
   const data = doc.data();
-  if (data.passwordHash !== hashPassword(password)) return null;
+  if (!(await verifyPassword(password ?? '', data.passwordHash))) return null;
+  if (!isBcryptHash(data.passwordHash)) {
+    data.passwordHash = await hashPassword(password);
+    await db.collection(COLLECTION).doc(id).update({ passwordHash: data.passwordHash });
+  }
   // guarantee admin role for seeded admins regardless of Firestore state
   if (ADMIN_EMAILS.has(id) && data.role !== 'admin') {
     await db.collection(COLLECTION).doc(id).update({ role: 'admin' });
@@ -75,7 +102,8 @@ export async function createUser({ email, name, password, role = 'operador', are
   const id = docId(email);
   const existing = await db.collection(COLLECTION).doc(id).get();
   if (existing.exists) throw new Error('El email ya está registrado');
-  const user = { id, email: email.toLowerCase().trim(), name, role, areaIds, passwordHash: hashPassword(password), createdAt: new Date() };
+  if (!VALID_ROLES.includes(role)) throw new Error(`Rol inválido. Válidos: ${VALID_ROLES.join(', ')}`);
+  const user = { id, email: email.toLowerCase().trim(), name, role, areaIds, passwordHash: await hashPassword(password), createdAt: new Date() };
   await db.collection(COLLECTION).doc(id).set(user);
   return toPublic(user);
 }
@@ -113,7 +141,7 @@ export async function updateProfile(agentId, { name, password } = {}) {
   const db = getDb();
   const update = { updatedAt: new Date() };
   if (name) update.name = name;
-  if (password) update.passwordHash = hashPassword(password);
+  if (password) update.passwordHash = await hashPassword(password);
   await db.collection(COLLECTION).doc(agentId).update(update);
   const doc = await db.collection(COLLECTION).doc(agentId).get();
   return toPublic(doc.data());

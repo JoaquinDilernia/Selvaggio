@@ -20,6 +20,8 @@ import Customers     from './pages/Customers.jsx';
 import Campaigns     from './pages/Campaigns.jsx';
 import Hub           from './pages/Hub.jsx';
 
+const BOT_ROLES = ['admin', 'atencion_cliente', 'operador'];
+
 export default function App() {
   return (
     <AuthProvider>
@@ -43,7 +45,8 @@ function AppRoutes() {
         {/* Hub: pantalla de entrada para elegir área (bot, gestión, contenido, caja, cocina) */}
         <Route path="/hub" element={agent ? <Hub /> : <Navigate to="/login" replace />} />
 
-        <Route path="/" element={agent ? <Layout /> : <Navigate to="/login" replace />}>
+        {/* Caja y cocina no tienen nada del bot: cualquier ruta del Layout los manda al Hub */}
+        <Route path="/" element={!agent ? <Navigate to="/login" replace /> : BOT_ROLES.includes(agent.role) ? <Layout /> : <Navigate to="/hub" replace />}>
           <Route index element={<Navigate to="/hub" replace />} />
           <Route path="dashboard"     element={<Dashboard />} />
           <Route path="conversations" element={<Conversations />} />

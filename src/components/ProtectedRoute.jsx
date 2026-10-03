@@ -1,21 +1,46 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Login from '../pages/Login'
 
-const SESSION_KEY = 'selvaggio_admin'
+// Carga perezosa: firebase/auth solo se baja al entrar a una ruta interna.
+const loadStaffAuth = () => import('../firebase/staffAuth')
 
-export default function ProtectedRoute({ children }) {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === 'ok')
+/**
+ * @param {string[]} roles roles que pueden ver esta pantalla (admin siempre puede)
+ */
+export default function ProtectedRoute({ children, roles = [] }) {
+  const [api, setApi] = useState(null)
+  const [staff, setStaff] = useState(undefined) // undefined = cargando, null = sin sesión
 
-  const handleLogin = (password) => {
-    if (password === import.meta.env.VITE_ADMIN_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, 'ok')
-      setAuthed(true)
-      return true
-    }
-    return false
+  useEffect(() => {
+    let unsub = () => {}
+    loadStaffAuth().then((mod) => {
+      setApi(mod)
+      unsub = mod.onStaffChange(setStaff)
+    })
+    return () => unsub()
+  }, [])
+
+  if (staff === undefined || !api) return null
+
+  if (!staff) return <Login onLogin={api.loginStaff} />
+
+  const allowed = staff.role === 'admin' || roles.includes(staff.role)
+  if (!allowed) {
+    return (
+      <Login
+        onLogin={api.loginStaff}
+        notice={`${staff.email} no tiene acceso a esta pantalla. Ingresá con otro usuario.`}
+        onLogout={api.logoutStaff}
+      />
+    )
   }
 
-  if (!authed) return <Login onLogin={handleLogin} />
-
-  return children
+  return (
+    <>
+      {children}
+      <button className="staff-logout" onClick={api.logoutStaff} title={staff.email}>
+        Cerrar sesión
+      </button>
+    </>
+  )
 }

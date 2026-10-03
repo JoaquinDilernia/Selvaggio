@@ -7,10 +7,15 @@ const ROLES = [
   { value: 'operador', label: 'Operador', desc: 'Ve las conversaciones de su área asignada' },
   { value: 'atencion_cliente', label: 'Atención al cliente', desc: 'Acceso completo excepto gestión de usuarios' },
   { value: 'admin', label: 'Administrador', desc: 'Acceso total incluida gestión de usuarios' },
+  { value: 'caja', label: 'Caja', desc: 'Solo la pantalla de Caja (sin acceso al bot)' },
+  { value: 'cocina', label: 'Cocina', desc: 'Solo la pantalla de Cocina (sin acceso al bot)' },
 ];
 
-const ROLE_LABEL = { admin: 'Admin', atencion_cliente: 'Atención al cliente', operador: 'Operador' };
-const ROLE_COLOR = { admin: styles.roleAdmin, atencion_cliente: styles.roleAtencion, operador: styles.roleOperador };
+// Roles del local: no atienden el bot, así que no llevan áreas.
+const LOCAL_ROLES = ['caja', 'cocina'];
+
+const ROLE_LABEL = { admin: 'Admin', atencion_cliente: 'Atención al cliente', operador: 'Operador', caja: 'Caja', cocina: 'Cocina' };
+const ROLE_COLOR = { admin: styles.roleAdmin, atencion_cliente: styles.roleAtencion, operador: styles.roleOperador, caja: styles.roleLocal, cocina: styles.roleLocal };
 
 const DEFAULT_FORM = { name: '', email: '', password: '', role: 'operador', areaIds: [] };
 
@@ -179,6 +184,7 @@ export default function Users() {
               </div>
             </div>
 
+            {!LOCAL_ROLES.includes(form.data.role) && (
             <div className={styles.field}>
               <label className={styles.label}>Áreas asignadas</label>
               <div className={styles.checkboxGroup}>
@@ -205,6 +211,7 @@ export default function Users() {
                   : '"Mis casos" mostrará las conversaciones asignadas a esta área.'}
               </p>
             </div>
+            )}
 
             <div className={styles.formActions}>
               <button type="button" className={styles.btnSecondary} onClick={cancel}>Cancelar</button>

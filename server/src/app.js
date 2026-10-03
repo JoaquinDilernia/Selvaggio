@@ -21,10 +21,14 @@ import campaignRoutes from './routes/campaign.routes.js';
 import redirectRoutes from './routes/redirect.routes.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
-import { requireAuth, requireAtLeastAtencionCliente } from './middleware/requireAuth.js';
+import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Railway pone un proxy delante: sin esto `req.ip` es siempre la IP del proxy
+// y el rate-limit del login por IP no discrimina.
+app.set('trust proxy', 1);
 
 // Init Firebase
 initFirebase();
@@ -34,6 +38,7 @@ seedAreasIfNeeded().catch(err => console.error('[seed] Error seeding areas:', er
 // Middleware
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000', // landing en dev (login de admin/caja/cocina)
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : []),
 ].filter(Boolean);
 
@@ -60,28 +65,28 @@ app.use('/r', redirectRoutes);
 // Routes (protected)
 // Operador can access: conversations (filtered), labels
 // atencion_cliente + admin: all of the below
-app.use('/api/conversations', requireAuth, conversationRoutes);
-app.use('/api/labels', requireAuth, labelRoutes);
+app.use('/api/conversations', requireAuth, requireBotAccess, conversationRoutes);
+app.use('/api/labels', requireAuth, requireBotAccess, labelRoutes);
 
 // Requires at least atencion_cliente
-app.use('/api/knowledge',     requireAuth, requireAtLeastAtencionCliente, knowledgeRoutes);
-app.use('/api/config',        requireAuth, requireAtLeastAtencionCliente, configRoutes);
+app.use('/api/knowledge',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, knowledgeRoutes);
+app.use('/api/config',        requireAuth, requireBotAccess, requireAtLeastAtencionCliente, configRoutes);
 // Un operador que atiende una conversación derivada necesita ver el perfil
 // del cliente (contacto, notas) y poder actualizarlo — no es una acción de
 // administración global como el resto de este bloque.
-app.use('/api/customers',     requireAuth, customerRoutes);
-app.use('/api/test',          requireAuth, requireAtLeastAtencionCliente, testRoutes);
-app.use('/api/stats',         requireAuth, requireAtLeastAtencionCliente, statsRoutes);
-app.use('/api/quick-replies', requireAuth, requireAtLeastAtencionCliente, quickReplyRoutes);
+app.use('/api/customers',     requireAuth, requireBotAccess, customerRoutes);
+app.use('/api/test',          requireAuth, requireBotAccess, requireAtLeastAtencionCliente, testRoutes);
+app.use('/api/stats',         requireAuth, requireBotAccess, requireAtLeastAtencionCliente, statsRoutes);
+app.use('/api/quick-replies', requireAuth, requireBotAccess, requireAtLeastAtencionCliente, quickReplyRoutes);
 // Los operadores necesitan leer templates: Conversations.jsx los usa para el
 // modal de "nueva conversación" (disponible para cualquier rol) — la
 // restricción de escritura (crear/sincronizar/borrar) vive dentro del router.
-app.use('/api/templates',     requireAuth, templateRoutes);
-app.use('/api/costs',         requireAuth, requireAtLeastAtencionCliente, costsRoutes);
+app.use('/api/templates',     requireAuth, requireBotAccess, templateRoutes);
+app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtencionCliente, costsRoutes);
 // El propio router ya restringe crear/editar/borrar a requireAdmin —
 // la lectura la necesita cualquier operador para derivar conversaciones.
-app.use('/api/areas',         requireAuth, areaRoutes);
-app.use('/api/campaigns',     requireAuth, requireAtLeastAtencionCliente, campaignRoutes);
+app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
+app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
