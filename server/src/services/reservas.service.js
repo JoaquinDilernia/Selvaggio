@@ -118,7 +118,10 @@ export async function disponibilidadMesas(fecha, { now = new Date(), incluirSand
     ...base,
     abierto: true,
     ...(excepcion?.tipo === 'abrir' && { motivo: excepcion.motivo || 'horario especial' }),
-    horarios: horas.map(h => ({ hora: h, disponible: !yaPaso(h) && (conteo[h] || 0) < LIMITE_POR_SLOT })),
+    horarios: horas.map(h => {
+      const lugares = yaPaso(h) ? 0 : Math.max(0, LIMITE_POR_SLOT - (conteo[h] || 0));
+      return { hora: h, disponible: lugares > 0, lugares };
+    }),
   };
 }
 
