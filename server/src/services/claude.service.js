@@ -33,7 +33,7 @@ function buildEscalationInstructions(areas = []) {
 IMPORTANTE — ESCALADA: Si la consulta requiere atención humana y no podés resolverla, usá el marcador [ESCALAR] en una línea separada.
 
 IMPORTANTE — CIERRE: Si la consulta está completamente resuelta, empezá tu respuesta con [CERRAR].
-Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."`;
+Ejemplo: "[CERRAR] Genial, cualquier cosa escribinos."`;
   }
 
   const lines = areas.map(a => `- [ESCALAR_${a.id.toUpperCase()}] — ${a.description}`).join('\n');
@@ -46,11 +46,11 @@ Si la consulta requiere atención humana pero ninguna de las áreas de arriba en
 
 El texto de tu respuesta (antes o después del marcador) es lo que le llega al cliente — avisale que lo derivás y que puede haber una pequeña demora. El marcador es invisible para el cliente.
 Ejemplo correcto:
-"Dale, te paso con el equipo que te puede ayudar mejor con esto. Puede tardar unos minutos, ¡pero te van a responder enseguida!
+"Dale, te paso con alguien del equipo que te puede ayudar mejor con esto.
 [ESCALAR_${areas[0].id.toUpperCase()}]"
 
 IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR].
-Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."
+Ejemplo: "[CERRAR] Genial, cualquier cosa escribinos."
 Usá [CERRAR] solo cuando estés seguro de que la conversación terminó.`;
 }
 
@@ -179,6 +179,26 @@ export async function generateBotResponse(userMessage, conversationHistory, cont
 
 const MAX_TOOL_ROUNDS = 6;
 
+// availableLabels: [{ name, description }] (o strings, por compatibilidad).
+function buildLabelInstructions(availableLabels = []) {
+  const labels = availableLabels.map(l => (typeof l === 'string' ? { name: l } : l)).filter(l => l?.name);
+  const lista = labels.length
+    ? labels.map(l => `- ${l.name}${l.description ? ` → ${l.description}` : ''}`).join('\n')
+    : '(todavía no hay etiquetas)';
+  return `
+
+--- ETIQUETAS ---
+Clasificá SIEMPRE la conversación con [LABEL:nombre] en tu respuesta (es invisible para el cliente; el equipo filtra las conversaciones por estas etiquetas).
+Etiquetas existentes:
+${lista}
+Reglas:
+- Las etiquetas van en tu respuesta final al cliente, también cuando usaste herramientas (agenda, disponibilidad, menú) para responder.
+- Usá la más específica. "Consulta" solo si no aplica ninguna otra.
+- Podés poner más de una si corresponde (ej: [LABEL:Evento / Presupuesto] [LABEL:Cava]).
+- Etiquetá en cuanto quede clara la intención, aunque todavía falten datos. Si la conversación cambia de tema, agregá la etiqueta del tema nuevo; no repitas las que ya tiene.
+- Si el tema es claramente del restaurante y no entra en ninguna, creá una con [NEW_LABEL:Nombre]: corto (1 a 3 palabras), genérico y reutilizable (ej: "Gift card", "Alergias"). Nunca con nombres de personas, fechas ni detalles de un caso puntual.`;
+}
+
 function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = []) {
   const botName = botConfig.botName || 'Asistente';
   const businessName = botConfig.businessName || 'Selvaggio Wine Bar & Delicatessen';
@@ -196,17 +216,7 @@ Nunca inventás información sobre servicios, precios, plazos, procesos o links 
     prompt += `\n\nIMPORTANTE — USO DE ESTA INFORMACIÓN: Es TU ÚNICA fuente de verdad sobre servicios, precios, procesos y políticas. Antes de responder CUALQUIER consulta, revisá esta sección completa primero. Si algo aplica, compartilo directamente aunque el cliente no lo pida explícitamente. Si la consulta no está cubierta acá, NUNCA inventes ni supongas una respuesta — decí que no tenés esa info y ofrecé derivar a alguien del equipo.`;
   }
   if (customerContext) prompt += `\n\n--- PERFIL DEL CONTACTO ---\n${customerContext}`;
-  if (availableLabels.length) {
-    prompt += `\n\n--- ETIQUETAS ---\nDEBÉS etiquetar SIEMPRE esta conversación con al menos 1 etiqueta usando [LABEL:nombre] en tu respuesta (invisible para el cliente).
-Etiquetas disponibles: ${availableLabels.join(', ')}.
-Si ninguna aplica, creá una nueva con [NEW_LABEL:nombre] (ej: [NEW_LABEL:Consulta técnica]).
-Guía:
-- [LABEL:Lead] → interesado nuevo, todavía no es cliente.
-- [LABEL:Consulta] → preguntas generales sobre servicios o funcionamiento.
-- [LABEL:Soporte] → cliente existente con una duda o problema puntual.
-- [LABEL:Reclamo] → queja o insatisfacción.
-Podés combinar varias etiquetas si aplica.`;
-  }
+  prompt += buildLabelInstructions(availableLabels);
   return prompt;
 }
 
@@ -231,4 +241,33 @@ function buildMessages(conversationHistory, newMessage, imageData = null) {
     messages.push({ role: 'user', content: newMessage });
   }
   return messages;
+}
+
+/**
+ * Transcribe un PDF (carta, menú de eventos, políticas…) a texto plano para
+ * que el bot lo use como conocimiento. Se hace UNA vez al subirlo: Claude lee
+ * también los PDFs diseñados como imagen, que un extractor de texto no lee.
+ * @param {Buffer} buffer
+ * @returns {Promise<string>}
+ */
+export async function transcribirPdf(buffer, titulo = '') {
+  const response = await callAnthropicAPI({
+    model: MODEL,
+    max_tokens: 16000,
+    system: 'Transcribís documentos de un wine bar (cartas, menús, propuestas de eventos, políticas) a texto plano en español. Respondés SOLO con la transcripción.',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: buffer.toString('base64') } },
+        {
+          type: 'text',
+          text: `Transcribí este PDF${titulo ? ` ("${titulo}")` : ''} completo y fiel: todos los productos, descripciones, precios, condiciones, fechas y horarios tal cual aparecen. ` +
+            'Mantené la estructura con títulos de sección en MAYÚSCULAS y un ítem por línea ("Nombre — descripción — $precio"). ' +
+            'No resumas, no agregues nada que no esté, no inventes precios. Si una parte no se lee, poné [ilegible].',
+        },
+      ],
+    }],
+  });
+  logUsage(response.usage, 'kb_pdf');
+  return extractText(response).trim();
 }

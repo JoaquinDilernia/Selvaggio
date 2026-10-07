@@ -374,7 +374,13 @@ export async function agenda({ desde, hasta, horarioHabitual = null } = {}, { no
         dia: NOMBRES_DIA[diaSemana(e.fecha)],
         horario: [e.horaInicio, e.horaFin].filter(Boolean).join(' a ') || null,
         descripcion: e.descripcion || null,
-        ...(e.ctaLink && { link: e.ctaLink }),
+        // El botón "Reservar" de la web suele ser un link a NUESTRO WhatsApp:
+        // pasárselo al cliente que ya está en este chat lo trae de vuelta acá.
+        ...(e.ctaLink && (esLinkWhatsApp(e.ctaLink) ? { reservaPorEsteChat: true } : { link: e.ctaLink })),
       })),
   };
+}
+
+export function esLinkWhatsApp(url) {
+  return /(^|\/\/|\.)(wa\.me|whatsapp\.com)\b/i.test(String(url));
 }

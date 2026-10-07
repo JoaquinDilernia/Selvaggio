@@ -192,6 +192,19 @@ export async function sendWhatsAppMedia(to, mediaId, mimeType, fileName = null, 
   return data.messages?.[0]?.id ?? null;
 }
 
+// Manda un archivo por link público (los PDFs de la base de conocimiento están
+// en Storage con token): Meta lo descarga, así no hay que subirlo cada vez.
+export async function sendWhatsAppDocumentLink(to, link, fileName, caption = null) {
+  if (!process.env.META_ACCESS_TOKEN || !process.env.META_PHONE_NUMBER_ID) return null;
+  const document = { link, filename: fileName, ...(caption && { caption }) };
+  const { data } = await axios.post(
+    `${META_API_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
+    { messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'document', document },
+    { headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`, 'Content-Type': 'application/json' } }
+  );
+  return data.messages?.[0]?.id ?? null;
+}
+
 async function fetchMetaMediaInfo(mediaId) {
   const { data: info } = await axios.get(`${META_API_URL}/${mediaId}`, {
     headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` },

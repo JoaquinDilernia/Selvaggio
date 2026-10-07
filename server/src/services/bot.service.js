@@ -1,5 +1,5 @@
 import { generateBotResponse } from './claude.service.js';
-import { getKnowledgeBasePrompt } from './knowledge.service.js';
+import { getKnowledgeBasePrompt, getDocumentosParaEnviar } from './knowledge.service.js';
 import {
   getOrCreateConversation,
   appendMessage,
@@ -11,9 +11,9 @@ import {
   setUrgentFlag,
   addLabelToConversation,
 } from './conversation.service.js';
-import { sendWhatsAppMessage, sendInstagramMessage, downloadMediaAsBase64 } from './meta.service.js';
+import { sendWhatsAppMessage, sendInstagramMessage, downloadMediaAsBase64, sendWhatsAppDocumentLink } from './meta.service.js';
 import { getOrCreateCustomer, buildCustomerContext } from './customer.service.js';
-import { getAllLabels, createLabel } from './label.service.js';
+import { getAllLabels, createLabel, resolverEtiqueta } from './label.service.js';
 import { getActiveAreas } from './area.service.js';
 import { getDb } from './firebase.service.js';
 import { toWaContactId } from './phone.js';
@@ -22,6 +22,7 @@ import { isWithinBusinessHours, describirHorario } from './horario.js';
 
 export { isWithinBusinessHours };
 import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
+import { documentosTool, documentosPrompt, runDocumentoTool } from './documentos.tools.js';
 
 const URGENCY_KEYWORDS = [
   /urgente/i, /urgencia/i, /reclamo/i, /estafa/i, /fraude/i,
@@ -34,10 +35,9 @@ function buildEscalationMessage(areaName, botConfig = {}) {
   const label = areaName ? `*${areaName}*` : 'nuestro equipo';
 
   if (within) {
-    return `Tu consulta fue derivada a ${label} 👋\n\nUna persona del equipo te va a responder en breve. Por favor aguardá unos minutos.`
-      + (hoursStr ? `\n\n🕐 Horario de atención: ${hoursStr}.` : '');
+    return `Le paso tu consulta a ${label}. Alguien del equipo te escribe en un ratito.`;
   }
-  return `Tu consulta fue derivada a ${label} 👋\n\nEn este momento estamos fuera del horario de atención${hoursStr ? ` (${hoursStr})` : ''}. Tu mensaje quedó registrado y te respondemos apenas retomemos.\n\n¡Gracias por tu paciencia!`;
+  return `Le paso tu consulta a ${label}. Ahora estamos fuera de horario${hoursStr ? ` (atendemos ${hoursStr})` : ''}, así que te escriben apenas retomemos.`;
 }
 
 function parseEscalationMarker(text, areas = []) {
@@ -56,6 +56,47 @@ function parseEscalationMarker(text, areas = []) {
     return { shouldEscalate: true, assignTo, cleanText };
   }
   return { shouldEscalate: false, assignTo: null, cleanText: text };
+}
+
+// [LABEL:x] y [NEW_LABEL:x] se tratan igual: si la etiqueta ya existe (sin
+// importar mayúsculas/tildes) se usa esa; si no, se crea. Así el bot nunca
+// deja etiquetas "huérfanas" ni duplica "Reserva de Mesa" / "reserva de mesa".
+async function aplicarEtiquetas(contactId, nombres, labels, yaTiene) {
+  const aplicadas = [];
+  for (const nombre of new Set(nombres.map(n => n.trim()).filter(Boolean))) {
+    try {
+      const label = resolverEtiqueta(nombre, labels) ?? await createLabel(nombre);
+      if (!labels.some(l => l.id === label.id)) {
+        labels.push(label);
+        console.log(`[bot] Etiqueta nueva creada por el bot: "${label.name}"`);
+      }
+      if (yaTiene.includes(label.name) || aplicadas.includes(label.name)) continue;
+      await addLabelToConversation(contactId, label.name);
+      aplicadas.push(label.name);
+    } catch (err) {
+      console.error(`[bot] No se pudo aplicar la etiqueta "${nombre}":`, err.message);
+    }
+  }
+  if (aplicadas.length) console.log(`[bot] Etiquetas aplicadas a ${contactId}:`, aplicadas);
+}
+
+async function enviarDocumento(to, doc) {
+  const fileName = doc.fileName || `${doc.title}.pdf`;
+  try {
+    const waMsgId = await sendWhatsAppDocumentLink(to, doc.fileUrl, fileName);
+    await appendMessage(to, {
+      role: 'assistant',
+      content: `[Archivo: ${fileName}]`,
+      mediaType: 'document',
+      mediaUrl: doc.fileUrl,
+      fileName,
+      mimeType: 'application/pdf',
+      ...(waMsgId && { waMsgId }),
+    });
+    console.log(`[bot] PDF "${doc.title}" enviado a ${to}`);
+  } catch (err) {
+    console.error(`[bot] ERROR enviando PDF "${doc.title}" a ${to}:`, err.response?.data ?? err.message);
+  }
 }
 
 function parseCloseMarker(text) {
@@ -133,9 +174,9 @@ async function processIncomingMessageInternal(msg) {
     ...(msg.mimeType && { mimeType: msg.mimeType }),
   };
 
-  let conversation, history, knowledgeBase, customer, availableLabels, configDoc, areas;
+  let conversation, history, knowledgeBase, customer, availableLabels, configDoc, areas, documentos;
   try {
-    [conversation, history, knowledgeBase, customer, availableLabels, configDoc, areas] = await Promise.all([
+    [conversation, history, knowledgeBase, customer, availableLabels, configDoc, areas, documentos] = await Promise.all([
       getOrCreateConversation(from, channel, contactName),
       getConversationHistory(from),
       getKnowledgeBasePrompt().catch(() => ''),
@@ -143,6 +184,7 @@ async function processIncomingMessageInternal(msg) {
       getAllLabels().catch(() => []),
       getDb().collection('bot-selvaggio_config').doc('bot_config').get().catch(() => ({ exists: false, data: () => ({}) })),
       getActiveAreas().catch(() => []),
+      getDocumentosParaEnviar().catch(() => []),
     ]);
   } catch (err) {
     console.error('[bot] Error cargando contexto para', from, err.message);
@@ -204,10 +246,10 @@ async function processIncomingMessageInternal(msg) {
 
     let reply;
     if (prevAudios >= 1) {
-      reply = 'Entiendo que preferís los audios — lamentablemente no puedo escucharlos. ¿Querés que te pase con un agente que pueda ayudarte mejor?';
+      reply = 'Perdón, los audios no los puedo escuchar. Si preferís, te paso con alguien del equipo.';
       await setUrgentFlag(from, true);
     } else {
-      reply = 'Hola! Recibí tu audio pero no puedo escucharlo 🎙️ ¿Podés contarme por escrito en qué te ayudo?';
+      reply = 'Me llegó tu audio, pero no lo puedo escuchar. ¿Me lo escribís así te ayudo?';
     }
     await appendMessage(from, { role: 'assistant', content: reply });
     if (channel === 'whatsapp') await sendWhatsAppMessage(from, reply);
@@ -268,24 +310,30 @@ async function processIncomingMessageInternal(msg) {
   const customerContext = buildCustomerContext(customer);
 
   console.log(`[bot] Llamando a Claude para ${from}`);
+  // Los PDFs se mandan como archivo solo por WhatsApp; en Instagram el bot pasa el contenido.
+  const docsEnviables = channel === 'whatsapp' ? documentos : [];
+  const docsAEnviar = [];
+  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
   let botReply;
   try {
     botReply = await generateBotResponse(text ?? '', history, {
       knowledgeBase,
       customerContext,
-      availableLabels: availableLabels.map(l => l.name),
+      availableLabels,
       botConfig,
       imageData,
       areas,
       // Crear reservas solo por WhatsApp: el contacto ES el teléfono de la
       // reserva. En otros canales el bot solo puede consultar disponibilidad.
-      tools: channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name)),
-      runTool: (name, input) => runReservaTool(name, input, { contactId: from, contactName, channel, botConfig, customer }),
-      extraSystem: reservasPrompt(),
+      tools: docsEnviables.length ? [...reservasTools, documentosTool(docsEnviables)] : reservasTools,
+      runTool: (name, input) => name === 'enviar_documento'
+        ? runDocumentoTool(input, docsEnviables, docsAEnviar)
+        : runReservaTool(name, input, { contactId: from, contactName, channel, botConfig, customer }),
+      extraSystem: [reservasPrompt(), documentosPrompt(docsEnviables)].filter(Boolean).join('\n\n'),
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);
-    const fallbackMsg = 'Estamos con un poquito de demora en este momento, ¡ya te contestamos! 🙏';
+    const fallbackMsg = 'Estamos con un poco de demora, ya te contestamos.';
     await appendMessage(from, { role: 'assistant', content: fallbackMsg });
     await setUrgentFlag(from, true).catch(() => {});
     if (channel === 'whatsapp') await sendWhatsAppMessage(from, fallbackMsg).catch(() => {});
@@ -301,14 +349,7 @@ async function processIncomingMessageInternal(msg) {
 
   await appendMessage(from, { role: 'assistant', content: cleanText });
 
-  if (botNewLabels.length > 0) {
-    await Promise.all(botNewLabels.map(l => createLabel(l, '#6b7280').then(() => addLabelToConversation(from, l))));
-    console.log(`[bot] Nuevas labels creadas y aplicadas a ${from}:`, botNewLabels);
-  }
-  if (botLabels.length > 0) {
-    await Promise.all(botLabels.map(l => addLabelToConversation(from, l)));
-    console.log(`[bot] Labels aplicadas a ${from}:`, botLabels);
-  }
+  await aplicarEtiquetas(from, [...botLabels, ...botNewLabels], availableLabels, conversation.labels ?? []);
 
   if (channel === 'whatsapp') {
     if (!cleanText.trim()) {
@@ -331,6 +372,8 @@ async function processIncomingMessageInternal(msg) {
       }
     }
   }
+
+  for (const doc of docsAEnviar) await enviarDocumento(from, doc);
 
   if (shouldEscalate) {
     await dispatchConversation(from, {

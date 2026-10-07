@@ -36,6 +36,37 @@ import { generateConversationSummary } from '../services/claude.service.js';
 import { toWaContactId } from '../services/phone.js';
 
 const router = Router();
+
+// Qué conversaciones ve cada usuario. Admin: todas. El resto: solo las de sus
+// áreas o las asignadas a su email (cada uno ve su sector). Un usuario sin
+// áreas cargadas que no sea operador sigue viendo todo, como antes.
+// Devuelve null = sin restricción, o la lista de assignedTo permitidos.
+export function alcanceDe(agent) {
+  if (!agent || agent.role === 'admin') return null;
+  const propios = [...(agent.areaIds ?? []), agent.email].filter(Boolean);
+  if (agent.role === 'operador' || agent.areaIds?.length) return propios;
+  return null;
+}
+const filtrarAlcance = (agent, convs) => {
+  const alcance = alcanceDe(agent);
+  return alcance ? convs.filter(c => alcance.includes(c.assignedTo)) : convs;
+};
+
+// Las rutas /:contactId/* también respetan el alcance (no alcanza con
+// esconderlas de la lista: se podría abrir una conversación por URL).
+router.param('contactId', async (req, res, next, contactId) => {
+  try {
+    const alcance = alcanceDe(req.agent);
+    if (!alcance) return next();
+    const doc = await getDb().collection('bot-selvaggio_conversations').doc(contactId).get();
+    if (doc.exists && !alcance.includes(doc.data().assignedTo ?? null)) {
+      return res.status(403).json({ error: 'Esta conversación es de otro sector' });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 // 100 MB = tope de WhatsApp para documentos. Los topes por tipo (5 MB imagen,
 // 16 MB video/audio) los aplica prepareWhatsAppMedia con un mensaje claro.
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
@@ -76,9 +107,7 @@ router.get('/', async (req, res) => {
   try {
     const { channel, status, assignedTo } = req.query;
     // operador sees conversations assigned to one of their areas (bot escalation) OR directly to their email
-    const assignedToFilter = req.agent.role === 'operador'
-      ? [...(req.agent.areaIds ?? []), req.agent.email].filter(Boolean)
-      : (assignedTo ?? undefined);
+    const assignedToFilter = alcanceDe(req.agent) ?? (assignedTo ?? undefined);
     const conversations = await listConversations({ channel, status, assignedTo: assignedToFilter });
     res.json({ conversations });
   } catch (err) {
@@ -150,7 +179,7 @@ router.get('/search', async (req, res) => {
     if (!q || String(q).trim().length < 2) {
       return res.json({ conversations: [] });
     }
-    const conversations = await searchConversations(q);
+    const conversations = filtrarAlcance(req.agent, await searchConversations(q));
     res.json({ conversations });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -162,7 +191,7 @@ router.get('/search', async (req, res) => {
 // no colisionar con ellas.
 router.get('/archived', async (req, res) => {
   try {
-    const conversations = await listArchivedConversations();
+    const conversations = filtrarAlcance(req.agent, await listArchivedConversations());
     res.json({ conversations });
   } catch (err) {
     res.status(500).json({ error: err.message });

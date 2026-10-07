@@ -17,10 +17,29 @@ export async function getKnowledgeBasePrompt() {
 
   const sections = snapshot.docs
     .map(doc => doc.data())
+    .filter(d => d.content?.trim())
     .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
-    .map(d => `### ${d.title}\n${d.content}`);
+    .map(d => `### ${d.title}${d.tipo === 'pdf' ? ' (contenido del PDF, se puede mandar con enviar_documento)' : ''}\n${d.content}`);
 
   return sections.join('\n\n');
+}
+
+/**
+ * PDFs activos que el bot puede mandar como archivo (carta, menú de eventos…).
+ * @returns {Promise<Array<{id, title, uso, fileName, fileUrl}>>}
+ */
+export async function getDocumentosParaEnviar() {
+  const snapshot = await getDb().collection(COLLECTION).where('active', '==', true).get();
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(d => d.fileUrl)
+    .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
+    .map(({ id, title, uso, fileName, fileUrl }) => ({ id, title, uso: uso || 'otro', fileName, fileUrl }));
+}
+
+export async function getKnowledgeItem(id) {
+  const doc = await getDb().collection(COLLECTION).doc(id).get();
+  return doc.exists ? { id: doc.id, ...doc.data() } : null;
 }
 
 /**

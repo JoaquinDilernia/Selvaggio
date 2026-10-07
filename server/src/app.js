@@ -22,6 +22,7 @@ import redirectRoutes from './routes/redirect.routes.js';
 import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
 import gestionRoutes from './routes/gestion.routes.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
+import { ensureBaseLabels } from './services/label.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
 import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
@@ -103,6 +104,7 @@ app.get('/health', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`[server] Selvaggio server corriendo en puerto ${PORT}`);
+  ensureBaseLabels().catch(err => console.error('[labels] No se pudieron crear las etiquetas base:', err.message));
 });
 
 export default app;

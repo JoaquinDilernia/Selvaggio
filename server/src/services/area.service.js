@@ -41,8 +41,13 @@ export async function getAllAreas() {
 
 export async function getActiveAreas() {
   const db = getDb();
-  const snap = await db.collection(COLLECTION).where('active', '==', true).orderBy('order').get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // Orden en memoria: where + orderBy necesita un índice compuesto que no
+  // existe en pedidos-lett-2, y el error dejaba al bot sin áreas (todas las
+  // derivaciones quedaban "sin asignar").
+  const snap = await db.collection(COLLECTION).where('active', '==', true).get();
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
 }
 
 export async function createArea({ name, description, active = true }) {

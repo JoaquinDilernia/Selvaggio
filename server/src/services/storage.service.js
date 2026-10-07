@@ -32,3 +32,9 @@ export async function subirArchivo(buffer, { carpeta, nombre, contentType, cache
   const url = `https://firebasestorage.googleapis.com/v0/b/${b.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
   return { path, url };
 }
+
+/** Borra un archivo subido con subirArchivo. Solo dentro de selvaggio/: nunca toca otros proyectos del bucket. */
+export async function borrarArchivo(path) {
+  if (!path || !path.startsWith(`${PREFIJO}/`)) return;
+  await bucket().file(path).delete({ ignoreNotFound: true });
+}

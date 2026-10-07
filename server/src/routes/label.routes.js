@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllLabels, createLabel, deleteLabel } from '../services/label.service.js';
+import { getAllLabels, createLabel, updateLabel, deleteLabel } from '../services/label.service.js';
 import { addLabelToConversation, removeLabelFromConversation } from '../services/conversation.service.js';
 
 const router = Router();
@@ -13,10 +13,19 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { name, color } = req.body;
+  const { name, color, description } = req.body;
   if (!name || !color) return res.status(400).json({ error: 'name y color requeridos' });
   try {
-    res.status(201).json(await createLabel(name, color));
+    res.status(201).json(await createLabel(name, color, description));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/:id', async (req, res) => {
+  try {
+    await updateLabel(req.params.id, req.body ?? {});
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
