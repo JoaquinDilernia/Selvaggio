@@ -3,8 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { authFetch, BASE_URL } from '../lib/api';
 import styles from './Reservas.module.css';
 
-// Reservas de mesa que tomó el bot. Mientras el backend esté en modo sandbox
-// (RESERVAS_MODE != 'live') quedan en una colección aparte que la web no ve.
+// Todas las reservas de mesa (web + bot, igual que el admin de la web) con
+// marca de cuáles tomó el bot, y los pedidos de take away que tomó el bot.
+
+function hoyAR() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+}
+function sumarDias(fecha, n) {
+  const d = new Date(`${fecha}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 function formatFecha(f) {
   if (!f) return '—';
@@ -15,72 +24,100 @@ function formatFecha(f) {
 
 export default function Reservas() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
+  const [reservas, setReservas] = useState(null);
   const [error, setError] = useState('');
   const [pedidos, setPedidos] = useState(null);
+  const [vista, setVista] = useState('proximas'); // proximas | pasadas
+  const [soloBot, setSoloBot] = useState(false);
+  const [verArchivadas, setVerArchivadas] = useState(false);
 
   useEffect(() => {
-    authFetch(BASE_URL + '/api/reservas/bot')
+    const hoy = hoyAR();
+    const qs = vista === 'proximas' ? `desde=${hoy}` : `desde=${sumarDias(hoy, -30)}&hasta=${sumarDias(hoy, -1)}`;
+    setReservas(null);
+    setError('');
+    authFetch(BASE_URL + `/api/reservas/mesas?${qs}`)
       .then(async r => {
         if (!r.ok) throw new Error((await r.json()).error);
-        setData(await r.json());
+        const d = await r.json();
+        // Pasadas: la más reciente primero.
+        setReservas(vista === 'pasadas' ? [...d.reservas].reverse() : d.reservas);
       })
       .catch(err => setError(err.message));
+  }, [vista]);
+
+  useEffect(() => {
     authFetch(BASE_URL + '/api/reservas/bot-pedidos')
       .then(r => (r.ok ? r.json() : null))
       .then(d => setPedidos(d?.pedidos ?? []))
       .catch(() => setPedidos([]));
   }, []);
 
+  const visibles = (reservas ?? []).filter(r => (!soloBot || r.origen === 'bot') && (verArchivadas || !r.archivada));
+  const delBot = (reservas ?? []).filter(r => r.origen === 'bot' && !r.archivada).length;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Reservas y pedidos del bot</h1>
-        <p className={styles.subtitle}>Mesas y pedidos de take away tomados por WhatsApp. Quedan pendientes hasta que el equipo los confirme.</p>
+        <h1 className={styles.title}>Reservas</h1>
+        <p className={styles.subtitle}>Todas las reservas de mesa (las de la web y las que tomó el bot por WhatsApp) y los pedidos de take away del bot.</p>
       </header>
 
-      {data?.sandbox && (
-        <div className={styles.sandbox}>
-          <strong>Modo prueba.</strong> Estas reservas y pedidos se guardan aparte y <u>no</u> aparecen en el admin de la web
-          ni ocupan lugar para la web (ni suman usos a los cupones). Sí respetan cupos, precios y horarios reales.
-          Se pasa a modo real con{' '}<code>BOT_MODE=live</code> en el backend.
-        </div>
-      )}
-
       <div className={styles.body}>
+        <div className={styles.toolbar}>
+          <h2 className={styles.h2}>Reservas de mesa</h2>
+          <div className={styles.tabs}>
+            <button className={vista === 'proximas' ? styles.tabActive : styles.tab} onClick={() => setVista('proximas')}>Próximas</button>
+            <button className={vista === 'pasadas' ? styles.tabActive : styles.tab} onClick={() => setVista('pasadas')}>Últimos 30 días</button>
+          </div>
+          <label className={styles.check}>
+            <input type="checkbox" checked={soloBot} onChange={e => setSoloBot(e.target.checked)} />
+            Solo las del bot{delBot ? ` (${delBot})` : ''}
+          </label>
+          <label className={styles.check}>
+            <input type="checkbox" checked={verArchivadas} onChange={e => setVerArchivadas(e.target.checked)} />
+            Ver archivadas
+          </label>
+        </div>
+
         {error && <p className={styles.error}>{error}</p>}
-        {!data && !error && <p className={styles.muted}>Cargando…</p>}
-        <h2 className={styles.h2}>Reservas de mesa</h2>
-        {data && data.reservas.length === 0 && <p className={styles.muted}>Todavía no hay reservas tomadas por el bot.</p>}
-        {data && data.reservas.length > 0 && (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Fecha</th><th>Hora</th><th>Personas</th><th>Ubicación</th><th>Nombre</th>
-                <th>Restricciones</th><th>Estado</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.reservas.map(r => (
-                <tr key={r.id}>
-                  <td>{formatFecha(r.fecha)}</td>
-                  <td>{r.horario}</td>
-                  <td>{r.cantidadPersonas}</td>
-                  <td>{r.preferencia}</td>
-                  <td>{[r.nombre, r.apellido].filter(Boolean).join(' ')}</td>
-                  <td className={styles.muted}>{r.restricciones || '—'}</td>
-                  <td><span className={styles.badge}>{r.estado}</span></td>
-                  <td>
-                    {r.contactId && (
-                      <button className={styles.link} onClick={() => navigate(`/conversations?contact=${r.contactId}`)}>
-                        Ver chat
-                      </button>
-                    )}
-                  </td>
+        {!reservas && !error && <p className={styles.muted}>Cargando…</p>}
+        {reservas && visibles.length === 0 && <p className={styles.muted}>No hay reservas{soloBot ? ' del bot' : ''} en este período.</p>}
+        {reservas && visibles.length > 0 && (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Hora</th><th>Personas</th><th>Ubicación</th><th>Nombre</th><th>Teléfono</th>
+                  <th>Restricciones / comentarios</th><th>Origen</th><th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visibles.map(r => (
+                  <tr key={r.id} className={r.archivada ? styles.rowArchived : undefined}>
+                    <td>{formatFecha(r.fecha)}</td>
+                    <td>{r.horario}</td>
+                    <td>{r.cantidadPersonas}</td>
+                    <td>{r.preferencia || '—'}</td>
+                    <td>{[r.nombre, r.apellido].filter(Boolean).join(' ')}</td>
+                    <td>{r.telefono || '—'}</td>
+                    <td className={styles.muted}>{[r.restricciones, r.comentarios].filter(Boolean).join(' · ') || '—'}</td>
+                    <td>
+                      <span className={r.origen === 'bot' ? styles.badgeBot : styles.badgeWeb}>{r.origen === 'bot' ? 'Bot' : 'Web'}</span>
+                      {r.archivada && <span className={styles.muted}> · archivada</span>}
+                    </td>
+                    <td>
+                      {r.contactId && (
+                        <button className={styles.link} onClick={() => navigate(`/conversations?contact=${r.contactId}`)}>
+                          Ver chat
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         <h2 className={styles.h2}>Pedidos de take away</h2>

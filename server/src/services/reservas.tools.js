@@ -53,7 +53,7 @@ export const RESERVAS_TOOLS = [
   {
     name: 'crear_reserva_mesa',
     description:
-      'Registra una reserva de mesa (queda en estado pendiente hasta que el local la confirme). ' +
+      'Registra una reserva de mesa. Queda CONFIRMADA al instante (igual que en la web). ' +
       'Llamala solo cuando el cliente confirmó explícitamente todos los datos. ' +
       `Para ${MINIMO_CAVA} personas o más no se usa: eso es La Cava.`,
     input_schema: {
@@ -194,7 +194,7 @@ MESAS (hasta ${MINIMO_CAVA - 1} personas):
 - Antes de ofrecer horarios usá consultar_disponibilidad_mesas. Ofrecé solo horarios con disponible=true.
 - Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
 - Antes de crear la reserva, resumí los datos y pedí confirmación. Recién con el "sí" llamá a crear_reserva_mesa.
-- La reserva queda PENDIENTE: decí que el equipo la confirma, nunca que ya está confirmada.
+- La reserva queda CONFIRMADA al crearla (igual que en la web): decíselo con el resumen (día, hora, personas, ubicación). Si después quiere cambiarla o cancelarla, derivá a Atención al cliente.
 - Si un horario se llenó, ofrecé los más cercanos que tengan lugar. Hay cupo de ${LIMITE_POR_SLOT} reservas por horario.
 
 LA CAVA (eventos privados, desde ${MINIMO_CAVA} personas):

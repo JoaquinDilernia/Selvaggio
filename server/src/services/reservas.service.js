@@ -155,7 +155,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
     preferencia: limpiar(datos.preferencia, 20),
     restricciones: limpiar(datos.restricciones),
     comentarios: limpiar(datos.comentarios),
-    fechaNacimiento: /^d{4}-d{2}-d{2}$/.test(datos.fechaNacimiento ?? '') ? datos.fechaNacimiento : '',
+    fechaNacimiento: /^\d{4}-\d{2}-\d{2}$/.test(datos.fechaNacimiento ?? '') ? datos.fechaNacimiento : '',
   };
   const esWeb = meta.origen === 'web';
   const real = isLive() || esWeb;
@@ -193,7 +193,11 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 
     tx.set(ref, {
       ...r,
-      estado: 'pendiente',
+      // El admin de la web no lee "origen": la marca en comentarios es lo que
+      // le muestra al equipo que esta reserva la tomó el bot.
+      ...(meta.origen !== 'web' && { comentarios: [MARCA_BOT, r.comentarios].filter(Boolean).join(' · ') }),
+      // Igual que la web: la reserva de mesa queda confirmada al instante.
+      estado: 'confirmada',
       origen: meta.origen ?? 'bot',
       ...(meta.contactId && { contactId: meta.contactId }),
       createdAt: new Date().toISOString(),
@@ -204,7 +208,40 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   // modo live: en sandbox no se toca nada que vea la web.
   if (real && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente:', err.message));
 
-  return { id: ref.id, sandbox: !real, ...r, estado: 'pendiente' };
+  return { id: ref.id, sandbox: !real, ...r, estado: 'confirmada' };
+}
+
+export const MARCA_BOT = 'Por WhatsApp (bot)';
+
+/**
+ * Todas las reservas de mesa (web y bot), como las ve el admin de la web,
+ * para la página Reservas del panel. Por defecto: de hoy en adelante.
+ * @param {{ desde?: string, hasta?: string }} rango AAAA-MM-DD
+ */
+export async function listarReservasMesas({ desde, hasta } = {}) {
+  desde = FECHA_RE.test(desde || '') ? desde : ahoraAR().fecha;
+  let q = getDb().collection(COL.mesas).where('fecha', '>=', desde);
+  if (FECHA_RE.test(hasta || '')) q = q.where('fecha', '<=', hasta);
+  const snap = await q.get();
+  return snap.docs
+    .map(d => {
+      const r = d.data();
+      const comentarios = String(r.comentarios || '');
+      const porBot = r.origen === 'bot' || comentarios.startsWith(MARCA_BOT);
+      return {
+        id: d.id,
+        fecha: r.fecha, horario: r.horario,
+        nombre: r.nombre, apellido: r.apellido, telefono: r.telefono, email: r.email,
+        cantidadPersonas: r.cantidadPersonas, preferencia: r.preferencia,
+        restricciones: r.restricciones,
+        comentarios: porBot ? comentarios.replace(MARCA_BOT, '').replace(/^\s*·\s*/, '') : comentarios,
+        estado: r.estado, archivada: !!r.archivada,
+        origen: porBot ? 'bot' : 'web',
+        contactId: r.contactId ?? null,
+        createdAt: r.createdAt ?? null,
+      };
+    })
+    .sort((a, b) => `${a.fecha} ${a.horario}`.localeCompare(`${b.fecha} ${b.horario}`));
 }
 
 async function upsertCliente(r) {

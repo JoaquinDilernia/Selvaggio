@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import admin from 'firebase-admin';
 import {
-  disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava, listarReservasMesas,
 } from '../services/reservas.service.js';
 import { previewCupon, crearPedidoTakeaway, listarPedidosBot } from '../services/takeaway.service.js';
 import { subirArchivo } from '../services/storage.service.js';
@@ -106,4 +106,6 @@ publicReservasRouter.use((err, req, res, next) => {
 
 export const reservasRouter = Router();
 reservasRouter.get('/bot', handle(() => listarReservasBot()));
+// Todas las reservas de mesa (web + bot) para la página Reservas del panel.
+reservasRouter.get('/mesas', handle(async req => ({ reservas: await listarReservasMesas(req.query) })));
 reservasRouter.get('/bot-pedidos', handle(() => listarPedidosBot()));
