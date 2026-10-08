@@ -23,6 +23,6 @@ export default defineConfig({
         manualChunks: () => 'index',
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1200, // Firebase (pantallas de src/web/) suma ~600 kB
   },
 });

@@ -42,6 +42,8 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    // Cierra también la sesión de Firebase de las pantallas de src/web/.
+    import('../web/firebase/config').then(m => m.cerrarFirebase());
     localStorage.removeItem('selvaggio_token');
     setToken(null);
     setAgent(null);

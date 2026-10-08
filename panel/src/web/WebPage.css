@@ -1,0 +1,32 @@
+/* Pantallas del admin de la landing dentro del panel. */
+.adm-root.web-embed {
+  min-height: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+.adm-root.web-fullscreen { min-height: 100vh; }
+
+/* El reset del panel (global.css) pone img/svg en block y saca viñetas; las
+   pantallas de la landing estaban hechas con los valores por defecto. */
+.adm-root img, .adm-root svg { display: revert; }
+.adm-root ul, .adm-root ol { list-style: revert; }
+
+@media (max-width: 768px) {
+  .adm-root.web-embed { padding: var(--space-3); border-radius: var(--radius-md); }
+}
+
+.web-fullscreen__bar {
+  position: fixed; top: 10px; right: 12px; z-index: 300;
+  display: flex; gap: 8px;
+}
+.web-fullscreen__bar button {
+  padding: 6px 12px;
+  border: 1px solid rgba(28,26,23,0.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  color: #1c1a17;
+  font-size: 12px;
+}
+.web-fullscreen__bar button:hover { background: #fff; }

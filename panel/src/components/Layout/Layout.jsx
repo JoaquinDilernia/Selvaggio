@@ -132,22 +132,39 @@ export default function Layout({ items = NAV_ITEMS, subtitle = 'Bot' }) {
   );
 }
 
-// Gestión: datos de la landing (reservas, take away, salón, clientes…) dentro del panel.
+// Gestión: lo que antes era /#/admin de la landing (reservas, take away, cupones…).
 const GESTION_ITEMS = [
-  { to: '/gestion/resumen',      label: 'Resumen',       icon: IconDashboard },
-  { to: '/gestion/reservas',     label: 'Reservas',      icon: IconCalendar },
-  { to: '/gestion/takeaway',     label: 'Take Away',     icon: IconBag },
-  { to: '/gestion/comandas',     label: 'Salón',         icon: IconZap },
-  { to: '/gestion/clientes',     label: 'Clientes',      icon: IconContacts },
-  { to: '/gestion/mensajes',     label: 'Mensajes',      icon: IconChat },
-  { to: '/gestion/eventos',      label: 'Eventos',       icon: IconMegaphone },
-  { to: '/gestion/invitaciones', label: 'Invitaciones',  icon: IconUsers },
-  { to: '/gestion/cupones',      label: 'Cupones',       icon: IconTag },
-  { to: '/gestion/resenas',      label: 'Reseñas',       icon: IconBook },
+  { to: '/gestion/resumen',       label: 'Resumen',       icon: IconDashboard },
+  { to: '/gestion/reservas',      label: 'Reservas',      icon: IconCalendar },
+  { to: '/gestion/takeaway',      label: 'Take Away',     icon: IconBag },
+  { to: '/gestion/cupones',       label: 'Cupones',       icon: IconTag },
+  { to: '/gestion/calendario',    label: 'Calendario',    icon: IconCalendar },
+  { to: '/gestion/eventos',       label: 'Eventos',       icon: IconMegaphone },
+  { to: '/gestion/comandas',      label: 'Salón',         icon: IconZap },
+  { to: '/gestion/clientes',      label: 'Clientes',      icon: IconContacts },
+  { to: '/gestion/mensajes',      label: 'Mensajes',      icon: IconChat },
+  { to: '/gestion/postulaciones', label: 'Postulaciones', icon: IconUsers },
+  { to: '/gestion/newsletter',    label: 'Newsletter',    icon: IconBell },
+  { to: '/gestion/feedback',      label: 'Feedback',      icon: IconBook },
+  { to: '/gestion/analytics',     label: 'Analytics',     icon: IconChart },
 ];
 
 export function GestionLayout() {
   return <Layout items={GESTION_ITEMS} subtitle="Gestión" />;
+}
+
+// Contenido web: lo que antes era /#/admin-contenidos de la landing.
+const CONTENIDO_ITEMS = [
+  { to: '/contenido/carta',         label: 'Carta',         icon: IconBook },
+  { to: '/contenido/maridajes',     label: 'Maridajes',     icon: IconTag },
+  { to: '/contenido/galeria',       label: 'Galería',       icon: IconTemplate },
+  { to: '/contenido/resenas',       label: 'Reseñas',       icon: IconChat },
+  { to: '/contenido/prensa',        label: 'Prensa',        icon: IconMegaphone },
+  { to: '/contenido/configuracion', label: 'Configuración', icon: IconSettings },
+];
+
+export function ContenidoLayout() {
+  return <Layout items={CONTENIDO_ITEMS} subtitle="Contenido web" />;
 }
 
 function IconBag({ className }) {

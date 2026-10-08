@@ -2,13 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './Hub.module.css';
 
-// URL pública de la landing (sin barra final). Gestión, Contenido, Caja y
-// Cocina todavía viven ahí (Firestore directo; login con el mismo usuario del
-// panel vía /api/auth/firebase-token); se van a
-// ir migrando a este panel de a una, y cuando eso pase la tarjeta pasa de
-// `href` a `to`.
-const LANDING_URL = (import.meta.env.VITE_LANDING_URL ?? '').replace(/\/$/, '');
-
+// Todas las áreas viven en el panel (las pantallas que venían de la landing
+// están en src/web/). Una tarjeta con `href` abriría una URL externa.
 export default function Hub() {
   const { agent, logout } = useAuth();
   const navigate = useNavigate();
@@ -25,29 +20,29 @@ export default function Hub() {
     {
       key: 'gestion',
       title: 'Gestión',
-      desc: 'Reservas de mesa y La Cava, take away, salón, clientes, mensajes, eventos, invitaciones y cupones.',
+      desc: 'Reservas, take away, cupones, calendario, eventos, salón, clientes, mensajes y analytics.',
       to: '/gestion/resumen',
       roles: ['admin', 'atencion_cliente'],
     },
     {
       key: 'contenido',
       title: 'Contenido web',
-      desc: 'Galería, reseñas, prensa y carta de la landing.',
-      href: `${LANDING_URL}/#/admin-contenidos`,
+      desc: 'Carta, maridajes, galería, reseñas, prensa y configuración de la web.',
+      to: '/contenido/carta',
       roles: ['admin'],
     },
     {
       key: 'caja',
       title: 'Caja',
       desc: 'Carga de pedidos del salón.',
-      href: `${LANDING_URL}/#/caja`,
+      to: '/caja',
       roles: ['admin', 'caja'],
     },
     {
       key: 'cocina',
       title: 'Cocina',
       desc: 'Comandas en tiempo real.',
-      href: `${LANDING_URL}/#/cocina`,
+      to: '/cocina',
       roles: ['admin', 'cocina'],
     },
   ].filter(a => a.roles.includes(role));
