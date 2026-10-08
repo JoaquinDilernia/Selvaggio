@@ -214,6 +214,53 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 export const MARCA_BOT = 'Por WhatsApp (bot)';
 
 /**
+ * Reserva de lugar para un evento publicado en la agenda (Cerámica y vino,
+ * cata con menú de pasos…). Queda CONFIRMADA al instante, sin cupo, en la
+ * misma colección que las mesas (a la hora de inicio del evento) para que el
+ * equipo la vea en el admin de la web y en el panel junto con el resto.
+ * @param {object} datos { eventoId, nombre, apellido?, cantidadPersonas, restricciones?, comentarios?, telefono }
+ * @param {object} meta  { contactId }
+ */
+export async function crearReservaEvento(datos, meta = {}, { now = new Date() } = {}) {
+  const db = getDb();
+  const evDoc = await db.collection('selvaggio_eventos').doc(String(datos.eventoId || '')).get();
+  const ev = evDoc.exists ? evDoc.data() : null;
+  if (!ev || ev.visible === false) throw Object.assign(new Error('Ese evento no existe o ya no está publicado'), { status: 404 });
+  if (ev.fecha < ahoraAR(now).fecha) throw Object.assign(new Error('Ese evento ya pasó'), { status: 409 });
+
+  const r = {
+    nombre: limpiar(datos.nombre, 80),
+    apellido: limpiar(datos.apellido, 80),
+    telefono: limpiar(datos.telefono, 40),
+    cantidadPersonas: parseInt(datos.cantidadPersonas, 10),
+    restricciones: limpiar(datos.restricciones),
+  };
+  const errores = [];
+  if (!r.nombre) errores.push('falta el nombre');
+  if (!r.telefono) errores.push('falta el teléfono');
+  if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1 || r.cantidadPersonas > 60) errores.push('cantidad de personas inválida');
+  if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
+
+  const ref = db.collection(colEscritura(COL.mesas)).doc();
+  const reserva = {
+    ...r,
+    email: '',
+    fecha: ev.fecha,
+    horario: ev.horaInicio || '',
+    preferencia: '',
+    comentarios: [MARCA_BOT, `Evento: ${ev.titulo}`, limpiar(datos.comentarios)].filter(Boolean).join(' · '),
+    evento: ev.titulo,
+    eventoId: evDoc.id,
+    estado: 'confirmada',
+    origen: 'bot',
+    ...(meta.contactId && { contactId: meta.contactId }),
+    createdAt: new Date().toISOString(),
+  };
+  await ref.set(reserva);
+  return { id: ref.id, ...reserva };
+}
+
+/**
  * Todas las reservas de mesa (web y bot), como las ve el admin de la web,
  * para la página Reservas del panel. Por defecto: de hoy en adelante.
  * @param {{ desde?: string, hasta?: string }} rango AAAA-MM-DD
@@ -236,6 +283,7 @@ export async function listarReservasMesas({ desde, hasta } = {}) {
         restricciones: r.restricciones,
         comentarios: porBot ? comentarios.replace(MARCA_BOT, '').replace(/^\s*·\s*/, '') : comentarios,
         estado: r.estado, archivada: !!r.archivada,
+        evento: r.evento ?? null,
         origen: porBot ? 'bot' : 'web',
         contactId: r.contactId ?? null,
         createdAt: r.createdAt ?? null,
@@ -403,9 +451,10 @@ export async function agenda({ desde, hasta, horarioHabitual = null } = {}, { no
       ...(e.tipo === 'abrir' && Array.isArray(e.horarios) && { horariosDeReserva: ordenarHorarios(e.horarios) }),
       ...(e.motivo && { motivo: e.motivo }),
     })),
-    eventos: ev.docs.map(d => d.data()).filter(e => e.visible !== false)
+    eventos: ev.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.visible !== false)
       .sort((a, b) => `${a.fecha} ${a.horaInicio || ''}`.localeCompare(`${b.fecha} ${b.horaInicio || ''}`))
       .map(e => ({
+        id: e.id,
         titulo: e.titulo,
         fecha: e.fecha,
         dia: NOMBRES_DIA[diaSemana(e.fecha)],

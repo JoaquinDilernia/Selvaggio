@@ -1,5 +1,5 @@
 import {
-  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda, crearReservaEvento,
   PREFERENCIAS, MINIMO_CAVA, CAVA, LIMITE_POR_SLOT,
 } from './reservas.service.js';
 import { describirHorario } from './horario.js';
@@ -70,6 +70,25 @@ export const RESERVAS_TOOLS = [
         comentarios: { type: 'string' },
       },
       required: ['nombre', 'cantidadPersonas', 'fecha', 'horario', 'preferencia'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'reservar_evento',
+    description:
+      'Reserva lugar para un evento publicado en la agenda (el id sale de consultar_agenda). Queda CONFIRMADA al instante. ' +
+      'Llamala solo cuando el cliente confirmó nombre y cantidad de personas. No la uses si el evento trae "link" (ahí se sacan entradas por el link).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        eventoId: { type: 'string', description: 'id del evento devuelto por consultar_agenda.' },
+        nombre: { type: 'string' },
+        apellido: { type: 'string' },
+        cantidadPersonas: { type: 'integer', minimum: 1, maximum: 60 },
+        restricciones: { type: 'string', description: 'Alergias o restricciones alimentarias, si las hay.' },
+        comentarios: { type: 'string' },
+      },
+      required: ['eventoId', 'nombre', 'cantidadPersonas'],
       additionalProperties: false,
     },
   },
@@ -186,7 +205,7 @@ Hoy es ${dia} ${hoy.fecha} y son las ${hoy.hora} (hora de Argentina). Convertí 
 HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especiales (feriados, cierres) o eventos usá consultar_agenda. Un día especial del calendario manda sobre el horario habitual. No inventes eventos ni horarios.
 - Si el cliente nombra algo que puede ser un evento (una cata, "menú de pasos", una noche temática, el nombre de una actividad), consultá la agenda ANTES de responder. Nunca digas que algo no existe sin haberlo chequeado.
 - Si el evento trae "link", pasalo para reservar o sacar entradas.
-- Si trae reservaPorEsteChat: true, la reserva se toma ACÁ (nunca le mandes un link de WhatsApp: ya está hablando con nosotros). Pedí nombre y cantidad de personas, resumilo, y derivá al área de eventos para que el equipo confirme el lugar. Decí que queda pedida y que le confirman; nunca que ya está confirmada.
+- Si no trae link (o trae reservaPorEsteChat: true), la reserva se toma ACÁ y queda CONFIRMADA: nunca le mandes un link de WhatsApp (ya está hablando con nosotros) ni digas que el equipo la confirma. Pedí nombre y cantidad de personas (y alergias si las hay), resumí y con el "sí" llamá a reservar_evento. Después decile que quedó confirmada, con el evento, día y hora.
 
 CUMPLEAÑOS: si en el PERFIL DEL CONTACTO dice "Cumpleaños: NO LO TENEMOS", pedíselo UNA sola vez, en un momento natural: después de resolver lo que vino a buscar (por ejemplo, al confirmar una reserva o pedido), nunca antes ni interrumpiendo. Algo como: "¿Me pasás tu fecha de cumpleaños? Es para mandarte una promo especial cuando se acerque 🎂". Es opcional: si no quiere, respetalo. Cuando lo diga, guardalo con guardar_cumpleanos (día y mes alcanzan; el año solo si lo da). Si no quiere, llamá guardar_cumpleanos con noQuiere=true. Si ya lo tenemos o no quiso darlo, no lo menciones.
 
@@ -235,6 +254,12 @@ export async function runReservaTool(name, input, ctx) {
           { origen: 'bot', contactId: ctx.contactId },
         );
         return { ok: true, estado: reserva.estado, fecha: reserva.fecha, horario: reserva.horario, cantidadPersonas: reserva.cantidadPersonas };
+      }
+
+      case 'reservar_evento': {
+        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp' };
+        const r = await crearReservaEvento({ ...input, telefono: ctx.contactId }, { contactId: ctx.contactId });
+        return { ok: true, estado: r.estado, evento: r.evento, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas };
       }
 
       case 'consultar_fechas_cava': {

@@ -88,7 +88,7 @@ export default function Reservas() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Fecha</th><th>Hora</th><th>Personas</th><th>Ubicación</th><th>Nombre</th><th>Teléfono</th>
+                  <th>Fecha</th><th>Hora</th><th>Personas</th><th>Ubicación / evento</th><th>Nombre</th><th>Teléfono</th>
                   <th>Restricciones / comentarios</th><th>Origen</th><th></th>
                 </tr>
               </thead>
@@ -98,10 +98,10 @@ export default function Reservas() {
                     <td>{formatFecha(r.fecha)}</td>
                     <td>{r.horario}</td>
                     <td>{r.cantidadPersonas}</td>
-                    <td>{r.preferencia || '—'}</td>
+                    <td>{r.evento ? <strong>{r.evento}</strong> : (r.preferencia || '—')}</td>
                     <td>{[r.nombre, r.apellido].filter(Boolean).join(' ')}</td>
                     <td>{r.telefono || '—'}</td>
-                    <td className={styles.muted}>{[r.restricciones, r.comentarios].filter(Boolean).join(' · ') || '—'}</td>
+                    <td className={styles.muted}>{[r.restricciones, r.evento ? String(r.comentarios || '').replace(`Evento: ${r.evento}`, '').replace(/^\s*·\s*|\s*·\s*$/g, '') : r.comentarios].filter(Boolean).join(' · ') || '—'}</td>
                     <td>
                       <span className={r.origen === 'bot' ? styles.badgeBot : styles.badgeWeb}>{r.origen === 'bot' ? 'Bot' : 'Web'}</span>
                       {r.archivada && <span className={styles.muted}> · archivada</span>}

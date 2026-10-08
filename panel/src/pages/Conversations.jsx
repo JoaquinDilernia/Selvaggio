@@ -23,7 +23,8 @@ const CHANNEL_CONFIG = {
 const FILTERS = [
   { value: 'bot',           label: 'Bot' },
   { value: 'mine',          label: 'Mis casos' },
-  { value: 'teams',         label: 'Equipos',  minRole: 'admin' },
+  { value: 'teams',         label: 'Todos los casos' },
+  { value: 'urgent',        label: 'Urgentes' },
   { value: 'archived',      label: 'Archivados' },
 ];
 

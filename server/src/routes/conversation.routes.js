@@ -37,15 +37,13 @@ import { toWaContactId } from '../services/phone.js';
 
 const router = Router();
 
-// Qué conversaciones ve cada usuario. Admin: todas. El resto: solo las de sus
-// áreas o las asignadas a su email (cada uno ve su sector). Un usuario sin
-// áreas cargadas que no sea operador sigue viendo todo, como antes.
+// Qué conversaciones ve cada usuario. Admin y atención al cliente ven todas
+// (los chats del bot y "Todos los casos"); lo de su sector lo ven en "Mis
+// casos". Solo el operador queda limitado a sus áreas o a su email.
 // Devuelve null = sin restricción, o la lista de assignedTo permitidos.
 export function alcanceDe(agent) {
-  if (!agent || agent.role === 'admin') return null;
-  const propios = [...(agent.areaIds ?? []), agent.email].filter(Boolean);
-  if (agent.role === 'operador' || agent.areaIds?.length) return propios;
-  return null;
+  if (!agent || agent.role !== 'operador') return null;
+  return [...(agent.areaIds ?? []), agent.email].filter(Boolean);
 }
 const filtrarAlcance = (agent, convs) => {
   const alcance = alcanceDe(agent);

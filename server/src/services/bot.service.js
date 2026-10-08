@@ -313,7 +313,7 @@ async function processIncomingMessageInternal(msg) {
   // Los PDFs se mandan como archivo solo por WhatsApp; en Instagram el bot pasa el contenido.
   const docsEnviables = channel === 'whatsapp' ? documentos : [];
   const docsAEnviar = [];
-  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
+  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'reservar_evento', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
   let botReply;
   try {
     botReply = await generateBotResponse(text ?? '', history, {
