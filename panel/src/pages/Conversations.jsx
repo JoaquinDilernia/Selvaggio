@@ -716,7 +716,9 @@ export default function Conversations() {
     ]).then(([areasData, agents]) => {
       const loadedAreas = areasData.areas ?? [];
       setAreas(loadedAreas);
-      setAgentsList(agents.filter(a => a.role !== 'admin'));
+      // Se puede derivar a cualquiera del equipo que use el bot (también a los
+      // admin, p.ej. Tomi), menos a uno mismo y al admin de soporte.
+      setAgentsList(agents.filter(a => !a.interno && a.id !== agent?.id && (a.sectores ?? []).includes('bot')));
       const map = {};
       for (const a of loadedAreas) map[a.id] = a.name;
       for (const a of agents) { map[a.email] = a.name; map[a.id] = a.name; }

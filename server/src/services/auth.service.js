@@ -66,6 +66,8 @@ function toPublic(data) {
     role: data.role ?? 'operador',
     areaIds: data.areaIds ?? [],
     sectores: sectoresDe({ ...data, role: data.role ?? 'operador' }),
+    // Admin de soporte (el seed de ADMIN_EMAIL): no aparece para derivarle chats.
+    interno: ADMIN_EMAILS.has(data.email),
   };
 }
 

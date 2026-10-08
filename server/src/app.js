@@ -22,6 +22,7 @@ import redirectRoutes from './routes/redirect.routes.js';
 import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
 import gestionRoutes from './routes/gestion.routes.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
+import { iniciarArchivoReservas } from './services/archivoReservas.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
@@ -40,6 +41,7 @@ seedAgentsIfNeeded().catch(err => console.error('[seed] Error seeding agents:', 
 seedAreasIfNeeded().catch(err => console.error('[seed] Error seeding areas:', err));
 // Lista única de clientes: copia los clientes de la web a los contactos (cada 15 min).
 iniciarSyncClientes();
+iniciarArchivoReservas();
 
 // Middleware
 const allowedOrigins = [

@@ -535,3 +535,34 @@
     align-items: flex-start;
   }
 }
+
+/* Reservas agrupadas por día */
+.ar__days {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.ar__day-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(67, 10, 51, 0.15);
+  font-size: 15px;
+  font-weight: 600;
+  color: #430a33;
+}
+
+.ar__day-count {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #a09890;
+}
+
+.ar__badge--bot {
+  background: rgba(37, 211, 102, 0.12);
+  color: #128c4a;
+}

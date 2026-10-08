@@ -54,3 +54,13 @@
 .badgeBot { background: #f5e8f0; color: var(--color-primary); }
 .badgeWeb { background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
 .rowArchived td { opacity: 0.55; }
+
+/* Separador por día dentro de la tabla de reservas */
+.dayRow td { background: var(--color-bg); font-weight: 600; color: var(--color-primary); padding-top: var(--space-4); }
+.dayCount { margin-left: var(--space-3); font-weight: 400; color: var(--color-text-muted); }
+
+/* Estado de los pedidos de take away */
+.estado { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--color-bg); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.estado_pendiente { background: var(--color-status-waiting-bg); color: var(--color-status-waiting); border-color: transparent; }
+.estado_preparando { background: #fdf0e1; color: #9a5b13; border-color: transparent; }
+.estado_listo { background: #e3f5e9; color: #1a6635; border-color: transparent; }

@@ -22,6 +22,26 @@ function formatFecha(f) {
   return `${dia} ${d}/${m}/${y.slice(2)}`;
 }
 
+const ESTADO_LABEL = {
+  pendiente: 'Pendiente', preparando: 'Preparando', listo: 'Listo para retirar',
+  entregado: 'Entregado', cancelado: 'Cancelado',
+};
+const CERRADOS = ['entregado', 'cancelado'];
+
+function tituloDia(f) {
+  const hoy = hoyAR();
+  const larga = new Date(`${f}T12:00:00Z`).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  if (f === hoy) return `Hoy · ${larga}`;
+  if (f === sumarDias(hoy, 1)) return `Mañana · ${larga}`;
+  if (f === sumarDias(hoy, -1)) return `Ayer · ${larga}`;
+  return larga.charAt(0).toUpperCase() + larga.slice(1);
+}
+
+function resumenDia(rs) {
+  const personas = rs.reduce((s, r) => s + (Number(r.cantidadPersonas) || 0), 0);
+  return `${rs.length} ${rs.length === 1 ? 'reserva' : 'reservas'} · ${personas} personas`;
+}
+
 export default function Reservas() {
   const navigate = useNavigate();
   const [reservas, setReservas] = useState(null);
@@ -30,6 +50,7 @@ export default function Reservas() {
   const [vista, setVista] = useState('proximas'); // proximas | pasadas
   const [soloBot, setSoloBot] = useState(false);
   const [verArchivadas, setVerArchivadas] = useState(false);
+  const [verHistorial, setVerHistorial] = useState(false);
 
   useEffect(() => {
     const hoy = hoyAR();
@@ -53,7 +74,13 @@ export default function Reservas() {
       .catch(() => setPedidos([]));
   }, []);
 
-  const visibles = (reservas ?? []).filter(r => (!soloBot || r.origen === 'bot') && (verArchivadas || !r.archivada));
+  const visibles = (reservas ?? []).filter(r => (!soloBot || r.origen === 'bot') && (verArchivadas || vista === 'pasadas' || !r.archivada));
+  // Take away: en curso primero (el retiro más próximo arriba); el historial,
+  // lo último arriba.
+  const pedidosActivos = (pedidos ?? []).filter(p => !CERRADOS.includes(p.estado))
+    .sort((a, b) => `${a.fechaRetiro} ${a.horaRetiro}`.localeCompare(`${b.fechaRetiro} ${b.horaRetiro}`));
+  const pedidosVisibles = verHistorial ? (pedidos ?? []).filter(p => CERRADOS.includes(p.estado)) : pedidosActivos;
+
   const delBot = (reservas ?? []).filter(r => r.origen === 'bot' && !r.archivada).length;
 
   return (
@@ -74,10 +101,12 @@ export default function Reservas() {
             <input type="checkbox" checked={soloBot} onChange={e => setSoloBot(e.target.checked)} />
             Solo las del bot{delBot ? ` (${delBot})` : ''}
           </label>
-          <label className={styles.check}>
-            <input type="checkbox" checked={verArchivadas} onChange={e => setVerArchivadas(e.target.checked)} />
-            Ver archivadas
-          </label>
+          {vista === 'proximas' && (
+            <label className={styles.check}>
+              <input type="checkbox" checked={verArchivadas} onChange={e => setVerArchivadas(e.target.checked)} />
+              Ver archivadas
+            </label>
+          )}
         </div>
 
         {error && <p className={styles.error}>{error}</p>}
@@ -93,7 +122,17 @@ export default function Reservas() {
                 </tr>
               </thead>
               <tbody>
-                {visibles.map(r => (
+                {visibles.flatMap((r, i) => [
+                  ...(i === 0 || visibles[i - 1].fecha !== r.fecha ? [
+                    <tr key={`dia-${r.fecha}`} className={styles.dayRow}>
+                      <td colSpan={9}>
+                        {tituloDia(r.fecha)}
+                        <span className={styles.dayCount}>
+                          {resumenDia(visibles.filter(x => x.fecha === r.fecha))}
+                        </span>
+                      </td>
+                    </tr>,
+                  ] : []),
                   <tr key={r.id} className={r.archivada ? styles.rowArchived : undefined}>
                     <td>{formatFecha(r.fecha)}</td>
                     <td>{r.horario}</td>
@@ -113,23 +152,33 @@ export default function Reservas() {
                         </button>
                       )}
                     </td>
-                  </tr>
-                ))}
+                  </tr>,
+                ])}
               </tbody>
             </table>
           </div>
         )}
 
-        <h2 className={styles.h2}>Pedidos de take away</h2>
+        <div className={styles.toolbar}>
+          <h2 className={styles.h2}>Pedidos de take away (por WhatsApp)</h2>
+          <div className={styles.tabs}>
+            <button className={!verHistorial ? styles.tabActive : styles.tab} onClick={() => setVerHistorial(false)}>
+              En curso{pedidosActivos.length ? ` (${pedidosActivos.length})` : ''}
+            </button>
+            <button className={verHistorial ? styles.tabActive : styles.tab} onClick={() => setVerHistorial(true)}>Entregados y cancelados</button>
+          </div>
+        </div>
         {!pedidos && <p className={styles.muted}>Cargando…</p>}
-        {pedidos && pedidos.length === 0 && <p className={styles.muted}>Todavía no hay pedidos tomados por el bot.</p>}
-        {pedidos && pedidos.length > 0 && (
+        {pedidos && pedidosVisibles.length === 0 && (
+          <p className={styles.muted}>{verHistorial ? 'Todavía no hay pedidos entregados o cancelados.' : 'No hay pedidos en curso.'}</p>
+        )}
+        {pedidos && pedidosVisibles.length > 0 && (
           <table className={styles.table}>
             <thead>
               <tr><th>Pedido</th><th>Retiro</th><th>Cliente</th><th>Ítems</th><th>Pago</th><th>Total</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
-              {pedidos.map(p => (
+              {pedidosVisibles.map(p => (
                 <tr key={p.id}>
                   <td>{p.numeroPedido}</td>
                   <td>{formatFecha(p.fechaRetiro)} {p.horaRetiro}</td>
@@ -137,7 +186,7 @@ export default function Reservas() {
                   <td className={styles.muted}>{(p.items || []).map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</td>
                   <td>{p.metodoPago}</td>
                   <td>{new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p.total || 0)}</td>
-                  <td><span className={styles.badge}>{p.estado}</span></td>
+                  <td><span className={`${styles.estado} ${styles['estado_' + p.estado] ?? ''}`}>{ESTADO_LABEL[p.estado] ?? p.estado}</span></td>
                   <td>{p.contactId && <button className={styles.link} onClick={() => navigate(`/conversations?contact=${p.contactId}`)}>Ver chat</button>}</td>
                 </tr>
               ))}

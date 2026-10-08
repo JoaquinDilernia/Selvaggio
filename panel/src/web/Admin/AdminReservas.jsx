@@ -18,7 +18,7 @@ function SimpleToast({ message, type, onClose }) {
 }
 
 function AdminReservas() {
-  const [activeTab, setActiveTab] = useState('cava');
+  const [activeTab, setActiveTab] = useState('mesas');
   const [reservasCava, setReservasCava] = useState([]);
   const [reservasMesas, setReservasMesas] = useState([]);
   const [invitaciones, setInvitaciones] = useState([]);
@@ -190,6 +190,50 @@ function AdminReservas() {
 
   const filtrar = (arr) => arr.filter(r => mostrarArchivadas || !r.archivada);
 
+  // Tarjetas agrupadas por día ("Hoy", "Mañana", fecha). Con archivadas a la
+  // vista, lo más reciente arriba. Las de días pasados se archivan solas (server).
+  const agruparPorDia = (arr, campo = 'fecha') => {
+    const grupos = [];
+    const lista = mostrarArchivadas ? [...arr].reverse() : arr;
+    for (const r of lista) {
+      const f = r[campo] || '';
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.fecha === f) ultimo.items.push(r);
+      else grupos.push({ fecha: f, items: [r] });
+    }
+    return grupos;
+  };
+
+  const tituloDia = (fecha) => {
+    if (!fecha) return 'Sin fecha';
+    const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+    const manana = new Date(`${hoy}T12:00:00Z`);
+    manana.setUTCDate(manana.getUTCDate() + 1);
+    const larga = new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (fecha === hoy) return `Hoy · ${larga}`;
+    if (fecha === manana.toISOString().slice(0, 10)) return `Mañana · ${larga}`;
+    return larga.charAt(0).toUpperCase() + larga.slice(1);
+  };
+
+  const porDia = (arr, campo, render) => agruparPorDia(arr, campo).map(g => (
+    <section key={g.fecha} className="ar__day">
+      <h3 className="ar__day-title">
+        {tituloDia(g.fecha)}
+        <span className="ar__day-count">
+          {g.items.length} {g.items.length === 1 ? 'reserva' : 'reservas'}
+          {campo === 'fecha' && g.items[0]?.cantidadPersonas !== undefined &&
+            ` · ${g.items.reduce((s, r) => s + (Number(r.cantidadPersonas) || 0), 0)} personas`}
+        </span>
+      </h3>
+      <div className="ar__grid">{g.items.map(render)}</div>
+    </section>
+  ));
+
+  // Las del bot llevan esta marca al principio de los comentarios.
+  const MARCA_BOT = 'Por WhatsApp (bot)';
+  const esDelBot = (r) => r.origen === 'bot' || String(r.comentarios || '').startsWith(MARCA_BOT);
+  const sinMarca = (c) => String(c || '').replace(MARCA_BOT, '').replace(/^\s*·\s*/, '');
+
   return (
     <div className="ar">
       <div className="ar__header">
@@ -205,8 +249,8 @@ function AdminReservas() {
 
       <div className="ar__tabs">
         {[
-          { id: 'cava', label: 'Cava', count: reservasCava.filter(r => !r.archivada).length },
           { id: 'mesas', label: 'Mesas', count: reservasMesas.filter(r => !r.archivada).length },
+          { id: 'cava', label: 'Cava', count: reservasCava.filter(r => !r.archivada).length },
           { id: 'influencers', label: 'Invitaciones', count: invitaciones.filter(i => !i.archivada).length }
         ].map(t => (
           <button key={t.id} className={`ar__tab ${activeTab === t.id ? 'ar__tab--active' : ''}`} onClick={() => setActiveTab(t.id)}>
@@ -221,8 +265,8 @@ function AdminReservas() {
         <>
           {activeTab === 'cava' && (
             filtrar(reservasCava).length === 0 ? <p className="ar__empty">No hay reservas de cava</p> : (
-              <div className="ar__grid">
-                {filtrar(reservasCava).map(r => (
+              <div className="ar__days">
+                {porDia(filtrar(reservasCava), 'fecha', r => (
                   <div key={r.id} className={`ar__card ${r.archivada ? 'ar__card--archived' : ''}`}>
                     <div className="ar__card-top">
                       <div>
@@ -256,22 +300,22 @@ function AdminReservas() {
 
           {activeTab === 'mesas' && (
             filtrar(reservasMesas).length === 0 ? <p className="ar__empty">No hay reservas de mesas</p> : (
-              <div className="ar__grid">
-                {filtrar(reservasMesas).map(r => (
+              <div className="ar__days">
+                {porDia(filtrar(reservasMesas), 'fecha', r => (
                   <div key={r.id} className={`ar__card ${r.archivada ? 'ar__card--archived' : ''}`}>
                     <div className="ar__card-top">
                       <div>
                         <h3 className="ar__card-name">{r.nombre} {r.apellido}</h3>
                         <p className="ar__card-date">{formatFecha(r.fecha)} · {r.horario || '—'}</p>
                       </div>
-                      <span className="ar__badge ar__badge--mesa">{r.archivada ? 'Archivada' : 'Mesa'}</span>
+                      <span className={`ar__badge ${esDelBot(r) ? 'ar__badge--bot' : 'ar__badge--mesa'}`}>{r.archivada ? 'Archivada' : esDelBot(r) ? 'WhatsApp' : 'Web'}</span>
                     </div>
                     <div className="ar__card-body">
                       <div className="ar__card-row"><span className="ar__card-label">Personas</span><span>{r.cantidadPersonas}</span></div>
                       <div className="ar__card-row"><span className="ar__card-label">Teléfono</span><span>{r.telefono}</span></div>
                       {r.preferencia && <div className="ar__card-row"><span className="ar__card-label">Espacio</span><span>{r.preferencia}</span></div>}
                       {r.restricciones && <div className="ar__card-row"><span className="ar__card-label">Restricciones</span><span>{r.restricciones}</span></div>}
-                      {r.comentarios && <div className="ar__card-row"><span className="ar__card-label">Comentarios</span><span>{r.comentarios}</span></div>}
+                      {sinMarca(r.comentarios) && <div className="ar__card-row"><span className="ar__card-label">Comentarios</span><span>{sinMarca(r.comentarios)}</span></div>}
                       <div className="ar__card-row"><span className="ar__card-label">Creada</span><span>{formatCreada(r.createdAt)}</span></div>
                     </div>
                     <div className="ar__card-actions">
