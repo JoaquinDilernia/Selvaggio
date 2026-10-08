@@ -3,7 +3,9 @@ rules_version = '2'; service cloud.firestore { match /databases/{database}/docum
     // Roles via custom token del backend Selvaggio (claim selvaggioRole).
     function svRole() { return request.auth != null ? request.auth.token.get('selvaggioRole', null) : null; }
     function svAdmin() { return svRole() == 'admin'; }
-    function svStaff() { return svRole() in ['admin', 'caja', 'cocina']; }
+    // Sectores del panel (claim selvaggioSectores). Admin los tiene todos.
+    function svSector(x) { return request.auth != null && (svAdmin() || x in request.auth.token.get('selvaggioSectores', [])); }
+    function svStaff() { return svRole() in ['admin', 'caja', 'cocina'] || svSector('caja') || svSector('cocina'); }
 
     // Contenido público de la web: lo lee cualquiera, lo edita el admin.
     match /{c}/{id} {

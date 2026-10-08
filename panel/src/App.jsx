@@ -23,7 +23,7 @@ import Campaigns     from './pages/Campaigns.jsx';
 import Hub           from './pages/Hub.jsx';
 import Reservas      from './pages/Reservas.jsx';
 
-const BOT_ROLES = ['admin', 'atencion_cliente', 'operador'];
+import { tieneSector } from './lib/sectores';
 
 export default function App() {
   return (
@@ -49,7 +49,7 @@ function AppRoutes() {
         <Route path="/hub" element={agent ? <Hub /> : <Navigate to="/login" replace />} />
 
         {/* Gestión: lo que antes era /#/admin de la landing (admin y atención al cliente) */}
-        <Route path="/gestion" element={!agent ? <Navigate to="/login" replace /> : ['admin', 'atencion_cliente'].includes(agent.role) ? <GestionLayout /> : <Navigate to="/hub" replace />}>
+        <Route path="/gestion" element={!agent ? <Navigate to="/login" replace /> : tieneSector(agent, 'gestion') ? <GestionLayout /> : <Navigate to="/hub" replace />}>
           <Route index element={<Navigate to="/gestion/resumen" replace />} />
           <Route path="resumen"       element={<Resumen />} />
           <Route path="reservas"      element={<Web.Reservas />} />
@@ -69,7 +69,7 @@ function AppRoutes() {
         </Route>
 
         {/* Contenido web: lo que antes era /#/admin-contenidos (solo admin) */}
-        <Route path="/contenido" element={!agent ? <Navigate to="/login" replace /> : agent.role === 'admin' ? <ContenidoLayout /> : <Navigate to="/hub" replace />}>
+        <Route path="/contenido" element={!agent ? <Navigate to="/login" replace /> : tieneSector(agent, 'contenido') ? <ContenidoLayout /> : <Navigate to="/hub" replace />}>
           <Route index element={<Navigate to="/contenido/carta" replace />} />
           <Route path="carta"         element={<Web.Carta />} />
           <Route path="maridajes"     element={<Web.Maridajes />} />
@@ -80,11 +80,11 @@ function AppRoutes() {
         </Route>
 
         {/* Caja y cocina: pantalla completa, antes /#/caja y /#/cocina */}
-        <Route path="/caja"   element={!agent ? <Navigate to="/login" replace /> : ['admin', 'caja'].includes(agent.role) ? <Web.Caja /> : <Navigate to="/hub" replace />} />
-        <Route path="/cocina" element={!agent ? <Navigate to="/login" replace /> : ['admin', 'cocina'].includes(agent.role) ? <Web.Cocina /> : <Navigate to="/hub" replace />} />
+        <Route path="/caja"   element={!agent ? <Navigate to="/login" replace /> : tieneSector(agent, 'caja') ? <Web.Caja /> : <Navigate to="/hub" replace />} />
+        <Route path="/cocina" element={!agent ? <Navigate to="/login" replace /> : tieneSector(agent, 'cocina') ? <Web.Cocina /> : <Navigate to="/hub" replace />} />
 
         {/* Caja y cocina no tienen nada del bot: cualquier ruta del Layout los manda al Hub */}
-        <Route path="/" element={!agent ? <Navigate to="/login" replace /> : BOT_ROLES.includes(agent.role) ? <Layout /> : <Navigate to="/hub" replace />}>
+        <Route path="/" element={!agent ? <Navigate to="/login" replace /> : tieneSector(agent, 'bot') ? <Layout /> : <Navigate to="/hub" replace />}>
           <Route index element={<Navigate to="/hub" replace />} />
           <Route path="dashboard"     element={<Dashboard />} />
           <Route path="conversations" element={<Conversations />} />

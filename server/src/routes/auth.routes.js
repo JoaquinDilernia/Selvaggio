@@ -57,6 +57,9 @@ router.post('/firebase-token', requireAuth, async (req, res) => {
   try {
     const firebaseToken = await admin.auth().createCustomToken(`selvaggio:${req.agent.id}`, {
       selvaggioRole: req.agent.role,
+      // Sectores del panel (caja, cocina, gestion, contenido…): lo que miran
+      // las reglas para las pantallas que hablan directo con Firestore.
+      selvaggioSectores: req.agent.sectores,
     });
     res.json({ firebaseToken, agent: req.agent });
   } catch (err) {
@@ -95,9 +98,9 @@ router.get('/users', requireAuth, async (req, res) => {
 
 router.post('/users', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { email, name, password, role, areaIds } = req.body;
+    const { email, name, password, role, areaIds, sectores } = req.body;
     if (!email || !name || !password) return res.status(400).json({ error: 'email, name y password son requeridos' });
-    const user = await createUser({ email, name, password, role, areaIds: areaIds ?? [] });
+    const user = await createUser({ email, name, password, role, areaIds: areaIds ?? [], sectores });
     res.status(201).json(user);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -106,16 +109,19 @@ router.post('/users', requireAuth, requireAdmin, async (req, res) => {
 
 router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, role, areaIds } = req.body;
+    const { name, role, areaIds, sectores } = req.body;
     if (role && !VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Rol inválido. Válidos: ${VALID_ROLES.join(', ')}` });
     }
     if (req.params.id === req.agent.id && role && role !== req.agent.role) {
       return res.status(400).json({ error: 'No podés cambiar tu propio rol' });
     }
-    const before = role ? await getAgentById(req.params.id) : null;
-    const updated = await updateUser(req.params.id, { name, role, areaIds });
-    if (before && before.role !== updated.role) await revokeFirebaseSession(req.params.id);
+    const before = await getAgentById(req.params.id);
+    const updated = await updateUser(req.params.id, { name, role, areaIds, sectores });
+    // Cambió el rol o los sectores: la sesión de Firebase tiene los claims viejos.
+    if (before && (before.role !== updated.role || before.sectores.join() !== updated.sectores.join())) {
+      await revokeFirebaseSession(req.params.id);
+    }
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });

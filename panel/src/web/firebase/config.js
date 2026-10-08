@@ -35,7 +35,7 @@ export function ensureFirebaseSession(agent) {
     const user = auth.currentUser;
     if (user?.uid === uid) {
       const { claims } = await user.getIdTokenResult();
-      if (claims.selvaggioRole === agent.role) return;
+      if (claims.selvaggioRole === agent.role && (claims.selvaggioSectores ?? []).join() === (agent.sectores ?? []).join()) return;
     }
     const r = await authFetch(`${BASE_URL}/api/auth/firebase-token`, { method: 'POST' });
     const data = await r.json().catch(() => ({}));

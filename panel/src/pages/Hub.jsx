@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { tieneSector } from '../lib/sectores';
 import styles from './Hub.module.css';
 
 // Todas las áreas viven en el panel (las pantallas que venían de la landing
@@ -7,7 +8,6 @@ import styles from './Hub.module.css';
 export default function Hub() {
   const { agent, logout } = useAuth();
   const navigate = useNavigate();
-  const role = agent?.role;
 
   const areas = [
     {
@@ -15,37 +15,32 @@ export default function Hub() {
       title: 'Bot de WhatsApp',
       desc: 'Conversaciones, contactos, difusiones, base de conocimiento y estadísticas.',
       to: '/conversations',
-      roles: ['admin', 'atencion_cliente', 'operador'],
     },
     {
       key: 'gestion',
       title: 'Gestión',
       desc: 'Reservas, take away, cupones, calendario, eventos, salón, clientes, mensajes y analytics.',
       to: '/gestion/resumen',
-      roles: ['admin', 'atencion_cliente'],
     },
     {
       key: 'contenido',
       title: 'Contenido web',
       desc: 'Carta, maridajes, galería, reseñas, prensa y configuración de la web.',
       to: '/contenido/carta',
-      roles: ['admin'],
     },
     {
       key: 'caja',
       title: 'Caja',
       desc: 'Carga de pedidos del salón.',
       to: '/caja',
-      roles: ['admin', 'caja'],
     },
     {
       key: 'cocina',
       title: 'Cocina',
       desc: 'Comandas en tiempo real.',
       to: '/cocina',
-      roles: ['admin', 'cocina'],
     },
-  ].filter(a => a.roles.includes(role));
+  ].filter(a => tieneSector(agent, a.key));
 
   function open(a) {
     if (a.to) navigate(a.to);

@@ -418,3 +418,14 @@
   gap: 8px;
   font-size: 14px;
 }
+
+/* Sectores del panel a los que entra el usuario */
+.sectorTag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f5e8f0;
+  color: var(--color-primary);
+}

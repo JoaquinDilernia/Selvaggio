@@ -1,23 +1,23 @@
 import { useEffect, useState, useCallback } from 'react';
 import { authFetch, BASE_URL } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { SECTORES } from '../lib/sectores';
 import styles from './Users.module.css';
 
+// El rol es el nivel DENTRO del bot; a qué secciones entra cada usuario lo
+// deciden los sectores (se tildan varios). Admin entra a todo.
 const ROLES = [
-  { value: 'operador', label: 'Operador', desc: 'Ve las conversaciones de su área asignada' },
-  { value: 'atencion_cliente', label: 'Atención al cliente', desc: 'Acceso completo excepto gestión de usuarios' },
-  { value: 'admin', label: 'Administrador', desc: 'Acceso total incluida gestión de usuarios' },
-  { value: 'caja', label: 'Caja', desc: 'Solo la pantalla de Caja (sin acceso al bot)' },
-  { value: 'cocina', label: 'Cocina', desc: 'Solo la pantalla de Cocina (sin acceso al bot)' },
+  { value: 'operador', label: 'Operador', desc: 'Ve solo las conversaciones de su área' },
+  { value: 'atencion_cliente', label: 'Atención al cliente', desc: 'Todas las conversaciones, KB, configuración y estadísticas' },
+  { value: 'admin', label: 'Administrador', desc: 'Acceso total a todos los sectores y a usuarios' },
 ];
-
-// Roles del local: no atienden el bot, así que no llevan áreas.
-const LOCAL_ROLES = ['caja', 'cocina'];
+const BOT_LEVELS = ROLES.map(r => r.value);
+const SECTOR_LABEL = Object.fromEntries(SECTORES.map(x => [x.id, x.label]));
 
 const ROLE_LABEL = { admin: 'Admin', atencion_cliente: 'Atención al cliente', operador: 'Operador', caja: 'Caja', cocina: 'Cocina' };
 const ROLE_COLOR = { admin: styles.roleAdmin, atencion_cliente: styles.roleAtencion, operador: styles.roleOperador, caja: styles.roleLocal, cocina: styles.roleLocal };
 
-const DEFAULT_FORM = { name: '', email: '', password: '', role: 'operador', areaIds: [] };
+const DEFAULT_FORM = { name: '', email: '', password: '', role: 'operador', areaIds: [], sectores: ['bot'] };
 
 export default function Users() {
   const { agent: me } = useAuth();
@@ -50,7 +50,7 @@ export default function Users() {
   }
 
   function openEdit(user) {
-    setForm({ mode: 'edit', data: { id: user.id, name: user.name, email: user.email, role: user.role, areaIds: user.areaIds ?? [], password: '' } });
+    setForm({ mode: 'edit', data: { id: user.id, name: user.name, email: user.email, role: user.role, areaIds: user.areaIds ?? [], sectores: user.sectores ?? [], password: '' } });
     setError('');
   }
 
@@ -65,20 +65,26 @@ export default function Users() {
     setSaving(true);
     setError('');
     try {
-      const { name, email, password, role, areaIds } = form.data;
+      const { name, email, password, areaIds, sectores } = form.data;
+      const esAdmin = form.data.role === 'admin';
+      if (!esAdmin && sectores.length === 0) throw new Error('Elegí al menos un sector');
+      // Sin el sector Bot el nivel del bot no importa: un usuario viejo de caja/cocina conserva su rol.
+      const role = esAdmin || sectores.includes('bot') || form.mode === 'create'
+        ? (BOT_LEVELS.includes(form.data.role) ? form.data.role : 'operador')
+        : undefined;
 
       if (form.mode === 'create') {
         if (!name || !email || !password) throw new Error('Nombre, email y contraseña son requeridos');
         const res = await authFetch(BASE_URL + '/api/auth/users', {
           method: 'POST',
-          body: { name, email, password, role, areaIds },
+          body: { name, email, password, role, areaIds, sectores },
         });
         if (!res.ok) throw new Error((await res.json()).error);
       } else {
         const { id } = form.data;
         const res = await authFetch(BASE_URL + `/api/auth/users/${id}`, {
           method: 'PUT',
-          body: { name, role, areaIds },
+          body: { name, ...(role && { role }), areaIds, sectores },
         });
         if (!res.ok) throw new Error((await res.json()).error);
       }
@@ -162,7 +168,38 @@ export default function Users() {
             )}
 
             <div className={styles.field}>
-              <label className={styles.label}>Rol</label>
+              <label className={styles.label}>Sectores</label>
+              <div className={styles.checkboxGroup}>
+                {SECTORES.map(x => {
+                  const esAdmin = form.data.role === 'admin';
+                  return (
+                    <label key={x.id} className={styles.checkboxItem} title={x.desc}>
+                      <input
+                        type="checkbox"
+                        checked={esAdmin || form.data.sectores.includes(x.id)}
+                        disabled={esAdmin}
+                        onChange={e => {
+                          const next = e.target.checked
+                            ? [...form.data.sectores, x.id]
+                            : form.data.sectores.filter(id => id !== x.id);
+                          setField('sectores', next);
+                        }}
+                      />
+                      {x.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className={styles.hint}>
+                {form.data.role === 'admin'
+                  ? 'El administrador entra a todos los sectores.'
+                  : 'Tildá a qué secciones del panel entra. Por ejemplo: Bot + Gestión + Caja.'}
+              </p>
+            </div>
+
+            {(form.data.role === 'admin' || form.data.sectores.includes('bot')) && (
+            <div className={styles.field}>
+              <label className={styles.label}>Nivel en el bot</label>
               <div className={styles.roleCards}>
                 {ROLES.map(r => (
                   <label
@@ -183,8 +220,9 @@ export default function Users() {
                 ))}
               </div>
             </div>
+            )}
 
-            {!LOCAL_ROLES.includes(form.data.role) && (
+            {form.data.sectores.includes('bot') && form.data.role !== 'admin' && (
             <div className={styles.field}>
               <label className={styles.label}>Áreas asignadas</label>
               <div className={styles.checkboxGroup}>
@@ -231,7 +269,7 @@ export default function Users() {
             <div className={styles.tableHead}>
               <span>Nombre</span>
               <span>Email</span>
-              <span>Rol / Área</span>
+              <span>Rol / sectores / áreas</span>
               <span></span>
             </div>
             {users.map(user => (
@@ -248,7 +286,10 @@ export default function Users() {
                   <span className={`${styles.roleBadge} ${ROLE_COLOR[user.role] ?? ''}`}>
                     {ROLE_LABEL[user.role] ?? user.role}
                   </span>
-                  {(user.areaIds ?? []).map(id => (
+                  {user.role !== 'admin' && (user.sectores ?? []).map(x => (
+                    <span key={x} className={styles.sectorTag}>{SECTOR_LABEL[x] ?? x}</span>
+                  ))}
+                  {(user.sectores ?? []).includes('bot') && (user.areaIds ?? []).map(id => (
                     <span key={id} className={styles.deptTag}>{areaName(id)}</span>
                   ))}
                 </div>
@@ -269,7 +310,7 @@ export default function Users() {
         )}
 
         <div className={styles.rolesGuide}>
-          <h3 className={styles.guideTitle}>Permisos por rol</h3>
+          <h3 className={styles.guideTitle}>Nivel dentro del bot</h3>
           <div className={styles.guideGrid}>
             <div className={styles.guideRow}>
               <span className={`${styles.roleBadge} ${styles.roleOperador}`}>Operador</span>

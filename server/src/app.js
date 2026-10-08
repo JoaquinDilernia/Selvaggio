@@ -25,7 +25,7 @@ import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
-import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess } from './middleware/requireAuth.js';
+import { requireAuth, requireAtLeastAtencionCliente, requireBotAccess, requireSector } from './middleware/requireAuth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -81,7 +81,7 @@ app.use('/api/config',        requireAuth, requireBotAccess, requireAtLeastAtenc
 // Un operador que atiende una conversación derivada necesita ver el perfil
 // del cliente (contacto, notas) y poder actualizarlo — no es una acción de
 // administración global como el resto de este bloque.
-app.use('/api/customers',     requireAuth, requireBotAccess, customerRoutes);
+app.use('/api/customers',     requireAuth, requireSector('bot', 'gestion'), customerRoutes); // Clientes está en Bot y en Gestión
 app.use('/api/test',          requireAuth, requireBotAccess, requireAtLeastAtencionCliente, testRoutes);
 app.use('/api/stats',         requireAuth, requireBotAccess, requireAtLeastAtencionCliente, statsRoutes);
 app.use('/api/quick-replies', requireAuth, requireBotAccess, requireAtLeastAtencionCliente, quickReplyRoutes);
@@ -94,7 +94,7 @@ app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtenc
 // la lectura la necesita cualquier operador para derivar conversaciones.
 app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
 app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
-app.use('/api/gestion',       requireAuth, requireBotAccess, requireAtLeastAtencionCliente, gestionRoutes);
+app.use('/api/gestion',       requireAuth, requireSector('gestion'), gestionRoutes);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
 // Health check

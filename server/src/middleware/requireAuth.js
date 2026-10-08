@@ -1,4 +1,4 @@
-import { verifyToken, getAgentById, BOT_ROLES } from '../services/auth.service.js';
+import { verifyToken, getAgentById } from '../services/auth.service.js';
 
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -29,11 +29,17 @@ export function requireAtLeastAtencionCliente(req, res, next) {
   next();
 }
 
-// Roles del local (caja, cocina) no ven nada del bot: ni conversaciones ni
-// contactos (datos personales de clientes). Va después de requireAuth.
-export function requireBotAccess(req, res, next) {
-  if (!BOT_ROLES.includes(req.agent?.role)) {
-    return res.status(403).json({ error: 'Tu usuario no tiene acceso al bot' });
-  }
-  next();
+// Acceso por sector del panel (bot, gestion, contenido, caja, cocina): pasa
+// si el usuario tiene AL MENOS uno de los sectores pedidos. Va después de
+// requireAuth (req.agent.sectores ya viene calculado, admin tiene todos).
+export function requireSector(...sectores) {
+  return (req, res, next) => {
+    if (!sectores.some(x => req.agent?.sectores?.includes(x))) {
+      return res.status(403).json({ error: 'Tu usuario no tiene acceso a esta sección' });
+    }
+    next();
+  };
 }
+
+// Sin el sector Bot no se ve nada del bot: ni conversaciones ni contactos.
+export const requireBotAccess = requireSector('bot');

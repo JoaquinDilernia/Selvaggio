@@ -11,6 +11,29 @@ const BCRYPT_ROUNDS = 12;
 export const BOT_ROLES = ['admin', 'atencion_cliente', 'operador'];
 export const VALID_ROLES = [...BOT_ROLES, 'caja', 'cocina'];
 
+// Sectores del panel a los que entra cada usuario (se eligen varios). El rol
+// queda para el nivel DENTRO del bot (operador / atención / admin). Admin
+// entra a todo. Usuarios viejos sin sectores guardados: se deducen del rol.
+export const SECTORES = ['bot', 'gestion', 'contenido', 'caja', 'cocina'];
+const SECTORES_POR_ROL = {
+  admin: SECTORES,
+  atencion_cliente: ['bot', 'gestion'],
+  operador: ['bot'],
+  caja: ['caja'],
+  cocina: ['cocina'],
+};
+
+export function sectoresDe(data = {}) {
+  if (data.role === 'admin') return [...SECTORES];
+  if (Array.isArray(data.sectores)) return SECTORES.filter(x => data.sectores.includes(x));
+  return [...(SECTORES_POR_ROL[data.role] ?? ['bot'])];
+}
+
+function limpiarSectores(sectores) {
+  if (!Array.isArray(sectores)) return undefined;
+  return SECTORES.filter(x => sectores.includes(x));
+}
+
 // Hashes nuevos: bcrypt (con salt). Los que ya existan en SHA-256 sin salt
 // (esquema de BOT-BASE) se migran solos al bcrypt en el próximo login
 // exitoso — mismo esquema que BOT-PMCSALUD.
@@ -42,6 +65,7 @@ function toPublic(data) {
     name: data.name,
     role: data.role ?? 'operador',
     areaIds: data.areaIds ?? [],
+    sectores: sectoresDe({ ...data, role: data.role ?? 'operador' }),
   };
 }
 
@@ -97,13 +121,17 @@ export async function validateCredentials(email, password) {
   return toPublic(data);
 }
 
-export async function createUser({ email, name, password, role = 'operador', areaIds = [] }) {
+export async function createUser({ email, name, password, role = 'operador', areaIds = [], sectores }) {
   const db = getDb();
   const id = docId(email);
   const existing = await db.collection(COLLECTION).doc(id).get();
   if (existing.exists) throw new Error('El email ya está registrado');
   if (!VALID_ROLES.includes(role)) throw new Error(`Rol inválido. Válidos: ${VALID_ROLES.join(', ')}`);
-  const user = { id, email: email.toLowerCase().trim(), name, role, areaIds, passwordHash: await hashPassword(password), createdAt: new Date() };
+  const user = {
+    id, email: email.toLowerCase().trim(), name, role, areaIds,
+    ...(limpiarSectores(sectores) && { sectores: limpiarSectores(sectores) }),
+    passwordHash: await hashPassword(password), createdAt: new Date(),
+  };
   await db.collection(COLLECTION).doc(id).set(user);
   return toPublic(user);
 }
@@ -119,12 +147,13 @@ export async function deleteUser(id) {
   await db.collection(COLLECTION).doc(docId(id)).delete();
 }
 
-export async function updateUser(id, { name, role, areaIds } = {}) {
+export async function updateUser(id, { name, role, areaIds, sectores } = {}) {
   const db = getDb();
   const update = { updatedAt: new Date() };
   if (name) update.name = name;
   if (role) update.role = role;
   if (areaIds !== undefined) update.areaIds = areaIds;
+  if (limpiarSectores(sectores)) update.sectores = limpiarSectores(sectores);
   await db.collection(COLLECTION).doc(docId(id)).update(update);
   const doc = await db.collection(COLLECTION).doc(docId(id)).get();
   return toPublic(doc.data());
