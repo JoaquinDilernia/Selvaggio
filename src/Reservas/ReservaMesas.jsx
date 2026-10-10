@@ -129,7 +129,7 @@ function ReservaMesas() {
     setLoading(true);
     try {
       await addDoc(collection(db, 'selvaggio_reservas_mesas'), {
-        ...formData, estado: 'pendiente', createdAt: new Date().toISOString()
+        ...formData, estado: 'confirmada', createdAt: new Date().toISOString()
       });
 
       // Upsert cliente
