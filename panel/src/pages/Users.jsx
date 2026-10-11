@@ -82,9 +82,10 @@ export default function Users() {
         if (!res.ok) throw new Error((await res.json()).error);
       } else {
         const { id } = form.data;
+        if (password && password.length < 8) throw new Error('La contraseña nueva tiene que tener al menos 8 caracteres');
         const res = await authFetch(BASE_URL + `/api/auth/users/${id}`, {
           method: 'PUT',
-          body: { name, ...(role && { role }), areaIds, sectores },
+          body: { name, ...(role && { role }), areaIds, sectores, ...(password && { password }) },
         });
         if (!res.ok) throw new Error((await res.json()).error);
       }
@@ -164,6 +165,22 @@ export default function Users() {
                   minLength={8}
                 />
                 <p className={styles.hint}>El usuario puede cambiarla desde su perfil.</p>
+              </div>
+            )}
+
+            {form.mode === 'edit' && (
+              <div className={styles.field}>
+                <label className={styles.label}>Resetear contraseña</label>
+                <input
+                  className={styles.input}
+                  type="password"
+                  value={form.data.password}
+                  onChange={e => setField('password', e.target.value)}
+                  placeholder="Dejala vacía para no cambiarla"
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <p className={styles.hint}>Mínimo 8 caracteres. Pasásela al usuario; después la puede cambiar desde su perfil.</p>
               </div>
             )}
 

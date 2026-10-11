@@ -109,17 +109,21 @@ router.post('/users', requireAuth, requireAdmin, async (req, res) => {
 
 router.put('/users/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, role, areaIds, sectores } = req.body;
+    const { name, role, areaIds, sectores, password } = req.body;
     if (role && !VALID_ROLES.includes(role)) {
       return res.status(400).json({ error: `Rol inválido. Válidos: ${VALID_ROLES.join(', ')}` });
+    }
+    if (password !== undefined && (typeof password !== 'string' || password.length < 8)) {
+      return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres' });
     }
     if (req.params.id === req.agent.id && role && role !== req.agent.role) {
       return res.status(400).json({ error: 'No podés cambiar tu propio rol' });
     }
     const before = await getAgentById(req.params.id);
-    const updated = await updateUser(req.params.id, { name, role, areaIds, sectores });
+    const updated = await updateUser(req.params.id, { name, role, areaIds, sectores, password });
     // Cambió el rol o los sectores: la sesión de Firebase tiene los claims viejos.
-    if (before && (before.role !== updated.role || before.sectores.join() !== updated.sectores.join())) {
+    // Con contraseña nueva también se corta, para que tenga que volver a entrar.
+    if (password || (before && (before.role !== updated.role || before.sectores.join() !== updated.sectores.join()))) {
       await revokeFirebaseSession(req.params.id);
     }
     res.json(updated);

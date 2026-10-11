@@ -149,11 +149,13 @@ export async function deleteUser(id) {
   await db.collection(COLLECTION).doc(docId(id)).delete();
 }
 
-export async function updateUser(id, { name, role, areaIds, sectores } = {}) {
+export async function updateUser(id, { name, role, areaIds, sectores, password } = {}) {
   const db = getDb();
   const update = { updatedAt: new Date() };
   if (name) update.name = name;
   if (role) update.role = role;
+  // Reseteo de contraseña por un admin (sin pedir la actual).
+  if (password) update.passwordHash = await hashPassword(password);
   if (areaIds !== undefined) update.areaIds = areaIds;
   if (limpiarSectores(sectores)) update.sectores = limpiarSectores(sectores);
   await db.collection(COLLECTION).doc(docId(id)).update(update);
