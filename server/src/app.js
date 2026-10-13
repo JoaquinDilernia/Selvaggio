@@ -21,6 +21,8 @@ import campaignRoutes from './routes/campaign.routes.js';
 import redirectRoutes from './routes/redirect.routes.js';
 import { publicReservasRouter, reservasRouter } from './routes/reservas.routes.js';
 import gestionRoutes from './routes/gestion.routes.js';
+import comandasRoutes from './routes/comandas.routes.js';
+import { asegurarPlantillaPedidoListo } from './services/comandas.service.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { iniciarArchivoReservas } from './services/archivoReservas.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
@@ -97,6 +99,7 @@ app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtenc
 app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
 app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
 app.use('/api/gestion',       requireAuth, requireSector('gestion'), gestionRoutes);
+app.use('/api/comandas',      requireAuth, requireSector('cocina'), comandasRoutes);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
 // Health check
@@ -107,6 +110,7 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[server] Selvaggio server corriendo en puerto ${PORT}`);
   ensureBaseLabels().catch(err => console.error('[labels] No se pudieron crear las etiquetas base:', err.message));
+  asegurarPlantillaPedidoListo().catch(err => console.error('[comandas] No se pudo asegurar la plantilla pedido listo:', err.message));
 });
 
 export default app;

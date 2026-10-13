@@ -388,3 +388,36 @@
     text-align: left;
   }
 }
+
+.aviso-whatsapp {
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.aviso-whatsapp.ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.aviso-whatsapp.error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.btn-whatsapp-manual {
+  display: block;
+  margin-top: 6px;
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.btn-whatsapp-repetir:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

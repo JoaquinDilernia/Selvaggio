@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { celularWhatsApp, formatearCelular } from '../../lib/telefono';
 import './Caja.css';
 
 function Caja() {
@@ -26,6 +27,12 @@ function Caja() {
     
     if (!formData.numeroPedido || !formData.nombre || !formData.telefono) {
       setMensaje({ tipo: 'error', texto: 'Por favor completá los campos obligatorios' });
+      return;
+    }
+
+    // Cocina le avisa por WhatsApp cuando está listo: tiene que ser un celular válido.
+    if (!celularWhatsApp(formData.telefono)) {
+      setMensaje({ tipo: 'error', texto: 'El teléfono no es un celular válido. Cargalo con código de área, ej: 1155667788' });
       return;
     }
 
@@ -117,6 +124,11 @@ function Caja() {
               placeholder="Ej: 1155667788"
               required
             />
+            {formData.telefono.trim() && (
+              celularWhatsApp(formData.telefono)
+                ? <small className="telefono-check ok">✓ El aviso le llega a {formatearCelular(celularWhatsApp(formData.telefono))}</small>
+                : <small className="telefono-check error">Falta el código de área o sobran dígitos (ej: 1155667788)</small>
+            )}
           </div>
 
           <div className="form-group">

@@ -161,3 +161,17 @@
     font-size: 16px; /* Evita zoom en iOS */
   }
 }
+
+.telefono-check {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+.telefono-check.ok {
+  color: #2e7d32;
+}
+
+.telefono-check.error {
+  color: #c62828;
+}

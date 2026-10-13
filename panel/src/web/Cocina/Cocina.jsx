@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { authFetch, BASE_URL } from '../../lib/api';
+import { celularWhatsApp } from '../../lib/telefono';
 import './Cocina.css';
 
 function Cocina() {
@@ -9,6 +11,7 @@ function Cocina() {
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [filtroEstado, setFiltroEstado] = useState('pendiente'); // pendiente, completado, todos
   const [busqueda, setBusqueda] = useState('');
+  const [enviando, setEnviando] = useState({}); // pedidoId → aviso de WhatsApp en curso
   const audioRef = useRef(null);
   const pedidosAnterioresRef = useRef(new Set());
 
@@ -179,20 +182,29 @@ function Cocina() {
     }
   };
 
-  const enviarWhatsApp = (pedido) => {
+  // Plan B si el aviso automático falla: abrir wa.me como antes.
+  const abrirWhatsAppManual = (pedido) => {
+    const mensaje = `Hola ${pedido.nombre}! Tu pedido #${pedido.numeroPedido} está listo para retirar. Te esperamos! 🍷 - Selvaggio`;
+    const telefono = celularWhatsApp(pedido.telefono) ?? `54${pedido.telefono.replace(/\D/g, '')}`;
+    window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, '_blank');
+  };
+
+  // El server manda la plantilla "pedido listo" desde el número del bot y
+  // guarda el resultado en pedido.avisoWhatsapp (la tarjeta lo muestra).
+  const enviarWhatsApp = async (pedido) => {
+    setEnviando(prev => ({ ...prev, [pedido.id]: true }));
     try {
-      const mensaje = `Hola ${pedido.nombre}! Tu pedido #${pedido.numeroPedido} está listo para retirar. Te esperamos! 🍷 - Selvaggio`;
-      const telefono = pedido.telefono.replace(/\D/g, ''); // Eliminar caracteres no numéricos
-      const whatsappUrl = `https://wa.me/54${telefono}?text=${encodeURIComponent(mensaje)}`;
-      
-      // Abrir WhatsApp
-      window.open(whatsappUrl, '_blank');
-      
-      setMensaje({ tipo: 'success', texto: `WhatsApp abierto para ${pedido.nombre}` });
-      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 2000);
+      const res = await authFetch(`${BASE_URL}/api/comandas/${pedido.id}/avisar-listo`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'No se pudo mandar el WhatsApp');
+      return true;
     } catch (error) {
-      console.error('Error al abrir WhatsApp:', error);
-      setMensaje({ tipo: 'error', texto: 'Error al abrir WhatsApp' });
+      console.error('Error al avisar por WhatsApp:', error);
+      setMensaje({ tipo: 'error', texto: `Pedido #${pedido.numeroPedido}: ${error.message}. Podés mandarlo a mano desde la tarjeta.` });
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 8000);
+      return false;
+    } finally {
+      setEnviando(prev => ({ ...prev, [pedido.id]: false }));
     }
   };
 
@@ -205,14 +217,14 @@ function Cocina() {
         pedido_listo: Timestamp.now()
       });
 
-      // Enviar WhatsApp
-      enviarWhatsApp(pedido);
-      
       // Recargar pedidos
       await cargarPedidos();
-      
-      setMensaje({ tipo: 'success', texto: `Pedido #${pedido.numeroPedido} marcado como listo ✓` });
-      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+
+      // Avisar al cliente por WhatsApp (si falla, enviarWhatsApp muestra el error)
+      if (await enviarWhatsApp(pedido)) {
+        setMensaje({ tipo: 'success', texto: `Pedido #${pedido.numeroPedido} listo ✓ — WhatsApp enviado a ${pedido.nombre}` });
+        setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+      }
 
     } catch (error) {
       console.error('Error al marcar pedido:', error);
@@ -370,12 +382,24 @@ function Cocina() {
                         </span>
                       )}
                     </div>
-                    <button 
+                    {pedido.avisoWhatsapp?.estado === 'enviado' && (
+                      <div className="aviso-whatsapp ok">✓ Avisado por WhatsApp {formatearHora(pedido.avisoWhatsapp.en)}</div>
+                    )}
+                    {pedido.avisoWhatsapp?.estado === 'error' && (
+                      <div className="aviso-whatsapp error">
+                        ⚠️ No se pudo avisar: {pedido.avisoWhatsapp.error}
+                        <button type="button" className="btn-whatsapp-manual" onClick={() => abrirWhatsAppManual(pedido)}>
+                          Mandar a mano
+                        </button>
+                      </div>
+                    )}
+                    <button
                       onClick={() => enviarWhatsApp(pedido)}
                       className="btn-whatsapp-repetir"
                       title="Reenviar notificación por WhatsApp"
+                      disabled={enviando[pedido.id]}
                     >
-                      📱 Enviar WhatsApp
+                      {enviando[pedido.id] ? 'Enviando…' : pedido.avisoWhatsapp ? '📱 Reenviar WhatsApp' : '📱 Enviar WhatsApp'}
                     </button>
                   </div>
                 )}
