@@ -59,14 +59,15 @@ test('evento para el bot: sin info interna no agrega el campo', async () => {
 test('config de reservas: sin doc usa los valores por defecto', async () => {
   const { normalizarConfigReservas } = await import('./reservas.service.js');
   assert.deepEqual(normalizarConfigReservas(null), {
-    personasPorHorario: 16, cavaMinimo: 10, cavaMaximo: null, cavaPrecioPersona: 60000, cavaSena: 100000,
+    personasPorHorario: 16, mesaMaximo: 9, cavaMinimo: 10, cavaMaximo: null, cavaPrecioPersona: 60000, cavaSena: 100000,
   });
 });
 
 test('config de reservas: respeta lo cargado y descarta valores inválidos', async () => {
   const { normalizarConfigReservas } = await import('./reservas.service.js');
-  const c = normalizarConfigReservas({ personasPorHorario: '30', cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: -5, cavaSena: 'abc' });
+  const c = normalizarConfigReservas({ personasPorHorario: '30', mesaMaximo: '6', cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: -5, cavaSena: 'abc' });
   assert.equal(c.personasPorHorario, 30);
+  assert.equal(c.mesaMaximo, 6);
   assert.equal(c.cavaMinimo, 12);
   assert.equal(c.cavaMaximo, 40);
   assert.equal(c.cavaPrecioPersona, 60000);
@@ -102,9 +103,10 @@ test('prompt del bot: usa la capacidad, el mínimo/máximo y los precios configu
   const { reservasPrompt } = await import('./reservas.tools.js');
   const { normalizarConfigReservas } = await import('./reservas.service.js');
   const txt = reservasPrompt(new Date('2026-10-13T15:00:00Z'), normalizarConfigReservas({
-    personasPorHorario: 30, cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: 75000, cavaSena: 150000,
+    personasPorHorario: 30, mesaMaximo: 8, cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: 75000, cavaSena: 150000,
   }));
-  assert.match(txt, /MESAS \(hasta 11 personas\)/);
+  assert.match(txt, /MESAS \(hasta 8 personas por mesa\)/);
+  assert.match(txt, /entre 9 y 11 derivá al equipo/);
   assert.match(txt, /lugar para 30 personas/);
   assert.match(txt, /desde 12 hasta 40 personas/);
   assert.match(txt, /\$75\.000 por persona/);

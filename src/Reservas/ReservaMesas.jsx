@@ -32,7 +32,7 @@ function ReservaMesas() {
   const [excepcionDia, setExcepcionDia] = useState(null);
   const config = useConfigReservas();
   // Desde el mínimo de La Cava ya no es una mesa.
-  const maxPersonasMesa = config.cavaMinimo - 1;
+  const maxPersonasMesa = config.mesaMaximo;
 
   useEffect(() => {
     trackViewContent('Reserva Mesa', 'Reservas');
@@ -128,7 +128,7 @@ function ReservaMesas() {
       setToast({ message: 'No podés reservar una fecha pasada', type: 'error' }); return;
     }
     if (formData.cantidadPersonas > maxPersonasMesa) {
-      setToast({ message: `Para ${config.cavaMinimo} o más personas reservá La Cava`, type: 'error' }); return;
+      setToast({ message: `Las mesas son de hasta ${maxPersonasMesa} personas`, type: 'error' }); return;
     }
     if (isLleno(formData.horario)) {
       setToast({ message: lugaresLibres(formData.horario) > 0
@@ -275,7 +275,7 @@ function ReservaMesas() {
             </div>
             {formData.cantidadPersonas >= maxPersonasMesa && (
               <p className="rf-horarios-hint">
-                ¿Son {config.cavaMinimo} o más? <Link to="/reserva-cava">Reservá La Cava</Link>
+                ¿Son más de {maxPersonasMesa}? <Link to="/reserva-cava">Reservá La Cava</Link> (desde {config.cavaMinimo} personas)
               </p>
             )}
           </div>

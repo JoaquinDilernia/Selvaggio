@@ -6,6 +6,7 @@ import { db } from '../firebase/config';
 // Mismos defaults y validación que server/src/services/reservas.service.js.
 export const CONFIG_RESERVAS_DEFAULT = Object.freeze({
   personasPorHorario: 16,
+  mesaMaximo: 9, // personas por mesa
   cavaMinimo: 10,
   cavaMaximo: null, // sin tope
   cavaPrecioPersona: 60000,
@@ -19,7 +20,7 @@ const enteroPositivo = (v) => {
 
 export function normalizarConfigReservas(raw) {
   const c = { ...CONFIG_RESERVAS_DEFAULT };
-  for (const k of ['personasPorHorario', 'cavaMinimo', 'cavaPrecioPersona', 'cavaSena']) {
+  for (const k of ['personasPorHorario', 'mesaMaximo', 'cavaMinimo', 'cavaPrecioPersona', 'cavaSena']) {
     c[k] = enteroPositivo(raw?.[k]) ?? CONFIG_RESERVAS_DEFAULT[k];
   }
   const max = enteroPositivo(raw?.cavaMaximo);

@@ -7,6 +7,7 @@ import './TabsShared.css';
 // bot (server/src/services/reservas.service.js), con estos mismos defaults.
 const DEFAULT = {
   personasPorHorario: 16,
+  mesaMaximo: 9,
   cavaMinimo: 10,
   cavaMaximo: null,
   cavaPrecioPersona: 60000,
@@ -34,6 +35,7 @@ function CapacidadTab() {
     const n = (k) => Number(form[k]);
     const entero = (k) => Number.isInteger(n(k)) && n(k) > 0;
     if (!entero('personasPorHorario')) return 'Personas por horario tiene que ser un número mayor a 0';
+    if (!entero('mesaMaximo')) return 'El máximo por mesa tiene que ser un número mayor a 0';
     if (!entero('cavaMinimo') || n('cavaMinimo') < 2) return 'El mínimo de La Cava tiene que ser 2 o más';
     if (form.cavaMaximo !== '' && (!entero('cavaMaximo') || n('cavaMaximo') < n('cavaMinimo'))) return 'El máximo de La Cava tiene que ser mayor o igual al mínimo (o dejalo vacío)';
     if (!entero('cavaPrecioPersona')) return 'El precio por persona tiene que ser un número mayor a 0';
@@ -48,6 +50,7 @@ function CapacidadTab() {
     try {
       await setDoc(doc(db, 'selvaggio_configuracion', 'reservas'), {
         personasPorHorario: Number(form.personasPorHorario),
+        mesaMaximo: Number(form.mesaMaximo),
         cavaMinimo: Number(form.cavaMinimo),
         cavaMaximo: form.cavaMaximo === '' ? null : Number(form.cavaMaximo),
         cavaPrecioPersona: Number(form.cavaPrecioPersona),
@@ -65,7 +68,9 @@ function CapacidadTab() {
 
   if (cargando) return <p style={{ color: '#6b635a', textAlign: 'center', padding: 40 }}>Cargando…</p>;
 
-  const maxMesa = Number(form.cavaMinimo) > 1 ? Number(form.cavaMinimo) - 1 : '—';
+  // Grupos que no entran en una mesa y tampoco llegan al mínimo de La Cava.
+  const hueco = Number(form.mesaMaximo) + 1 < Number(form.cavaMinimo)
+    ? [Number(form.mesaMaximo) + 1, Number(form.cavaMinimo) - 1] : null;
 
   return (
     <div className="tab-inner">
@@ -76,14 +81,27 @@ function CapacidadTab() {
 
       <div className="cal-form" style={{ marginBottom: 24 }}>
         <h3 className="cal-form__title">🍷 Mesas</h3>
+        <div className="cal-form__row">
         <div className="cal-form__field">
           <label>Personas por horario</label>
           <input type="number" min="1" value={form.personasPorHorario} onChange={set('personasPorHorario')} />
           <p style={{ fontSize: 12, color: '#8a8279', margin: '4px 0 0' }}>
             Total de personas que se pueden reservar en cada horario (18:00, 18:30…). Una reserva de 6 ocupa 6 lugares.
-            Cada mesa puede ser de hasta {maxMesa} personas; desde el mínimo de La Cava se reserva La Cava.
           </p>
         </div>
+        <div className="cal-form__field">
+          <label>Máximo de personas por mesa</label>
+          <input type="number" min="1" value={form.mesaMaximo} onChange={set('mesaMaximo')} />
+          <p style={{ fontSize: 12, color: '#8a8279', margin: '4px 0 0' }}>
+            Grupos más grandes no pueden reservar mesa; la web los manda a La Cava.
+          </p>
+        </div>
+        </div>
+        {hueco && (
+          <p style={{ fontSize: 13, color: '#b26a00', margin: '8px 0 0' }}>
+            Ojo: grupos de {hueco[0] === hueco[1] ? hueco[0] : `${hueco[0]} a ${hueco[1]}`} personas no van a poder reservar ni mesa ni La Cava.
+          </p>
+        )}
       </div>
 
       <div className="cal-form" style={{ marginBottom: 24 }}>
