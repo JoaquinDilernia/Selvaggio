@@ -453,17 +453,26 @@ export async function agenda({ desde, hasta, horarioHabitual = null } = {}, { no
     })),
     eventos: ev.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.visible !== false)
       .sort((a, b) => `${a.fecha} ${a.horaInicio || ''}`.localeCompare(`${b.fecha} ${b.horaInicio || ''}`))
-      .map(e => ({
-        id: e.id,
-        titulo: e.titulo,
-        fecha: e.fecha,
-        dia: NOMBRES_DIA[diaSemana(e.fecha)],
-        horario: [e.horaInicio, e.horaFin].filter(Boolean).join(' a ') || null,
-        descripcion: e.descripcion || null,
-        // El botón "Reservar" de la web suele ser un link a NUESTRO WhatsApp:
-        // pasárselo al cliente que ya está en este chat lo trae de vuelta acá.
-        ...(e.ctaLink && (esLinkWhatsApp(e.ctaLink) ? { reservaPorEsteChat: true } : { link: e.ctaLink })),
-      })),
+      .map(eventoParaBot),
+  };
+}
+
+/** Un evento de selvaggio_eventos tal como lo ve el bot en consultar_agenda. */
+export function eventoParaBot(e) {
+  const infoBot = (e.infoBot || '').trim();
+  return {
+    id: e.id,
+    titulo: e.titulo,
+    fecha: e.fecha,
+    dia: NOMBRES_DIA[diaSemana(e.fecha)],
+    horario: [e.horaInicio, e.horaFin].filter(Boolean).join(' a ') || null,
+    descripcion: e.descripcion || null,
+    // Lo que el admin carga solo para el bot (precio, qué incluye, políticas…);
+    // no se muestra en la web.
+    ...(infoBot && { infoInterna: infoBot }),
+    // El botón "Reservar" de la web suele ser un link a NUESTRO WhatsApp:
+    // pasárselo al cliente que ya está en este chat lo trae de vuelta acá.
+    ...(e.ctaLink && (esLinkWhatsApp(e.ctaLink) ? { reservaPorEsteChat: true } : { link: e.ctaLink })),
   };
 }
 

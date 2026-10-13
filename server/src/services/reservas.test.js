@@ -36,3 +36,20 @@ test('ahoraAR usa hora de Buenos Aires, no UTC', () => {
   // 02:30 UTC del sábado = 23:30 del viernes en Argentina (UTC-3)
   assert.deepEqual(ahoraAR(new Date('2026-10-10T02:30:00Z')), { fecha: '2026-10-09', hora: '23:30' });
 });
+
+test('evento para el bot: incluye la info interna y la descripción pública', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  const ev = eventoParaBot({
+    id: 'abc', titulo: 'Cata', fecha: '2026-10-09', horaInicio: '20:00', horaFin: '23:00',
+    descripcion: 'Noche de vinos', infoBot: 'Precio $30.000, incluye 4 copas. Hay opción vegetariana.',
+  });
+  assert.equal(ev.descripcion, 'Noche de vinos');
+  assert.equal(ev.infoInterna, 'Precio $30.000, incluye 4 copas. Hay opción vegetariana.');
+  assert.equal(ev.horario, '20:00 a 23:00');
+});
+
+test('evento para el bot: sin info interna no agrega el campo', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  const ev = eventoParaBot({ id: 'x', titulo: 'Cata', fecha: '2026-10-09', infoBot: '   ' });
+  assert.equal('infoInterna' in ev, false);
+});

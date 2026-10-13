@@ -17,6 +17,7 @@ function EventosTab() {
     horaInicio: '',
     horaFin: '',
     descripcion: '',
+    infoBot: '',
     imagen: '',
     visible: true,
     esPopup: false,
@@ -43,7 +44,7 @@ function EventosTab() {
   };
 
   const resetForm = () => {
-    setForm({ titulo: '', fecha: '', horaInicio: '', horaFin: '', descripcion: '', imagen: '', visible: true, esPopup: false, popupImagen: '', ctaTexto: '', ctaLink: '' });
+    setForm({ titulo: '', fecha: '', horaInicio: '', horaFin: '', descripcion: '', infoBot: '', imagen: '', visible: true, esPopup: false, popupImagen: '', ctaTexto: '', ctaLink: '' });
     setEditando(null);
     setShowForm(false);
   };
@@ -96,6 +97,7 @@ function EventosTab() {
         horaInicio: form.horaInicio || '',
         horaFin: form.horaFin || '',
         descripcion: form.descripcion || '',
+        infoBot: form.infoBot || '',
         imagen: form.imagen || '',
         visible: form.visible,
         esPopup: form.esPopup || false,
@@ -134,6 +136,7 @@ function EventosTab() {
       horaInicio: ev.horaInicio || '',
       horaFin: ev.horaFin || '',
       descripcion: ev.descripcion || '',
+      infoBot: ev.infoBot || '',
       imagen: ev.imagen || '',
       visible: ev.visible !== false,
       esPopup: ev.esPopup || false,
@@ -256,6 +259,19 @@ function EventosTab() {
               rows="3"
               placeholder="Detalle del evento, qué incluye, etc."
             />
+          </div>
+
+          <div className="cal-form__field">
+            <label>🤖 Info para el bot (no se muestra en la web)</label>
+            <textarea
+              value={form.infoBot}
+              onChange={e => setForm(prev => ({ ...prev, infoBot: e.target.value }))}
+              rows="4"
+              placeholder="Precio, qué incluye, menú, opciones sin TACC/veggie, cupo, políticas, preguntas frecuentes…"
+            />
+            <p style={{ fontSize: 12, color: '#8a8279', margin: '4px 0 0' }}>
+              El bot de WhatsApp e Instagram usa esto para responder sobre el evento. El cliente no lo ve en la web.
+            </p>
           </div>
 
           <div className="cal-form__field">
