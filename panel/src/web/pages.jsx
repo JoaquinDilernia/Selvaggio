@@ -23,6 +23,7 @@ export const Reservas      = pagina(() => import('./Admin/AdminReservas.jsx'), '
 export const TakeAway      = pagina(() => import('./Admin/AdminTakeAway.jsx'), 'Take Away', 'Pedidos y catálogo (ingredientes, picadas y adicionales).');
 export const Cupones       = pagina(() => import('./Admin/tabs/CuponesTab.jsx'), 'Cupones', 'Cupones de descuento del take away.');
 export const Calendario    = pagina(() => import('./Admin/tabs/CalendarioTab.jsx'), 'Calendario', 'Días de apertura, cierres y horarios especiales.');
+export const Capacidad     = pagina(() => import('./Admin/tabs/CapacidadTab.jsx'), 'Capacidad', 'Cupo de mesas por horario y condiciones de La Cava.');
 export const Eventos       = pagina(() => import('./Admin/tabs/EventosTab.jsx'), 'Eventos', 'Agenda y pop-up de la web.');
 export const Salon         = pagina(() => import('./Admin/tabs/PedidosTab.jsx'), 'Salón', 'Comandas cargadas en Caja y despachadas por Cocina.');
 export const Mensajes      = pagina(() => import('./Admin/tabs/ContactoTab.jsx'), 'Mensajes', 'Formulario de contacto de la web.');

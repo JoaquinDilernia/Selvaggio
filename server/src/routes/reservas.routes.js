@@ -51,7 +51,7 @@ function handle(fn) {
   };
 }
 
-publicReservasRouter.get('/mesas/disponibilidad', handle(req => disponibilidadMesas(req.query.fecha)));
+publicReservasRouter.get('/mesas/disponibilidad', handle(req => disponibilidadMesas(req.query.fecha, { personas: req.query.personas })));
 // Alta de reserva de mesa desde la web (reemplaza el addDoc directo).
 publicReservasRouter.post('/reservas/mesas', altaRateLimit, handle(async req => {
   const reserva = await crearReservaMesa(req.body ?? {}, { origen: 'web' });

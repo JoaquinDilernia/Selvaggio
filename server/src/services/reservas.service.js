@@ -4,21 +4,19 @@ import { colEscritura } from './testWrites.js';
 // Reservas de mesa y La Cava, del lado del servidor. Replica EXACTAMENTE las
 // reglas que hoy aplica la landing en el navegador (src/Reservas/*.jsx) para
 // que el bot y la web den la misma disponibilidad:
-//   - 4 reservas por horario (cuenta reservas, no personas)
+//   - Cupo de PERSONAS por horario (Gestión → Capacidad del panel)
 //   - Lunes cerrado; vie/sáb hasta las 02:00; resto hasta las 22:00
 //   - selvaggio_calendario/{fecha}: tipo 'cerrar' (todo el día) o 'abrir'
 //     con `horarios` propios
-//   - La Cava: un evento por día, mínimo 10 personas
+//   - La Cava: un evento por día; mínimo/máximo de personas, precio y seña
+//     también salen de Gestión → Capacidad
 //
 // MODO: mientras BOT_MODE !== 'live', lo que CREA EL BOT (reservas acá,
 // pedidos en takeaway.service) va a colecciones sandbox y no toca lo que usa
 // la web. La disponibilidad siempre se calcula con las reservas reales (solo
 // lectura) más las del sandbox, así las pruebas se comportan como en producción.
 
-export const LIMITE_POR_SLOT = 4;
-export const MINIMO_CAVA = 10;
 export const PREFERENCIAS = ['Jardín', 'Living'];
-export const CAVA = { precioPersona: 60000, seña: 100000 };
 
 const HORARIOS_BASE = ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
 const HORARIOS_FINDE = [...HORARIOS_BASE, '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00'];
@@ -30,6 +28,39 @@ const COL = {
   calendario: 'selvaggio_calendario',
   sandboxMesas: 'bot-selvaggio_reservas_sandbox',
 };
+
+// ── Capacidad (Gestión → Capacidad del panel) ────────────────────────────
+
+// La landing lee el mismo doc (src/Reservas/*.jsx) con los mismos defaults.
+const CONFIG_DOC = ['selvaggio_configuracion', 'reservas'];
+const CONFIG_DEFAULT = Object.freeze({
+  personasPorHorario: 16,
+  cavaMinimo: 10,
+  cavaMaximo: null, // sin tope
+  cavaPrecioPersona: 60000,
+  cavaSena: 100000,
+});
+
+const enteroPositivo = (v) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+
+/** Config de capacidad con defaults; descarta lo que no sea un entero > 0. */
+export function normalizarConfigReservas(raw) {
+  const c = { ...CONFIG_DEFAULT };
+  for (const k of ['personasPorHorario', 'cavaMinimo', 'cavaPrecioPersona', 'cavaSena']) {
+    c[k] = enteroPositivo(raw?.[k]) ?? CONFIG_DEFAULT[k];
+  }
+  const max = enteroPositivo(raw?.cavaMaximo);
+  c.cavaMaximo = max && max >= c.cavaMinimo ? max : null;
+  return c;
+}
+
+export async function configReservas() {
+  const snap = await getDb().collection(CONFIG_DOC[0]).doc(CONFIG_DOC[1]).get();
+  return normalizarConfigReservas(snap.exists ? snap.data() : null);
+}
 
 export function isLive() {
   // RESERVAS_MODE: nombre viejo del mismo interruptor (antes solo reservas).
@@ -79,7 +110,10 @@ function colsQueOcupan(incluirSandbox) {
   return [COL.mesas, ...(incluirSandbox && !isLive() ? [COL.sandboxMesas] : [])];
 }
 
-async function contarPorHorario(db, fecha, incluirSandbox) {
+// Personas que ocupa una reserva (las viejas sin cantidad cuentan como 1).
+const personasDe = (r) => enteroPositivo(r.cantidadPersonas) ?? 1;
+
+async function personasPorHorario(db, fecha, incluirSandbox) {
   const cols = colsQueOcupan(incluirSandbox);
   const snaps = await Promise.all(cols.map(c => db.collection(c).where('fecha', '==', fecha).get()));
   const conteo = {};
@@ -87,26 +121,40 @@ async function contarPorHorario(db, fecha, incluirSandbox) {
     for (const d of snap.docs) {
       const r = d.data();
       if (r.estado === 'cancelada' || !r.horario) continue;
-      conteo[r.horario] = (conteo[r.horario] || 0) + 1;
+      conteo[r.horario] = (conteo[r.horario] || 0) + personasDe(r);
     }
   }
   return conteo;
 }
 
 /**
- * @returns {{ fecha, dia, abierto, motivo?, horarios: {hora, disponible}[] }}
- * No expone datos de otras reservas: solo si cada horario tiene lugar.
+ * Lugares (personas) que quedan en cada horario. Un horario está disponible
+ * si entran las `personas` pedidas.
  */
-export async function disponibilidadMesas(fecha, { now = new Date(), incluirSandbox = false } = {}) {
+export function calcularHorarios({ horas, personasPorHorario: ocupadas, cupo, personas = 1, yaPaso }) {
+  return horas.map(h => {
+    const lugares = yaPaso(h) ? 0 : Math.max(0, cupo - (ocupadas[h] || 0));
+    return { hora: h, disponible: lugares > 0 && lugares >= personas, lugares };
+  });
+}
+
+/**
+ * @param {object} opts  personas: tamaño del grupo (marca disponible solo
+ *                       donde entra); config: la de configReservas() si ya se leyó.
+ * @returns {{ fecha, dia, abierto, motivo?, horarios: {hora, disponible, lugares}[] }}
+ * No expone datos de otras reservas: solo cuántos lugares quedan.
+ */
+export async function disponibilidadMesas(fecha, { now = new Date(), incluirSandbox = false, personas = 1, config = null } = {}) {
   if (!FECHA_RE.test(fecha ?? '')) throw Object.assign(new Error('Fecha inválida (formato AAAA-MM-DD)'), { status: 400 });
   const hoy = ahoraAR(now);
   const base = { fecha, dia: NOMBRES_DIA[diaSemana(fecha)] };
   if (fecha < hoy.fecha) return { ...base, abierto: false, motivo: 'fecha pasada', horarios: [] };
 
   const db = getDb();
-  const [excSnap, conteo] = await Promise.all([
+  const [excSnap, conteo, cfg] = await Promise.all([
     db.collection(COL.calendario).doc(fecha).get(),
-    contarPorHorario(db, fecha, incluirSandbox),
+    personasPorHorario(db, fecha, incluirSandbox),
+    config ?? configReservas(),
   ]);
   const excepcion = excSnap.exists ? excSnap.data() : null;
   // 'cerrar' | 'abrir' | null — la web lo usa para el texto (cerrado / horario especial).
@@ -122,9 +170,9 @@ export async function disponibilidadMesas(fecha, { now = new Date(), incluirSand
     ...base,
     abierto: true,
     ...(excepcion?.tipo === 'abrir' && { motivo: excepcion.motivo || 'horario especial' }),
-    horarios: horas.map(h => {
-      const lugares = yaPaso(h) ? 0 : Math.max(0, LIMITE_POR_SLOT - (conteo[h] || 0));
-      return { hora: h, disponible: lugares > 0, lugares };
+    horarios: calcularHorarios({
+      horas, personasPorHorario: conteo, cupo: cfg.personasPorHorario,
+      personas: enteroPositivo(personas) ?? 1, yaPaso,
     }),
   };
 }
@@ -160,18 +208,18 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   const esWeb = meta.origen === 'web';
   const real = isLive() || esWeb;
 
+  const cfg = await configReservas();
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
   if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1) errores.push('cantidad de personas inválida');
-  // La web no tiene tope (hoy permite cualquier cantidad); el bot deriva los
-  // grupos grandes a La Cava.
-  if (meta.origen === 'bot' && r.cantidadPersonas >= MINIMO_CAVA) errores.push(`para ${MINIMO_CAVA} o más personas se reserva La Cava, no una mesa`);
+  // Los grupos grandes van a La Cava.
+  else if (r.cantidadPersonas >= cfg.cavaMinimo) errores.push(`para ${cfg.cavaMinimo} o más personas se reserva La Cava, no una mesa`);
   if (!PREFERENCIAS.includes(r.preferencia)) errores.push(`la preferencia tiene que ser ${PREFERENCIAS.join(' o ')}`);
   if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
 
-  const disp = await disponibilidadMesas(r.fecha, { now, incluirSandbox: !esWeb });
+  const disp = await disponibilidadMesas(r.fecha, { now, incluirSandbox: !esWeb, personas: r.cantidadPersonas, config: cfg });
   if (!disp.abierto) throw Object.assign(new Error(`Ese día no se puede reservar (${disp.motivo})`), { status: 409 });
   const slot = disp.horarios.find(h => h.hora === r.horario);
   if (!slot) throw Object.assign(new Error(`El horario ${r.horario} no existe ese día. Horarios: ${disp.horarios.map(h => h.hora).join(', ')}`), { status: 409 });
@@ -183,13 +231,17 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   await db.runTransaction(async (tx) => {
     // Re-chequeo del cupo adentro de la transacción.
     const cols = colsQueOcupan(!esWeb);
-    let ocupados = 0;
+    let ocupadas = 0;
     for (const c of cols) {
       const snap = await tx.get(db.collection(c).where('fecha', '==', r.fecha).where('horario', '==', r.horario));
-      ocupados += snap.docs.filter(d => d.data().estado !== 'cancelada').length;
+      ocupadas += snap.docs.map(d => d.data()).filter(x => x.estado !== 'cancelada').reduce((s, x) => s + personasDe(x), 0);
     }
-    if (ocupados >= LIMITE_POR_SLOT) throw Object.assign(new Error('Ese horario se acaba de completar'), { status: 409 });
-    if (!slot.disponible) throw Object.assign(new Error('Ese horario ya no está disponible'), { status: 409 });
+    if (!slot.disponible) {
+      throw Object.assign(new Error(slot.lugares > 0
+        ? `A las ${r.horario} quedan ${slot.lugares} lugares, no entran ${r.cantidadPersonas} personas`
+        : 'Ese horario ya no está disponible'), { status: 409 });
+    }
+    if (ocupadas + r.cantidadPersonas > cfg.personasPorHorario) throw Object.assign(new Error('Ese horario se acaba de completar'), { status: 409 });
 
     tx.set(ref, {
       ...r,
@@ -361,11 +413,13 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
     fecha: limpiar(datos.fecha, 10),
     horario: limpiar(datos.horario, 5),
   };
+  const cfg = await configReservas();
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
   if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
-  if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < MINIMO_CAVA) errores.push(`mínimo ${MINIMO_CAVA} personas`);
+  if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < cfg.cavaMinimo) errores.push(`mínimo ${cfg.cavaMinimo} personas`);
+  else if (cfg.cavaMaximo && r.cantidadPersonas > cfg.cavaMaximo) errores.push(`máximo ${cfg.cavaMaximo} personas`);
   if (!FECHA_RE.test(r.fecha)) errores.push('fecha inválida');
   else if (r.fecha < ahoraAR(now).fecha) errores.push('la fecha ya pasó');
   if (!HORARIOS_CAVA.includes(r.horario)) errores.push('horario inválido');
@@ -380,7 +434,7 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
       throw Object.assign(new Error('Ese día La Cava ya está reservada. Elegí otra fecha.'), { status: 409 });
     }
     tx.set(ref, {
-      ...r, comprobanteUrl, comprobantePath, estado: 'confirmada', seña: CAVA.seña,
+      ...r, comprobanteUrl, comprobantePath, estado: 'confirmada', seña: cfg.cavaSena,
       origen: 'web', createdAt: new Date().toISOString(),
     });
   });

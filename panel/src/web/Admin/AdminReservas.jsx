@@ -279,7 +279,7 @@ function AdminReservas() {
                       <div className="ar__card-row"><span className="ar__card-label">Personas</span><span>{r.cantidadPersonas}</span></div>
                       <div className="ar__card-row"><span className="ar__card-label">Teléfono</span><span>{r.telefono}</span></div>
                       <div className="ar__card-row"><span className="ar__card-label">Torta</span><span>{r.traeTorta ? 'Sí' : 'No'}</span></div>
-                      <div className="ar__card-row"><span className="ar__card-label">Seña</span><span>$100.000</span></div>
+                      <div className="ar__card-row"><span className="ar__card-label">Seña</span><span>${Number(r.seña ?? 100000).toLocaleString('es-AR')}</span></div>
                       <div className="ar__card-row"><span className="ar__card-label">Creada</span><span>{formatCreada(r.createdAt)}</span></div>
                     </div>
                     {r.comprobanteUrl && (

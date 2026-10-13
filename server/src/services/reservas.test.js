@@ -53,3 +53,60 @@ test('evento para el bot: sin info interna no agrega el campo', async () => {
   const ev = eventoParaBot({ id: 'x', titulo: 'Cata', fecha: '2026-10-09', infoBot: '   ' });
   assert.equal('infoInterna' in ev, false);
 });
+
+// ── Capacidad configurable ───────────────────────────────────────────────
+
+test('config de reservas: sin doc usa los valores por defecto', async () => {
+  const { normalizarConfigReservas } = await import('./reservas.service.js');
+  assert.deepEqual(normalizarConfigReservas(null), {
+    personasPorHorario: 16, cavaMinimo: 10, cavaMaximo: null, cavaPrecioPersona: 60000, cavaSena: 100000,
+  });
+});
+
+test('config de reservas: respeta lo cargado y descarta valores inválidos', async () => {
+  const { normalizarConfigReservas } = await import('./reservas.service.js');
+  const c = normalizarConfigReservas({ personasPorHorario: '30', cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: -5, cavaSena: 'abc' });
+  assert.equal(c.personasPorHorario, 30);
+  assert.equal(c.cavaMinimo, 12);
+  assert.equal(c.cavaMaximo, 40);
+  assert.equal(c.cavaPrecioPersona, 60000);
+  assert.equal(c.cavaSena, 100000);
+});
+
+test('config de reservas: un máximo de La Cava menor al mínimo se ignora', async () => {
+  const { normalizarConfigReservas } = await import('./reservas.service.js');
+  assert.equal(normalizarConfigReservas({ cavaMinimo: 12, cavaMaximo: 8 }).cavaMaximo, null);
+});
+
+test('cupo por personas: un horario está disponible solo si entran las personas pedidas', async () => {
+  const { calcularHorarios } = await import('./reservas.service.js');
+  const hs = calcularHorarios({
+    horas: ['20:00', '20:30', '21:00'],
+    personasPorHorario: { '20:00': 13, '20:30': 16 },
+    cupo: 16, personas: 4, yaPaso: () => false,
+  });
+  assert.deepEqual(hs, [
+    { hora: '20:00', disponible: false, lugares: 3 },
+    { hora: '20:30', disponible: false, lugares: 0 },
+    { hora: '21:00', disponible: true, lugares: 16 },
+  ]);
+});
+
+test('cupo por personas: horario que ya pasó queda sin lugares', async () => {
+  const { calcularHorarios } = await import('./reservas.service.js');
+  const [h] = calcularHorarios({ horas: ['18:00'], personasPorHorario: {}, cupo: 16, personas: 1, yaPaso: () => true });
+  assert.deepEqual(h, { hora: '18:00', disponible: false, lugares: 0 });
+});
+
+test('prompt del bot: usa la capacidad, el mínimo/máximo y los precios configurados', async () => {
+  const { reservasPrompt } = await import('./reservas.tools.js');
+  const { normalizarConfigReservas } = await import('./reservas.service.js');
+  const txt = reservasPrompt(new Date('2026-10-13T15:00:00Z'), normalizarConfigReservas({
+    personasPorHorario: 30, cavaMinimo: 12, cavaMaximo: 40, cavaPrecioPersona: 75000, cavaSena: 150000,
+  }));
+  assert.match(txt, /MESAS \(hasta 11 personas\)/);
+  assert.match(txt, /lugar para 30 personas/);
+  assert.match(txt, /desde 12 hasta 40 personas/);
+  assert.match(txt, /\$75\.000 por persona/);
+  assert.match(txt, /Seña de \$150\.000/);
+});

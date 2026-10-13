@@ -22,6 +22,7 @@ import { isWithinBusinessHours, describirHorario } from './horario.js';
 
 export { isWithinBusinessHours };
 import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
+import { configReservas, normalizarConfigReservas } from './reservas.service.js';
 import { documentosTool, documentosPrompt, runDocumentoTool } from './documentos.tools.js';
 
 const URGENCY_KEYWORDS = [
@@ -313,6 +314,11 @@ async function processIncomingMessageInternal(msg) {
   // Los PDFs se mandan como archivo solo por WhatsApp; en Instagram el bot pasa el contenido.
   const docsEnviables = channel === 'whatsapp' ? documentos : [];
   const docsAEnviar = [];
+  // Capacidad, mínimo/máximo, precio y seña de La Cava (Gestión → Capacidad).
+  const cfgReservas = await configReservas().catch(err => {
+    console.error('[bot] No se pudo leer la config de reservas, uso los valores por defecto:', err.message);
+    return normalizarConfigReservas(null);
+  });
   const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'reservar_evento', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
   let botReply;
   try {
@@ -329,7 +335,7 @@ async function processIncomingMessageInternal(msg) {
       runTool: (name, input) => name === 'enviar_documento'
         ? runDocumentoTool(input, docsEnviables, docsAEnviar)
         : runReservaTool(name, input, { contactId: from, contactName, channel, botConfig, customer }),
-      extraSystem: [reservasPrompt(), documentosPrompt(docsEnviables)].filter(Boolean).join('\n\n'),
+      extraSystem: [reservasPrompt(new Date(), cfgReservas), documentosPrompt(docsEnviables)].filter(Boolean).join('\n\n'),
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);

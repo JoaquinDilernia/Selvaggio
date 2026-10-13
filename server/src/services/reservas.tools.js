@@ -1,6 +1,6 @@
 import {
   disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda, crearReservaEvento,
-  PREFERENCIAS, MINIMO_CAVA, CAVA, LIMITE_POR_SLOT,
+  PREFERENCIAS, normalizarConfigReservas,
 } from './reservas.service.js';
 import { describirHorario } from './horario.js';
 import { guardarCumple } from './cumpleanos.service.js';
@@ -39,12 +39,13 @@ export const RESERVAS_TOOLS = [
   {
     name: 'consultar_disponibilidad_mesas',
     description:
-      'Devuelve si el salón abre en una fecha y qué horarios tienen lugar para reservar mesa. ' +
+      'Devuelve si el salón abre en una fecha y qué horarios tienen lugar para reservar mesa (lugares = personas que todavía entran). ' +
       'Usala SIEMPRE antes de ofrecer horarios o confirmar una reserva; no supongas disponibilidad.',
     input_schema: {
       type: 'object',
       properties: {
         fecha: { type: 'string', description: 'Fecha en formato AAAA-MM-DD (hora de Argentina).' },
+        personas: { type: 'integer', minimum: 1, description: 'Cantidad de personas, si ya la sabés: marca disponible solo los horarios donde entran.' },
       },
       required: ['fecha'],
       additionalProperties: false,
@@ -55,14 +56,14 @@ export const RESERVAS_TOOLS = [
     description:
       'Registra una reserva de mesa. Queda CONFIRMADA al instante (igual que en la web). ' +
       'Llamala solo cuando el cliente confirmó explícitamente todos los datos. ' +
-      `Para ${MINIMO_CAVA} personas o más no se usa: eso es La Cava.`,
+      'No se usa para grupos de La Cava (ver el mínimo en las instrucciones de RESERVAS).',
     input_schema: {
       type: 'object',
       properties: {
         nombre: { type: 'string', description: 'Nombre de quien reserva.' },
         apellido: { type: 'string' },
         email: { type: 'string', description: 'Opcional. Solo si el cliente lo dio.' },
-        cantidadPersonas: { type: 'integer', minimum: 1, maximum: MINIMO_CAVA - 1 },
+        cantidadPersonas: { type: 'integer', minimum: 1 },
         fecha: { type: 'string', description: 'AAAA-MM-DD' },
         horario: { type: 'string', description: 'HH:MM, uno de los que devolvió consultar_disponibilidad_mesas.' },
         preferencia: { type: 'string', enum: PREFERENCIAS, description: 'Ubicación preferida.' },
@@ -195,8 +196,11 @@ export const RESERVAS_TOOLS = [
   },
 ];
 
-/** Texto para el system prompt: reglas fijas + la fecha de hoy. */
-export function reservasPrompt(now = new Date()) {
+/**
+ * Texto para el system prompt: reglas fijas + la fecha de hoy.
+ * @param {object} cfg  configReservas() (capacidad, mínimo/máximo, precio y seña de La Cava)
+ */
+export function reservasPrompt(now = new Date(), cfg = normalizarConfigReservas(null)) {
   const hoy = ahoraAR(now);
   const dia = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'long' }).format(now);
   return `--- RESERVAS ---
@@ -210,15 +214,15 @@ HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especi
 
 CUMPLEAÑOS: si en el PERFIL DEL CONTACTO dice "Cumpleaños: NO LO TENEMOS", pedíselo UNA sola vez, en un momento natural: después de resolver lo que vino a buscar (por ejemplo, al confirmar una reserva o pedido), nunca antes ni interrumpiendo. Algo como: "¿Me pasás tu fecha de cumpleaños? Es para mandarte una promo especial cuando se acerque 🎂". Es opcional: si no quiere, respetalo. Cuando lo diga, guardalo con guardar_cumpleanos (día y mes alcanzan; el año solo si lo da). Si no quiere, llamá guardar_cumpleanos con noQuiere=true. Si ya lo tenemos o no quiso darlo, no lo menciones.
 
-MESAS (hasta ${MINIMO_CAVA - 1} personas):
-- Antes de ofrecer horarios usá consultar_disponibilidad_mesas. Ofrecé solo horarios con disponible=true.
+MESAS (hasta ${cfg.cavaMinimo - 1} personas):
+- Antes de ofrecer horarios usá consultar_disponibilidad_mesas (con la cantidad de personas si ya la sabés). Ofrecé solo horarios con disponible=true.
 - Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
 - Antes de crear la reserva, resumí los datos y pedí confirmación. Recién con el "sí" llamá a crear_reserva_mesa.
 - La reserva queda CONFIRMADA al crearla (igual que en la web): decíselo con el resumen (día, hora, personas, ubicación). Si después quiere cambiarla o cancelarla, derivá a Atención al cliente.
-- Si un horario se llenó, ofrecé los más cercanos que tengan lugar. Hay cupo de ${LIMITE_POR_SLOT} reservas por horario.
+- Si un horario se llenó o no entran, ofrecé los más cercanos que tengan lugar. El cupo es por personas: cada horario tiene lugar para ${cfg.personasPorHorario} personas en total.
 
-LA CAVA (eventos privados, desde ${MINIMO_CAVA} personas):
-- $${CAVA.precioPersona.toLocaleString('es-AR')} por persona: degustación completa con maridaje libre hasta las 00:00, panera y agua. Seña de $${CAVA.seña.toLocaleString('es-AR')} por transferencia.
+LA CAVA (eventos privados, desde ${cfg.cavaMinimo}${cfg.cavaMaximo ? ` hasta ${cfg.cavaMaximo}` : ''} personas):
+- $${cfg.cavaPrecioPersona.toLocaleString('es-AR')} por persona: degustación completa con maridaje libre hasta las 00:00, panera y agua. Seña de $${cfg.cavaSena.toLocaleString('es-AR')} por transferencia.
 - Una sola reserva por día: usá consultar_fechas_cava para ver qué días están tomados.
 - Por WhatsApp NO se reserva La Cava (requiere el comprobante de la seña): pasá el link https://selvaggio.com.ar/#/reserva-cava o derivá al equipo si tienen dudas.
 
@@ -246,7 +250,7 @@ export async function runReservaTool(name, input, ctx) {
         return await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
 
       case 'consultar_disponibilidad_mesas':
-        return await disponibilidadMesas(input.fecha, { incluirSandbox: true });
+        return await disponibilidadMesas(input.fecha, { incluirSandbox: true, personas: input.personas });
 
       case 'crear_reserva_mesa': {
         if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden crear reservas; pasale el link https://selvaggio.com.ar/#/reserva-mesas' };

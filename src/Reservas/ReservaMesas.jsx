@@ -6,9 +6,8 @@ import Toast from '../components/Toast';
 import { enviarConfirmacionMesas } from '../utils/emailService';
 import { trackViewContent, trackInitiateCheckout, trackLead } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
+import { useConfigReservas, personasDe } from '../utils/configReservas';
 import './ReservaMesas.css';
-
-const LIMITE_POR_SLOT = 4;
 
 function ReservaMesas() {
   const [formData, setFormData] = useState({
@@ -31,6 +30,9 @@ function ReservaMesas() {
   const [fechaReservada, setFechaReservada] = useState('');
   const [reservasPorHorario, setReservasPorHorario] = useState({});
   const [excepcionDia, setExcepcionDia] = useState(null);
+  const config = useConfigReservas();
+  // Desde el mínimo de La Cava ya no es una mesa.
+  const maxPersonasMesa = config.cavaMinimo - 1;
 
   useEffect(() => {
     trackViewContent('Reserva Mesa', 'Reservas');
@@ -67,12 +69,14 @@ function ReservaMesas() {
       snapshot.docs
         .map(d => d.data())
         .filter(r => r.fecha === fecha && r.estado !== 'cancelada')
-        .forEach(r => { if (r.horario) conteo[r.horario] = (conteo[r.horario] || 0) + 1; });
+        .forEach(r => { if (r.horario) conteo[r.horario] = (conteo[r.horario] || 0) + personasDe(r); });
       setReservasPorHorario(conteo);
     } catch {}
   };
 
-  const isLleno = (h) => (reservasPorHorario[h] || 0) >= LIMITE_POR_SLOT;
+  // Cupo por personas: un horario está lleno si no entra el grupo elegido.
+  const lugaresLibres = (h) => Math.max(0, config.personasPorHorario - (reservasPorHorario[h] || 0));
+  const isLleno = (h) => lugaresLibres(h) < formData.cantidadPersonas;
 
   // Fecha local (toISOString usa UTC y después de las 21 hs ya marca el día siguiente)
   const getMinDate = () => {
@@ -103,11 +107,11 @@ function ReservaMesas() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: name === 'cantidadPersonas' ? parseInt(value) || 1 : value }));
+    setFormData(prev => ({ ...prev, [name]: name === 'cantidadPersonas' ? Math.min(maxPersonasMesa, parseInt(value) || 1) : value }));
   };
 
   const changePersonas = (delta) => {
-    setFormData(prev => ({ ...prev, cantidadPersonas: Math.max(1, prev.cantidadPersonas + delta) }));
+    setFormData(prev => ({ ...prev, cantidadPersonas: Math.min(maxPersonasMesa, Math.max(1, prev.cantidadPersonas + delta)) }));
   };
 
   const handleSubmit = async (e) => {
@@ -123,8 +127,13 @@ function ReservaMesas() {
     if (fechaSel < hoy) {
       setToast({ message: 'No podés reservar una fecha pasada', type: 'error' }); return;
     }
+    if (formData.cantidadPersonas > maxPersonasMesa) {
+      setToast({ message: `Para ${config.cavaMinimo} o más personas reservá La Cava`, type: 'error' }); return;
+    }
     if (isLleno(formData.horario)) {
-      setToast({ message: 'Ese horario ya está completo. Elegí otro.', type: 'error' }); return;
+      setToast({ message: lugaresLibres(formData.horario) > 0
+        ? `En ese horario quedan ${lugaresLibres(formData.horario)} lugares. Elegí otro.`
+        : 'Ese horario ya está completo. Elegí otro.', type: 'error' }); return;
     }
     setLoading(true);
     try {
@@ -261,8 +270,14 @@ function ReservaMesas() {
               <button type="button" className="rf-number-btn" onClick={() => changePersonas(-1)}
                 disabled={formData.cantidadPersonas <= 1}>−</button>
               <span className="rf-number-val">{formData.cantidadPersonas}</span>
-              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}>+</button>
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}
+                disabled={formData.cantidadPersonas >= maxPersonasMesa}>+</button>
             </div>
+            {formData.cantidadPersonas >= maxPersonasMesa && (
+              <p className="rf-horarios-hint">
+                ¿Son {config.cavaMinimo} o más? <Link to="/reserva-cava">Reservá La Cava</Link>
+              </p>
+            )}
           </div>
 
           {/* Fecha */}
@@ -288,7 +303,7 @@ function ReservaMesas() {
                 <div className="rf-horarios-grid">
                   {horarios.map(h => {
                     const lleno = isLleno(h);
-                    const disp = LIMITE_POR_SLOT - (reservasPorHorario[h] || 0);
+                    const disp = lugaresLibres(h);
                     return (
                       <button key={h} type="button"
                         className={`rf-chip${formData.horario === h ? ' rf-chip--on' : ''}${lleno ? ' rf-chip--lleno' : ''}`}

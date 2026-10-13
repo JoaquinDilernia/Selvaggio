@@ -56,6 +56,7 @@ function AppRoutes() {
           <Route path="takeaway"      element={<Web.TakeAway />} />
           <Route path="cupones"       element={<Web.Cupones />} />
           <Route path="calendario"    element={<Web.Calendario />} />
+          <Route path="capacidad"     element={agent?.role === 'admin' ? <Web.Capacidad /> : <Navigate to="/gestion/resumen" replace />} />
           <Route path="eventos"       element={<Web.Eventos />} />
           <Route path="comandas"      element={<Web.Salon />} />
           <Route path="clientes"      element={<Customers />} />{/* misma lista única que Bot → Clientes */}

@@ -8,6 +8,7 @@ import { enviarConfirmacionCava } from '../utils/emailService';
 import Toast from '../components/Toast';
 import { trackSchedule, trackViewContent, trackInitiateCheckout } from '../utils/metaPixel';
 import { trackEvento } from '../utils/nativeAnalytics';
+import { useConfigReservas, formatPesos } from '../utils/configReservas';
 import './ReservaCava.css';
 
 function ReservaCava() {
@@ -75,16 +76,26 @@ function ReservaCava() {
     setSelectedMonth(m);
   };
 
+  const config = useConfigReservas();
+  const minPersonas = config.cavaMinimo;
+  const maxPersonas = config.cavaMaximo ?? Infinity;
+  const ajustarPersonas = (n) => Math.min(maxPersonas, Math.max(minPersonas, n));
+
+  // La config llega de Firestore después del primer render.
+  useEffect(() => {
+    setFormData(p => ({ ...p, cantidadPersonas: ajustarPersonas(p.cantidadPersonas) }));
+  }, [minPersonas, maxPersonas]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (type === 'file') setFormData(p => ({ ...p, [name]: files[0] }));
     else if (type === 'checkbox') setFormData(p => ({ ...p, [name]: checked }));
-    else if (name === 'cantidadPersonas') setFormData(p => ({ ...p, [name]: parseInt(value) || 10 }));
+    else if (name === 'cantidadPersonas') setFormData(p => ({ ...p, [name]: ajustarPersonas(parseInt(value) || minPersonas) }));
     else setFormData(p => ({ ...p, [name]: value }));
   };
 
   const changePersonas = (delta) => {
-    setFormData(p => ({ ...p, cantidadPersonas: Math.max(10, p.cantidadPersonas + delta) }));
+    setFormData(p => ({ ...p, cantidadPersonas: ajustarPersonas(p.cantidadPersonas + delta) }));
   };
 
   const uploadComprobante = async (file) => {
@@ -108,8 +119,11 @@ function ReservaCava() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.cantidadPersonas < 10) {
-      setToast({ message: 'Mínimo 10 personas', type: 'error' }); return;
+    if (formData.cantidadPersonas < minPersonas) {
+      setToast({ message: `Mínimo ${minPersonas} personas`, type: 'error' }); return;
+    }
+    if (formData.cantidadPersonas > maxPersonas) {
+      setToast({ message: `Máximo ${maxPersonas} personas`, type: 'error' }); return;
     }
     if (!formData.fecha) {
       setToast({ message: 'Seleccioná una fecha', type: 'error' }); return;
@@ -139,7 +153,7 @@ function ReservaCava() {
         horario: formData.horario,
         comprobanteUrl,
         estado: 'confirmada',
-        seña: 100000,
+        seña: config.cavaSena,
         createdAt: new Date().toISOString()
       });
 
@@ -226,10 +240,10 @@ function ReservaCava() {
 
         {/* Info precio */}
         <div className="rf-cava-info">
-          <p className="rf-cava-info__price"><span>$</span>60.000<span> / persona</span></p>
+          <p className="rf-cava-info__price"><span>$</span>{formatPesos(config.cavaPrecioPersona)}<span> / persona</span></p>
           <p className="rf-cava-info__desc">Degustación completa con maridaje libre hasta las 00:00 hs, panera artesanal y agua.</p>
           <p className="rf-cava-info__detail">Selección de charcuterie premium, quesos especialmente curados, conservas y acompañamientos.</p>
-          <span className="rf-cava-info__seña">Seña de $100.000 por transferencia</span>
+          <span className="rf-cava-info__seña">Seña de ${formatPesos(config.cavaSena)} por transferencia</span>
         </div>
 
         <form onSubmit={handleSubmit} className="rf-form">
@@ -264,12 +278,15 @@ function ReservaCava() {
 
           {/* Personas */}
           <div className="rf-field">
-            <label className="rf-label rf-label--req">Cantidad de personas (mínimo 10)</label>
+            <label className="rf-label rf-label--req">
+              Cantidad de personas (mínimo {minPersonas}{config.cavaMaximo ? `, máximo ${config.cavaMaximo}` : ''})
+            </label>
             <div className="rf-number-ctrl">
               <button type="button" className="rf-number-btn" onClick={() => changePersonas(-1)}
-                disabled={formData.cantidadPersonas <= 10}>−</button>
+                disabled={formData.cantidadPersonas <= minPersonas}>−</button>
               <span className="rf-number-val">{formData.cantidadPersonas}</span>
-              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}>+</button>
+              <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}
+                disabled={formData.cantidadPersonas >= maxPersonas}>+</button>
             </div>
           </div>
 
@@ -359,7 +376,7 @@ function ReservaCava() {
 
           {/* Datos transferencia */}
           <div className="rf-transfer">
-            <p className="rf-transfer__title">Seña · $100.000 por transferencia</p>
+            <p className="rf-transfer__title">Seña · ${formatPesos(config.cavaSena)} por transferencia</p>
             <div className="rf-transfer__row">
               <span className="rf-transfer__key">Banco</span>
               <span className="rf-transfer__val">Banco Santander</span>

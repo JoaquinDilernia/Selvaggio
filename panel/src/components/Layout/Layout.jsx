@@ -139,6 +139,7 @@ const GESTION_ITEMS = [
   { to: '/gestion/takeaway',      label: 'Take Away',     icon: IconBag },
   { to: '/gestion/cupones',       label: 'Cupones',       icon: IconTag },
   { to: '/gestion/calendario',    label: 'Calendario',    icon: IconCalendar },
+  { to: '/gestion/capacidad',     label: 'Capacidad',     icon: IconUsers,     minRole: 'admin' },
   { to: '/gestion/eventos',       label: 'Eventos',       icon: IconMegaphone },
   { to: '/gestion/comandas',      label: 'Salón',         icon: IconZap },
   { to: '/gestion/clientes',      label: 'Clientes',      icon: IconContacts },
