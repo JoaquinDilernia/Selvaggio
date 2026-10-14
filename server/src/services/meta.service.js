@@ -69,13 +69,34 @@ export async function sendWhatsAppMessage(to, text, replyToWaMsgId = null) {
   return data.messages?.[0]?.id ?? null;
 }
 
+// META_IG_PAGE_ID puede ser el id de la cuenta de Instagram (1784…), pero la
+// Messenger Platform solo acepta enviar DMs de IG vía /{facebook-page-id}/messages
+// con el token de ESA página — con el id de IG o el token del system user
+// responde "(#3) Application does not have the capability". Resolvemos la
+// página vinculada a la cuenta de IG (y su token) una vez y la cacheamos.
+let igPageCache = null;
+
+async function resolveInstagramPage() {
+  if (igPageCache) return igPageCache;
+  const igId = process.env.META_IG_PAGE_ID;
+  const { data } = await axios.get(`${META_API_URL}/me/accounts`, {
+    params: { fields: 'id,access_token,instagram_business_account', limit: 100 },
+    headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` },
+  });
+  const page = (data.data ?? []).find(p => p.id === igId || p.instagram_business_account?.id === igId);
+  if (!page) throw new Error(`[meta] No hay página de Facebook vinculada a la cuenta de IG ${igId}`);
+  igPageCache = { pageId: page.id, igId: page.instagram_business_account?.id ?? null, token: page.access_token };
+  return igPageCache;
+}
+
 export async function sendInstagramMessage(recipientId, text) {
   if (!process.env.META_ACCESS_TOKEN || !process.env.META_IG_PAGE_ID) {
     console.log('[meta] sendInstagramMessage skipped — tokens not configured');
     return null;
   }
+  const { pageId, token } = await resolveInstagramPage();
   const { data } = await postWithSafeRetry(
-    `${META_API_URL}/${process.env.META_IG_PAGE_ID}/messages`,
+    `${META_API_URL}/${pageId}/messages`,
     {
       recipient: { id: recipientId },
       message: { text },
@@ -83,7 +104,7 @@ export async function sendInstagramMessage(recipientId, text) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     }
@@ -367,6 +388,10 @@ export function parseInstagramMessage(webhookBody) {
     const messaging = entry?.messaging?.[0];
 
     if (!messaging?.message) return null;
+    // Cada mensaje que mandamos vuelve como "echo" con nuestra propia cuenta
+    // de IG como sender — si no lo ignoramos, el bot se contesta a sí mismo.
+    if (messaging.message.is_echo) return null;
+    if (process.env.META_IG_PAGE_ID && messaging.sender?.id === process.env.META_IG_PAGE_ID) return null;
 
     const attachments = messaging.message.attachments ?? [];
     // Instagram manda los adjuntos como URL de CDN (no hay mediaId como en
