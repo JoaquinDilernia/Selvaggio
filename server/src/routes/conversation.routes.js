@@ -313,6 +313,15 @@ function isWindowExpiredError(sendErr) {
   return WA_WINDOW_EXPIRED_CODES.has(code) || msg.toLowerCase().includes('window');
 }
 
+// Meta ya no rechaza en el momento el texto libre fuera de la ventana: lo
+// acepta (200) y avisa después por webhook con 131047, así que el agente veía
+// "enviado" y recién después el error. Se chequea antes de mandar. Sin ningún
+// mensaje del cliente (conversación iniciada con plantilla) la ventana está
+// cerrada: la abre la RESPUESTA del cliente, no nuestra plantilla.
+function isWaWindowClosed(lastClientMessageAt) {
+  return !lastClientMessageAt || Date.now() - tsMs(lastClientMessageAt) > WINDOW_MS;
+}
+
 // `replyTo` (opcional): { waMsgId, role, preview } de un mensaje anterior que
 // el agente eligió citar desde el panel — mismo shape que ya arma
 // `resolveReplyTo()` en bot.service.js para las citas entrantes, así el
@@ -340,7 +349,11 @@ router.post('/:contactId/reply', async (req, res) => {
     const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
 
-    const { channel, status } = doc.data();
+    const { channel, status, lastClientMessageAt } = doc.data();
+
+    if (channel === 'whatsapp' && isWaWindowClosed(lastClientMessageAt)) {
+      return res.status(409).json({ error: 'La ventana de WhatsApp de 24hs expiró. Necesitás enviar una plantilla aprobada para retomar la conversación.', windowExpired: true });
+    }
 
     // Si la conversación estaba archivada/resuelta, un agente escribiéndole
     // directo la reabre — si no, queda invisible en Archivados mientras la
@@ -480,7 +493,11 @@ router.post('/:contactId/media', uploadSingle('file'), async (req, res) => {
     const db = getDb();
     const doc = await db.collection('bot-selvaggio_conversations').doc(contactId).get();
     if (!doc.exists) return res.status(404).json({ error: 'Conversación no encontrada' });
-    const { channel, status } = doc.data();
+    const { channel, status, lastClientMessageAt } = doc.data();
+
+    if (channel === 'whatsapp' && isWaWindowClosed(lastClientMessageAt)) {
+      return res.status(409).json({ error: 'La ventana de WhatsApp de 24hs expiró. Necesitás enviar una plantilla aprobada para retomar la conversación.', windowExpired: true });
+    }
 
     // Antes un archivo a Instagram se guardaba como "enviado" sin mandarse
     // nunca — la API de IG sólo acepta adjuntos por URL pública.
@@ -607,7 +624,7 @@ router.post('/forward', async (req, res) => {
       const { channel, status, lastClientMessageAt, contactName } = doc.data();
       const name = contactName || contactId;
 
-      if (channel === 'whatsapp' && (!lastClientMessageAt || Date.now() - tsMs(lastClientMessageAt) > WINDOW_MS)) {
+      if (channel === 'whatsapp' && isWaWindowClosed(lastClientMessageAt)) {
         results.push({ contactId, name, ok: false, error: OUT_OF_WINDOW_MSG });
         continue;
       }
