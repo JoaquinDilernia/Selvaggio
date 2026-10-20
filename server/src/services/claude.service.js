@@ -2,7 +2,8 @@ import https from 'https';
 import { getDb } from './firebase.service.js';
 
 const MODEL = 'claude-sonnet-5';
-const PRICING = { inputPerMTok: 2.00, outputPerMTok: 10.00 };
+// Caché de prompt: escribir cuesta 1.25x la entrada (TTL 5 min), leer 0.1x.
+const PRICING = { inputPerMTok: 2.00, outputPerMTok: 10.00, cacheWritePerMTok: 2.50, cacheReadPerMTok: 0.20 };
 
 // Con adaptive thinking (Sonnet 5) el primer bloque puede ser 'thinking' y no
 // 'text' — leer content[0].text a ciegas devuelve undefined y rompe la respuesta.
@@ -12,14 +13,20 @@ function extractText(response) {
 }
 
 function logUsage(usage, type) {
-  if (!usage?.input_tokens) return;
+  if (!usage?.input_tokens && !usage?.cache_read_input_tokens) return;
+  const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+  const cacheRead = usage.cache_read_input_tokens ?? 0;
   const costUSD =
     (usage.input_tokens / 1e6) * PRICING.inputPerMTok +
+    (cacheWrite / 1e6) * PRICING.cacheWritePerMTok +
+    (cacheRead / 1e6) * PRICING.cacheReadPerMTok +
     (usage.output_tokens / 1e6) * PRICING.outputPerMTok;
   getDb().collection('bot-selvaggio_usage_logs').add({
     service: 'claude',
     model: MODEL,
-    inputTokens: usage.input_tokens,
+    inputTokens: usage.input_tokens, // sólo la parte NO cacheada
+    cacheWriteTokens: cacheWrite,
+    cacheReadTokens: cacheRead,
     outputTokens: usage.output_tokens,
     costUSD: Math.round(costUSD * 1e6) / 1e6,
     type,
@@ -138,8 +145,7 @@ export async function generateBotResponse(userMessage, conversationHistory, cont
     tools = [], runTool = null, extraSystem = '',
   } = context;
 
-  let systemContent = buildSystemPrompt(botConfig, knowledgeBase, customerContext, availableLabels, areas);
-  if (extraSystem) systemContent += `\n\n${extraSystem}`;
+  const systemContent = buildSystemPrompt(botConfig, knowledgeBase, customerContext, availableLabels, areas, extraSystem);
   const messages = buildMessages(conversationHistory, userMessage, imageData);
 
   // Loop de tool-use: mientras Claude pida tools, se ejecutan y se le
@@ -199,7 +205,11 @@ Reglas:
 - Si el tema es claramente del restaurante y no entra en ninguna, creá una con [NEW_LABEL:Nombre]: corto (1 a 3 palabras), genérico y reutilizable (ej: "Gift card", "Alergias"). Nunca con nombres de personas, fechas ni detalles de un caso puntual.`;
 }
 
-function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = []) {
+// Caché de prompt: el system va en 2 bloques — lo que es IGUAL para todos los
+// clientes (personalidad, KB, etiquetas) con cache_control (~10% del costo),
+// y lo que cambia por cliente/mensaje (perfil, reservas con la fecha de hoy,
+// documentos) al final. No meter nada variable en el primer bloque.
+function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = [], extraSystem = '') {
   const botName = botConfig.botName || 'Asistente';
   const businessName = botConfig.businessName || 'Selvaggio Wine Bar & Delicatessen';
   const personality = botConfig.botPersonality ||
@@ -215,9 +225,15 @@ Nunca inventás información sobre servicios, precios, plazos, procesos o links 
     prompt += `\n\n--- INFORMACIÓN DE LA EMPRESA ---\n${knowledgeBase}`;
     prompt += `\n\nIMPORTANTE — USO DE ESTA INFORMACIÓN: Es TU ÚNICA fuente de verdad sobre servicios, precios, procesos y políticas. Antes de responder CUALQUIER consulta, revisá esta sección completa primero. Si algo aplica, compartilo directamente aunque el cliente no lo pida explícitamente. Si la consulta no está cubierta acá, NUNCA inventes ni supongas una respuesta — decí que no tenés esa info y ofrecé derivar a alguien del equipo.`;
   }
-  if (customerContext) prompt += `\n\n--- PERFIL DEL CONTACTO ---\n${customerContext}`;
   prompt += buildLabelInstructions(availableLabels);
-  return prompt;
+
+  let dyn = '';
+  if (customerContext) dyn += `\n\n--- PERFIL DEL CONTACTO ---\n${customerContext}`;
+  if (extraSystem) dyn += `\n\n${extraSystem}`;
+
+  const blocks = [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }];
+  if (dyn.trim()) blocks.push({ type: 'text', text: dyn.trim() });
+  return blocks;
 }
 
 function buildMessages(conversationHistory, newMessage, imageData = null) {
