@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrandProvider } from './contexts/BrandContext';
 import { setLogoutHandler } from './lib/api';
 import Layout, { GestionLayout, ContenidoLayout } from './components/Layout/Layout.jsx';
 import { Resumen } from './pages/gestion/Gestion.jsx';
@@ -28,9 +29,11 @@ import { tieneSector } from './lib/sectores';
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
-        <AppRoutes />
-      </HashRouter>
+      <BrandProvider>
+        <HashRouter>
+          <AppRoutes />
+        </HashRouter>
+      </BrandProvider>
     </AuthProvider>
   );
 }

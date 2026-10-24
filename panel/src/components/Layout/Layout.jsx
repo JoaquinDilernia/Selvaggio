@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { authFetch, BASE_URL } from '../../lib/api';
 import styles from './Layout.module.css';
 
 const COLLAPSED_KEY = 'bot_sidebar_collapsed';
+const AWAITING_POLL_MS = 30000;
 
 function PageLoader() {
   return (
@@ -22,40 +24,77 @@ function PageLoader() {
 }
 
 // minRole: undefined = all, 'atencion_cliente' = not operador, 'admin' = only admin
-const NAV_ITEMS = [
-  { to: '/conversations', label: 'Conversaciones',  icon: IconChat },
-  { to: '/reservas',      label: 'Reservas y pedidos', icon: IconCalendar, minRole: 'atencion_cliente' },
-  { to: '/customers',     label: 'Clientes',       icon: IconContacts,   minRole: 'atencion_cliente' },
-  { to: '/campaigns',     label: 'Difusiones',      icon: IconMegaphone,  minRole: 'atencion_cliente' },
-  { to: '/dashboard',     label: 'Dashboard',       icon: IconDashboard,  minRole: 'atencion_cliente' },
-  { to: '/stats',         label: 'Estadísticas',    icon: IconChart,      minRole: 'atencion_cliente' },
-  { to: '/knowledge',     label: 'Knowledge Base',  icon: IconBook,       minRole: 'atencion_cliente' },
-  { to: '/areas',         label: 'Áreas',           icon: IconDepartment, minRole: 'atencion_cliente' },
-  { to: '/labels',        label: 'Etiquetas',       icon: IconTag,        minRole: 'atencion_cliente' },
-  { to: '/quick-replies', label: 'Resp. Rápidas',   icon: IconZap,        minRole: 'atencion_cliente' },
-  { to: '/templates',     label: 'Plantillas',      icon: IconTemplate,   minRole: 'atencion_cliente' },
-  { to: '/simulator',     label: 'Simulador',       icon: IconFlask,      minRole: 'atencion_cliente' },
-  { to: '/config',        label: 'Configuración',   icon: IconSettings,   minRole: 'atencion_cliente' },
-  { to: '/costs',         label: 'Costos',          icon: IconDollar,     minRole: 'admin' },
-  { to: '/users',         label: 'Usuarios',        icon: IconUsers,      minRole: 'admin' },
+// Grupos del menú: el primero (sin título) es el uso diario; los demás tienen
+// título y se pueden colapsar.
+const NAV_GROUPS = [
+  { id: 'main', items: [
+    { to: '/dashboard',     label: 'Dashboard',       icon: IconDashboard,  minRole: 'atencion_cliente' },
+    { to: '/conversations', label: 'Conversaciones',  icon: IconChat },
+    { to: '/reservas',      label: 'Reservas y pedidos', icon: IconCalendar, minRole: 'atencion_cliente' },
+    { to: '/stats',         label: 'Estadísticas',    icon: IconChart,      minRole: 'atencion_cliente' },
+  ] },
+  { id: 'clientes', label: 'Clientes', items: [
+    { to: '/customers',     label: 'Clientes',        icon: IconContacts,   minRole: 'atencion_cliente' },
+    { to: '/campaigns',     label: 'Difusiones',      icon: IconMegaphone,  minRole: 'atencion_cliente' },
+    { to: '/templates',     label: 'Plantillas',      icon: IconTemplate,   minRole: 'atencion_cliente' },
+  ] },
+  { id: 'equipo', label: 'Equipo', items: [
+    { to: '/users',         label: 'Usuarios',        icon: IconUsers,      minRole: 'admin' },
+    { to: '/areas',         label: 'Áreas',           icon: IconDepartment, minRole: 'atencion_cliente' },
+  ] },
+  { id: 'config', label: 'Configuración', items: [
+    { to: '/knowledge',     label: 'Knowledge Base',  icon: IconBook,       minRole: 'atencion_cliente' },
+    { to: '/labels',        label: 'Etiquetas',       icon: IconTag,        minRole: 'atencion_cliente' },
+    { to: '/quick-replies', label: 'Resp. Rápidas',   icon: IconZap,        minRole: 'atencion_cliente' },
+    { to: '/simulator',     label: 'Simulador',       icon: IconFlask,      minRole: 'atencion_cliente' },
+    { to: '/config',        label: 'Configuración',   icon: IconSettings,   minRole: 'atencion_cliente' },
+    { to: '/costs',         label: 'Costos',          icon: IconDollar,     minRole: 'admin' },
+  ] },
 ];
 
-function canAccess(role, minRole) {
+
+export function canAccess(role, minRole) {
   if (!minRole) return true;
   if (minRole === 'admin') return role === 'admin';
   if (minRole === 'atencion_cliente') return role === 'admin' || role === 'atencion_cliente';
   return true;
 }
 
-export default function Layout({ items = NAV_ITEMS, subtitle = 'Bot' }) {
+export default function Layout({ groups = NAV_GROUPS, subtitle = 'Bot', showWaiting = true }) {
   const { agent, logout } = useAuth();
   const navigate = useNavigate();
+  const [awaiting, setAwaiting] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
+  // Los desplegables arrancan siempre cerrados; no se recuerda qué abrió.
+  const [openGroups, setOpenGroups] = useState({});
+  const { pathname } = useLocation();
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
+
+  function toggleGroup(id) {
+    setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  // Contador rojo de "esperando agente" en Conversaciones.
+  useEffect(() => {
+    if (!showWaiting) return undefined;
+    let alive = true;
+    async function load() {
+      if (document.hidden) return; // pestaña oculta: no gastar consultas
+      try {
+        const res = await authFetch(BASE_URL + '/api/stats/waiting');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (alive) setAwaiting(Number(data?.count) || 0);
+      } catch { /* sin contador si falla */ }
+    }
+    load();
+    const id = setInterval(load, AWAITING_POLL_MS);
+    return () => { alive = false; clearInterval(id); };
+  }, [showWaiting]);
 
   function closeMenu() { setMenuOpen(false); }
 
@@ -100,20 +139,45 @@ export default function Layout({ items = NAV_ITEMS, subtitle = 'Bot' }) {
         )}
 
         <nav className={styles.nav}>
-          {items.filter(item => canAccess(agent?.role, item.minRole)).map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={closeMenu}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-              }
-            >
-              <Icon className={styles.navIcon} />
-              <span className={styles.navLabel}>{label}</span>
-            </NavLink>
-          ))}
+          {groups.map(group => {
+            const items = group.items.filter(item => canAccess(agent?.role, item.minRole));
+            if (!items.length) return null;
+            // El grupo de la pantalla actual siempre se ve, aunque esté cerrado.
+            const hasActive = items.some(item => pathname.startsWith(item.to));
+            const open = !group.label || collapsed || openGroups[group.id] || hasActive;
+            return (
+              <div key={group.id} className={styles.navGroup}>
+                {group.label && (
+                  <button
+                    type="button"
+                    className={styles.navGroupTitle}
+                    onClick={() => toggleGroup(group.id)}
+                    aria-expanded={open}
+                  >
+                    <span>{group.label}</span>
+                    <span className={`${styles.navGroupChevron} ${open ? styles.navGroupChevronOpen : ''}`} aria-hidden="true">›</span>
+                  </button>
+                )}
+                {open && items.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={closeMenu}
+                    title={collapsed ? label : undefined}
+                    className={({ isActive }) =>
+                      `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+                    }
+                  >
+                    <Icon className={styles.navIcon} />
+                    <span className={styles.navLabel}>{label}</span>
+                    {to === '/conversations' && awaiting > 0 && (
+                      <span className={styles.navBadge} aria-label={`${awaiting} esperando agente`}>{awaiting > 99 ? '99+' : awaiting}</span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         <div className={styles.sidebarFooter}>
@@ -133,45 +197,57 @@ export default function Layout({ items = NAV_ITEMS, subtitle = 'Bot' }) {
 }
 
 // Gestión: lo que antes era /#/admin de la landing (reservas, take away, cupones…).
-const GESTION_ITEMS = [
-  { to: '/gestion/resumen',       label: 'Resumen',       icon: IconDashboard },
-  { to: '/gestion/reservas',      label: 'Reservas',      icon: IconCalendar },
-  { to: '/gestion/takeaway',      label: 'Take Away',     icon: IconBag },
-  { to: '/gestion/cupones',       label: 'Cupones',       icon: IconTag },
-  { to: '/gestion/calendario',    label: 'Calendario',    icon: IconCalendar },
-  { to: '/gestion/capacidad',     label: 'Capacidad',     icon: IconUsers,     minRole: 'admin' },
-  { to: '/gestion/eventos',       label: 'Eventos',       icon: IconMegaphone },
-  { to: '/gestion/comandas',      label: 'Salón',         icon: IconZap },
-  { to: '/gestion/clientes',      label: 'Clientes',      icon: IconContacts },
-  { to: '/gestion/mensajes',      label: 'Mensajes',      icon: IconChat },
-  { to: '/gestion/postulaciones', label: 'Postulaciones', icon: IconUsers },
-  { to: '/gestion/newsletter',    label: 'Newsletter',    icon: IconBell },
-  { to: '/gestion/feedback',      label: 'Feedback',      icon: IconBook },
-  { to: '/gestion/analytics',     label: 'Analytics',     icon: IconChart },
+const GESTION_GROUPS = [
+  { id: 'gestion', items: [
+    { to: '/gestion/resumen',       label: 'Resumen',       icon: IconDashboard },
+    { to: '/gestion/reservas',      label: 'Reservas',      icon: IconCalendar },
+    { to: '/gestion/takeaway',      label: 'Take Away',     icon: IconBag },
+    { to: '/gestion/cupones',       label: 'Cupones',       icon: IconTag },
+    { to: '/gestion/calendario',    label: 'Calendario',    icon: IconCalendar },
+    { to: '/gestion/capacidad',     label: 'Capacidad',     icon: IconUsers,     minRole: 'admin' },
+    { to: '/gestion/eventos',       label: 'Eventos',       icon: IconMegaphone },
+    { to: '/gestion/comandas',      label: 'Salón',         icon: IconZap },
+    { to: '/gestion/clientes',      label: 'Clientes',      icon: IconContacts },
+    { to: '/gestion/mensajes',      label: 'Mensajes',      icon: IconChat },
+    { to: '/gestion/postulaciones', label: 'Postulaciones', icon: IconUsers },
+    { to: '/gestion/newsletter',    label: 'Newsletter',    icon: IconBell },
+    { to: '/gestion/feedback',      label: 'Feedback',      icon: IconBook },
+    { to: '/gestion/analytics',     label: 'Analytics',     icon: IconChart },
+  ] },
 ];
 
 export function GestionLayout() {
-  return <Layout items={GESTION_ITEMS} subtitle="Gestión" />;
+  return <Layout groups={GESTION_GROUPS} subtitle="Gestión" showWaiting={false} />;
 }
 
 // Contenido web: lo que antes era /#/admin-contenidos de la landing.
-const CONTENIDO_ITEMS = [
-  { to: '/contenido/carta',         label: 'Carta',         icon: IconBook },
-  { to: '/contenido/maridajes',     label: 'Maridajes',     icon: IconTag },
-  { to: '/contenido/galeria',       label: 'Galería',       icon: IconTemplate },
-  { to: '/contenido/resenas',       label: 'Reseñas',       icon: IconChat },
-  { to: '/contenido/prensa',        label: 'Prensa',        icon: IconMegaphone },
-  { to: '/contenido/configuracion', label: 'Configuración', icon: IconSettings },
+const CONTENIDO_GROUPS = [
+  { id: 'contenido', items: [
+    { to: '/contenido/carta',         label: 'Carta',         icon: IconBook },
+    { to: '/contenido/maridajes',     label: 'Maridajes',     icon: IconTag },
+    { to: '/contenido/galeria',       label: 'Galería',       icon: IconTemplate },
+    { to: '/contenido/resenas',       label: 'Reseñas',       icon: IconChat },
+    { to: '/contenido/prensa',        label: 'Prensa',        icon: IconMegaphone },
+    { to: '/contenido/configuracion', label: 'Configuración', icon: IconSettings },
+  ] },
 ];
 
 export function ContenidoLayout() {
-  return <Layout items={CONTENIDO_ITEMS} subtitle="Contenido web" />;
+  return <Layout groups={CONTENIDO_GROUPS} subtitle="Contenido web" showWaiting={false} />;
 }
 
 function IconBag({ className }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function IconCalendar({ className }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
 }
@@ -216,14 +292,6 @@ function IconSettings({ className }) {
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function IconCalendar({ className }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
   );
 }
