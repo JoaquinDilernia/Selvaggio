@@ -22,7 +22,7 @@ const HORARIOS_BASE = ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21
 const HORARIOS_FINDE = [...HORARIOS_BASE, '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00'];
 const TZ = 'America/Argentina/Buenos_Aires';
 
-const COL = {
+export const COL = {
   mesas: 'selvaggio_reservas_mesas',
   cava: 'selvaggio_reservas_cava',
   calendario: 'selvaggio_calendario',
@@ -81,14 +81,14 @@ export function ahoraAR(now = new Date()) {
   return { fecha: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour}:${p.minute}` };
 }
 
-const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function diaSemana(fecha) {
+export function diaSemana(fecha) {
   // Mediodía UTC: el día de la semana no cambia por zona horaria.
   return new Date(`${fecha}T12:00:00Z`).getUTCDay();
 }
 
-const NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+export const NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
 // Lo de después de medianoche va al final (es la misma noche).
 const claveHorario = (h) => (h < '12:00' ? '1' : '0') + h;
@@ -107,12 +107,12 @@ export function horariosDelDia(fecha, excepcion = null) {
 
 // Colecciones que ocupan cupo. El sandbox del bot solo cuenta para el bot:
 // la web nunca ve (ni pierde lugar por) reservas de prueba.
-function colsQueOcupan(incluirSandbox) {
+export function colsQueOcupan(incluirSandbox) {
   return [COL.mesas, ...(incluirSandbox && !isLive() ? [COL.sandboxMesas] : [])];
 }
 
 // Personas que ocupa una reserva (las viejas sin cantidad cuentan como 1).
-const personasDe = (r) => enteroPositivo(r.cantidadPersonas) ?? 1;
+export const personasDe = (r) => enteroPositivo(r.cantidadPersonas) ?? 1;
 
 async function personasPorHorario(db, fecha, incluirSandbox) {
   const cols = colsQueOcupan(incluirSandbox);

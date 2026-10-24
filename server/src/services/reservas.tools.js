@@ -4,6 +4,7 @@ import {
 } from './reservas.service.js';
 import { describirHorario } from './horario.js';
 import { guardarCumple } from './cumpleanos.service.js';
+import { reservasDelContacto, modificarReservaMesa, cancelarReservaMesa } from './reservasCambios.service.js';
 import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
 
 // Tools que Claude puede llamar durante una conversación. El teléfono de la
@@ -71,6 +72,45 @@ export const RESERVAS_TOOLS = [
         comentarios: { type: 'string' },
       },
       required: ['nombre', 'cantidadPersonas', 'fecha', 'horario', 'preferencia'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'mis_reservas',
+    description:
+      'Próximas reservas de mesa (y de eventos) a nombre del número de este chat, con su id. ' +
+      'Usala SIEMPRE antes de modificar o cancelar, o si el cliente pregunta por su reserva.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'modificar_reserva',
+    description:
+      'Cambia día, horario, cantidad de personas, ubicación o restricciones de una reserva del cliente (id de mis_reservas). ' +
+      'Chequea el cupo sola. Pasá SOLO los campos que cambian. Llamala recién cuando el cliente confirmó el cambio.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        fecha: { type: 'string', description: 'AAAA-MM-DD' },
+        horario: { type: 'string', description: 'HH:MM, uno de los que devolvió consultar_disponibilidad_mesas.' },
+        cantidadPersonas: { type: 'integer', minimum: 1 },
+        preferencia: { type: 'string', enum: PREFERENCIAS },
+        restricciones: { type: 'string' },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'cancelar_reserva',
+    description: 'Cancela una reserva del cliente (id de mis_reservas) y libera el lugar. Llamala recién cuando el cliente confirmó que quiere cancelar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        motivo: { type: 'string', description: 'Si lo dijo (ej. "se enfermó"). Opcional.' },
+      },
+      required: ['id'],
       additionalProperties: false,
     },
   },
@@ -219,7 +259,14 @@ MESAS (hasta ${cfg.mesaMaximo} personas por mesa):
 - Antes de ofrecer horarios usá consultar_disponibilidad_mesas (con la cantidad de personas si ya la sabés). Ofrecé solo horarios con disponible=true.
 - Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
 - Antes de crear la reserva, resumí los datos y pedí confirmación. Recién con el "sí" llamá a crear_reserva_mesa.
-- La reserva queda CONFIRMADA al crearla (igual que en la web): decíselo con el resumen (día, hora, personas, ubicación). Si después quiere cambiarla o cancelarla, derivá a Atención al cliente.
+- La reserva queda CONFIRMADA al crearla (igual que en la web): decíselo con el resumen (día, hora, personas, ubicación).
+
+CAMBIOS Y CANCELACIONES (los hacés vos, no derives):
+- Usá mis_reservas para encontrar la reserva (también las que hizo en la web con este número). Si tiene más de una, preguntá cuál. Si no aparece ninguna, puede que la haya hecho otra persona o con otro número: pedí a nombre de quién está y derivá al equipo con [MOTIVO:cambio_reserva|...].
+- Para cambiar día, horario o cantidad de personas, primero consultar_disponibilidad_mesas con la nueva fecha y la cantidad de personas. Ojo: los lugares que devuelve cuentan su propia reserva como ocupada; si es el mismo horario, sumale sus personas.
+- Antes de modificar o cancelar, confirmá con el cliente cómo queda (o que quiere cancelar). Con el "sí" llamá a modificar_reserva (solo los campos que cambian) o cancelar_reserva.
+- Después decile cómo quedó la reserva (día, hora, personas, ubicación) o que quedó cancelada. Si se cancela, despedite amable e invitalo a volver.
+- Si son más de ${cfg.mesaMaximo} personas, o la reserva ya pasó, o la herramienta da error que no podés resolver, derivá al equipo.
 - Si un horario se llenó o no entran, ofrecé los más cercanos que tengan lugar. El cupo es por personas: cada horario tiene lugar para ${cfg.personasPorHorario} personas en total.
 
 LA CAVA (eventos privados, desde ${cfg.cavaMinimo}${cfg.cavaMaximo ? ` hasta ${cfg.cavaMaximo}` : ''} personas):
@@ -261,6 +308,20 @@ export async function runReservaTool(name, input, ctx) {
         );
         return { ok: true, estado: reserva.estado, fecha: reserva.fecha, horario: reserva.horario, cantidadPersonas: reserva.cantidadPersonas };
       }
+
+      case 'mis_reservas':
+        if (ctx.channel !== 'whatsapp') return { error: 'Solo desde WhatsApp' };
+        return { reservas: await reservasDelContacto(ctx.contactId) };
+
+      case 'modificar_reserva': {
+        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden cambiar reservas; que escriba por WhatsApp' };
+        const { id, ...cambios } = input;
+        return await modificarReservaMesa(id, cambios, ctx.contactId);
+      }
+
+      case 'cancelar_reserva':
+        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden cancelar reservas; que escriba por WhatsApp' };
+        return await cancelarReservaMesa(input.id, ctx.contactId, { motivo: input.motivo });
 
       case 'reservar_evento': {
         if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp' };

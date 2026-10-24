@@ -1,4 +1,6 @@
 import { generateBotResponse } from './claude.service.js';
+import { endsWithQuestion } from './closeGuard.js';
+import { parseReasonMarker } from './escalationReasons.js';
 import { getKnowledgeBasePrompt, getDocumentosParaEnviar } from './knowledge.service.js';
 import {
   getOrCreateConversation,
@@ -8,10 +10,12 @@ import {
   updateHumanMode,
   updateAssignment,
   dispatchConversation,
+  markReopened,
   setUrgentFlag,
   addLabelToConversation,
 } from './conversation.service.js';
-import { sendWhatsAppMessage, sendInstagramMessage, downloadMediaAsBase64, sendWhatsAppDocumentLink } from './meta.service.js';
+import { sendWhatsAppMessage, sendInstagramMessage, downloadMediaAsBase64, sendWhatsAppDocumentLink, downloadMetaMedia } from './meta.service.js';
+import { transcribeAudio } from './transcription.service.js';
 import { getOrCreateCustomer, buildCustomerContext } from './customer.service.js';
 import { getAllLabels, createLabel, resolverEtiqueta } from './label.service.js';
 import { getActiveAreas } from './area.service.js';
@@ -165,7 +169,8 @@ function resolveReplyTo(history, replyToWaMsgId) {
 }
 
 async function processIncomingMessageInternal(msg) {
-  const { channel, from, text, type, mediaId, mediaUrl, contactName, messageId, replyToWaMsgId } = msg;
+  const { channel, from, type, mediaId, mediaUrl, contactName, messageId, replyToWaMsgId } = msg;
+  let { text } = msg; // un audio transcripto o un archivo pasan a ser el texto del mensaje
   // Datos del adjunto que se guardan junto al mensaje para que el panel pueda
   // mostrarlo (nombre del archivo, tipo, y la URL de CDN si vino de Instagram).
   const mediaFields = {
@@ -205,6 +210,7 @@ async function processIncomingMessageInternal(msg) {
       updateConversationStatus(from, 'bot'),
       updateHumanMode(from, false),
       updateAssignment(from, null),
+      markReopened(from),
     ]);
     conversation.status = 'bot';
     conversation.humanMode = false;
@@ -240,7 +246,20 @@ async function processIncomingMessageInternal(msg) {
   }
 
   // --- Non-text type handling ---
+  // Audio: se transcribe (Whisper) y sigue el flujo normal como si fuera
+  // texto. Solo si la transcripción falla se cae al aviso de "no puedo
+  // escucharlo" de antes.
+  let yaGuardado = false;
   if (type === 'audio') {
+    const transcript = await transcribeIncomingAudio({ mediaId, mediaUrl });
+    if (transcript) {
+      await appendMessage(from, { role: 'user', content: '[Audio recibido]', transcript, mediaType: 'audio', ...mediaFields, contactName, messageId, ...(replyTo && { replyTo }) });
+      text = `[Audio transcripto] ${transcript}`;
+      yaGuardado = true;
+      console.log(`[bot] Audio de ${from} transcripto (${transcript.length} chars)`);
+    }
+  }
+  if (type === 'audio' && !yaGuardado) {
     const prevAudios = history.filter(m => m.role === 'user' && m.mediaType === 'audio').length;
     const audioUserMsg = '[Audio recibido]';
     await appendMessage(from, { role: 'user', content: audioUserMsg, mediaType: 'audio', ...mediaFields, contactName, messageId, ...(replyTo && { replyTo }) });
@@ -265,16 +284,16 @@ async function processIncomingMessageInternal(msg) {
     return;
   }
 
+  // Archivo (casi siempre un CV en PDF): se guarda y Claude contesta con el
+  // contexto de la charla. Antes respondía fijo "no puedo procesarlo", aun
+  // después de haberle pedido el CV por la web.
   if (type === 'document') {
-    const reply = 'Recibí un archivo, pero no puedo procesarlo directamente. ¿Podés contarme por escrito en qué te ayudo?';
     // mediaId se guardaba acá antes — sin él, el archivo (ej: un PDF) quedaba
     // imposible de ver o descargar después desde el panel.
     const docLabel = msg.fileName ? `[Archivo: ${msg.fileName}]` : '[Archivo recibido]';
     await appendMessage(from, { role: 'user', content: text?.trim() ? `${docLabel} ${text.trim()}` : docLabel, mediaType: 'document', ...mediaFields, contactName, messageId, ...(replyTo && { replyTo }) });
-    await appendMessage(from, { role: 'assistant', content: reply });
-    if (channel === 'whatsapp') await sendWhatsAppMessage(from, reply);
-    else if (channel === 'instagram') await sendInstagramMessage(from, reply);
-    return;
+    text = `[El cliente mandó un archivo${msg.fileName ? `: ${msg.fileName}` : ''}. No podés abrirlo; respondé según lo que viene hablando.]${text?.trim() ? ` ${text.trim()}` : ''}`;
+    yaGuardado = true;
   }
 
   // --- Image: download and pass to Claude ---
@@ -291,7 +310,7 @@ async function processIncomingMessageInternal(msg) {
     }
     const userContent = text?.trim() ? `[Imagen] ${text}` : '[Imagen recibida]';
     await appendMessage(from, { role: 'user', content: userContent, mediaType: 'image', ...mediaFields, contactName, messageId, ...(replyTo && { replyTo }) });
-  } else {
+  } else if (!yaGuardado) {
     if (!text?.trim()) return;
     const isMediaWithCaption = type === 'video' || type === 'sticker';
     await appendMessage(from, {
@@ -348,10 +367,15 @@ async function processIncomingMessageInternal(msg) {
   }
   console.log(`[bot] Claude respondió (${botReply.length} chars) para ${from}`);
 
-  const { shouldEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(botReply, areas);
-  const { shouldClose, cleanText: textAfterClose } = parseCloseMarker(textAfterEscalation);
+  // El motivo va primero: puede venir en la misma línea que [ESCALAR_X], que
+  // parseEscalationMarker borra entera.
+  const { reason: escalationReason, detail: escalationDetail, cleanText: textAfterReason } = parseReasonMarker(botReply);
+  const { shouldEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
+  const { shouldClose: closeMarker, cleanText: textAfterClose } = parseCloseMarker(textAfterEscalation);
   const { labels: botLabels, newLabels: botNewLabels, cleanText: textAfterLabels } = parseLabelMarkers(textAfterClose);
   const cleanText = toWhatsAppBold(textAfterLabels);
+  const shouldClose = closeMarker && !endsWithQuestion(cleanText);
+  if (closeMarker && !shouldClose) console.log(`[bot] [CERRAR] ignorado para ${from}: la respuesta termina en pregunta`);
 
   await appendMessage(from, { role: 'assistant', content: cleanText });
 
@@ -386,8 +410,10 @@ async function processIncomingMessageInternal(msg) {
       status: 'escalated',
       humanMode: true,
       assignedTo: assignTo ?? null,
+      escalationReason: escalationReason ?? 'otro',
+      escalationDetail,
     });
-    console.log(`[bot] Escalando ${from} → área: ${assignTo ?? 'sin asignar'}`);
+    console.log(`[bot] Escalando ${from} → área: ${assignTo ?? 'sin asignar'} · motivo: ${escalationReason ?? 'otro'}${escalationDetail ? ` (${escalationDetail})` : ''}`);
 
     const areaName = areas.find(a => a.id === assignTo)?.name ?? null;
     const escalationMsg = buildEscalationMessage(areaName, botConfig);
@@ -401,5 +427,28 @@ async function processIncomingMessageInternal(msg) {
   } else if (shouldClose) {
     await updateConversationStatus(from, 'resolved');
     console.log(`[bot] Conversación ${from} resuelta por el bot`);
+  }
+}
+
+// WhatsApp manda el mediaId; Instagram, una URL directa. null si no se pudo
+// transcribir o el audio vino vacío (el llamador cae al aviso de antes).
+async function transcribeIncomingAudio({ mediaId, mediaUrl }) {
+  try {
+    let buffer, mimeType;
+    if (mediaId) {
+      ({ buffer, mimeType } = await downloadMetaMedia(mediaId));
+    } else if (mediaUrl) {
+      const axios = (await import('axios')).default;
+      const res = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+      buffer = Buffer.from(res.data);
+      mimeType = res.headers['content-type'] || 'audio/mp4';
+    } else {
+      return null;
+    }
+    const transcript = String(await transcribeAudio(buffer, mimeType) ?? '').trim();
+    return transcript || null;
+  } catch (err) {
+    console.error('[bot] No se pudo transcribir el audio:', err.response?.data ?? err.message);
+    return null;
   }
 }

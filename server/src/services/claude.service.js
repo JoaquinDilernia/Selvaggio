@@ -1,5 +1,7 @@
 import https from 'https';
 import { getDb } from './firebase.service.js';
+import { reasonPromptLines } from './escalationReasons.js';
+import { sessionHistory } from './sessionHistory.js';
 
 const MODEL = 'claude-sonnet-5';
 // Caché de prompt: escribir cuesta 1.25x la entrada (TTL 5 min), leer 0.1x.
@@ -39,8 +41,12 @@ function buildEscalationInstructions(areas = []) {
     return `
 IMPORTANTE — ESCALADA: Si la consulta requiere atención humana y no podés resolverla, usá el marcador [ESCALAR] en una línea separada.
 
-IMPORTANTE — CIERRE: Si la consulta está completamente resuelta, empezá tu respuesta con [CERRAR].
-Ejemplo: "[CERRAR] Genial, cualquier cosa escribinos."`;
+IMPORTANTE — MOTIVO DE LA DERIVACIÓN: Cada vez que derivás, agregá también en una línea separada [MOTIVO:categoria|detalle], donde detalle es una frase corta (máx. 12 palabras) y categoria es una de estas:
+${reasonPromptLines()}
+Ejemplo: "[MOTIVO:cambio_reserva|quiere pasar su reserva del sábado de 21 a 22 hs]". El cliente no lo ve.
+
+IMPORTANTE — CIERRE: Empezá tu respuesta con [CERRAR] cuando la charla terminó: el cliente se despide o agradece ("gracias", "genial", "dale, nos vemos") y no queda nada pendiente — por ejemplo después de confirmar una reserva o un pedido. Si tu respuesta termina con una pregunta ("¿Te ayudo con algo más?", "¿para cuántas personas?"), NO uses [CERRAR]: estás esperando que el cliente conteste. Si el cliente vuelve a escribir después, la charla se reabre sola.
+Ejemplo: "[CERRAR] ¡Gracias a vos! Nos vemos el viernes 🍷"`;
   }
 
   const lines = areas.map(a => `- [ESCALAR_${a.id.toUpperCase()}] — ${a.description}`).join('\n');
@@ -56,9 +62,12 @@ Ejemplo correcto:
 "Dale, te paso con alguien del equipo que te puede ayudar mejor con esto.
 [ESCALAR_${areas[0].id.toUpperCase()}]"
 
-IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR].
-Ejemplo: "[CERRAR] Genial, cualquier cosa escribinos."
-Usá [CERRAR] solo cuando estés seguro de que la conversación terminó.`;
+IMPORTANTE — MOTIVO DE LA DERIVACIÓN: Cada vez que derivás, agregá también en una línea separada [MOTIVO:categoria|detalle], donde detalle es una frase corta (máx. 12 palabras) y categoria es una de estas:
+${reasonPromptLines()}
+Ejemplo: "[MOTIVO:cambio_reserva|quiere pasar su reserva del sábado de 21 a 22 hs]". El cliente no lo ve.
+
+IMPORTANTE — CIERRE: Empezá tu respuesta con [CERRAR] cuando la charla terminó: el cliente se despide o agradece ("gracias", "genial", "dale, nos vemos") y no queda nada pendiente — por ejemplo después de confirmar una reserva o un pedido. Si tu respuesta termina con una pregunta ("¿Te ayudo con algo más?", "¿para cuántas personas?"), NO uses [CERRAR]: estás esperando que el cliente conteste. Si el cliente vuelve a escribir después, la charla se reabre sola.
+Ejemplo: "[CERRAR] ¡Gracias a vos! Nos vemos el viernes 🍷"`;
 }
 
 function callAnthropicAPIOnce(payload) {
@@ -209,6 +218,19 @@ Reglas:
 // clientes (personalidad, KB, etiquetas) con cache_control (~10% del costo),
 // y lo que cambia por cliente/mensaje (perfil, reservas con la fecha de hoy,
 // documentos) al final. No meter nada variable en el primer bloque.
+// Errores vistos en charlas reales (oct 2026): inventar el contexto de un
+// mensaje, "corregir" al que escribe, contestar seco a una imagen y leer mal
+// horarios. Va en el bloque cacheado.
+const EXACTITUD = `
+
+IMPORTANTE — EXACTITUD:
+- Respondé solo sobre lo que el cliente escribió. No supongas ni agregues datos que no dijo (nombres, ocasiones, fechas, cantidades, para quién es). Si te falta un dato, preguntalo.
+- Si alguien menciona otra marca o un nombre que no es Selvaggio (agencias, proveedores, colaboraciones), no lo corrijas ni le digas que se equivocó: tomá su propuesta como dirigida a Selvaggio y seguí el procedimiento que corresponda.
+- Si te mandan una imagen, contestá con amabilidad según lo que se ve y la charla. Nunca respondas "no puedo ayudarte con eso" ni que la imagen "no tiene relación".
+- Si te mandan un CV (en texto, imagen o archivo), agradecé y pasá el link para cargarlo en la web. No digas que no podés abrir el archivo ni le pidas que te lo escriba.
+- Horarios: el local abre de tarde/noche, así que una hora ambigua ("a las 9", "11:30") es de noche (21:00, 23:30). No ofrezcas reservas en el horario de cierre ni después.
+- Cada charla es independiente: no retomes temas de charlas anteriores salvo que el cliente los mencione.`;
+
 function buildSystemPrompt(botConfig = {}, knowledgeBase, customerContext, availableLabels = [], areas = [], extraSystem = '') {
   const botName = botConfig.botName || 'Asistente';
   const businessName = botConfig.businessName || 'Selvaggio Wine Bar & Delicatessen';
@@ -221,6 +243,7 @@ Nunca inventás información sobre servicios, precios, plazos, procesos o links 
 
   let prompt = `Sos el asistente virtual de ${businessName}. Tu nombre es ${botName}.\n${personality}`;
   prompt += buildEscalationInstructions(areas);
+  prompt += EXACTITUD;
   if (knowledgeBase) {
     prompt += `\n\n--- INFORMACIÓN DE LA EMPRESA ---\n${knowledgeBase}`;
     prompt += `\n\nIMPORTANTE — USO DE ESTA INFORMACIÓN: Es TU ÚNICA fuente de verdad sobre servicios, precios, procesos y políticas. Antes de responder CUALQUIER consulta, revisá esta sección completa primero. Si algo aplica, compartilo directamente aunque el cliente no lo pida explícitamente. Si la consulta no está cubierta acá, NUNCA inventes ni supongas una respuesta — decí que no tenés esa info y ofrecé derivar a alguien del equipo.`;
@@ -238,12 +261,10 @@ Nunca inventás información sobre servicios, precios, plazos, procesos o links 
 
 function buildMessages(conversationHistory, newMessage, imageData = null) {
   const messages = [];
-  if (conversationHistory?.length) {
-    const recent = conversationHistory.slice(-10);
-    for (const msg of recent) {
-      const role = msg.role === 'user' ? 'user' : 'assistant';
-      messages.push({ role, content: msg.content });
-    }
+  for (const msg of sessionHistory(conversationHistory ?? [])) {
+    const role = msg.role === 'user' ? 'user' : 'assistant';
+    const content = msg.transcript ? `[Audio transcripto] ${msg.transcript}` : msg.content;
+    messages.push({ role, content });
   }
   if (imageData) {
     messages.push({

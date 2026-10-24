@@ -6,12 +6,12 @@ import morgan from 'morgan';
 import webhookRoutes from './routes/webhook.routes.js';
 import knowledgeRoutes from './routes/knowledge.routes.js';
 import conversationRoutes from './routes/conversation.routes.js';
-import configRoutes from './routes/config.routes.js';
+import configRoutes, { brandRouter } from './routes/config.routes.js';
 import customerRoutes from './routes/customer.routes.js';
 import testRoutes from './routes/test.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import labelRoutes from './routes/label.routes.js';
-import statsRoutes from './routes/stats.routes.js';
+import statsRoutes, { waitingRouter } from './routes/stats.routes.js';
 import quickReplyRoutes from './routes/quickreply.routes.js';
 import templateRoutes from './routes/template.routes.js';
 import costsRoutes from './routes/costs.routes.js';
@@ -25,6 +25,7 @@ import comandasRoutes from './routes/comandas.routes.js';
 import { asegurarPlantillaPedidoListo } from './services/comandas.service.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { iniciarArchivoReservas } from './services/archivoReservas.service.js';
+import { iniciarAutoArchivo } from './services/autoArchivo.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
@@ -44,6 +45,8 @@ seedAreasIfNeeded().catch(err => console.error('[seed] Error seeding areas:', er
 // Lista única de clientes: copia los clientes de la web a los contactos (cada 15 min).
 iniciarSyncClientes();
 iniciarArchivoReservas();
+// Charlas del bot quietas 12 h → archivadas (cuentan como resueltas por el bot).
+iniciarAutoArchivo();
 
 // Middleware
 const allowedOrigins = [
@@ -80,6 +83,12 @@ app.use('/api/conversations', requireAuth, requireBotAccess, conversationRoutes)
 app.use('/api/labels', requireAuth, requireBotAccess, labelRoutes);
 
 // Requires at least atencion_cliente
+// Livianos y sin datos sensibles: los usa el panel de cualquier rol del bot
+// (operadores incluidos) para el nombre/color de marca y el contador de
+// "esperando". Van antes de /api/config y /api/stats, que exigen atencion_cliente.
+app.use('/api/config/brand',  requireAuth, requireBotAccess, brandRouter);
+app.use('/api/stats/waiting', requireAuth, requireBotAccess, waitingRouter);
+
 app.use('/api/knowledge',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, knowledgeRoutes);
 app.use('/api/config',        requireAuth, requireBotAccess, requireAtLeastAtencionCliente, configRoutes);
 // Un operador que atiende una conversación derivada necesita ver el perfil

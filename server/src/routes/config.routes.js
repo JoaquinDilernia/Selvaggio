@@ -29,6 +29,22 @@ router.put('/', requireAtLeastAtencionCliente, async (req, res) => {
   }
 });
 
+// Solo lo necesario para pintar el panel con la marca (sin el resto de la config).
+export const brandRouter = Router();
+brandRouter.get('/', async (req, res) => {
+  try {
+    const doc = await getDb().collection('bot-selvaggio_config').doc(CONFIG_DOC).get();
+    const c = doc.exists ? doc.data() : getDefaultConfig();
+    res.json({
+      botName: c.botName ?? null,
+      brandColor: c.brandColor ?? null,
+      businessName: c.businessName ?? null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Horario por defecto = el del local según la web (src/Reservas/ReservaMesas.jsx):
 // lunes cerrado, vie/sáb hasta las 02. Se edita en Configuración del panel.
 export function getDefaultConfig() {
