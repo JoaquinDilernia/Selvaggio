@@ -15,7 +15,7 @@ const USOS = [
 ];
 const usoLabel = (v) => USOS.find(u => u.value === v)?.label ?? 'Otro';
 
-const EMPTY_FORM = { title: '', content: '', category: 'Info general', order: 99, active: true, uso: 'otro' };
+const EMPTY_FORM = { title: '', content: '', category: 'Info general', order: 99, active: true, uso: 'otro', proactive: false };
 const EMPTY_PDF = { title: '', uso: 'carta', file: null };
 
 export default function KnowledgeBase() {
@@ -115,7 +115,7 @@ export default function KnowledgeBase() {
 
   function startEdit(item) {
     setEditing(item.id);
-    setForm({ title: item.title, content: item.content, category: item.category, order: item.order, active: item.active, uso: item.uso ?? 'otro' });
+    setForm({ title: item.title, content: item.content, category: item.category, order: item.order, active: item.active, uso: item.uso ?? 'otro', proactive: item.proactive ?? false });
     setShowForm(true);
     setPdfForm(null);
   }
@@ -265,6 +265,14 @@ export default function KnowledgeBase() {
                 required={!editingPdf}
               />
             </div>
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                checked={form.proactive}
+                onChange={(e) => setForm({ ...form, proactive: e.target.checked })}
+              />
+              🔥 Proactivo (el bot lo va a mencionar sin que le pregunten, ej: promociones o eventos)
+            </label>
             <div className={styles.formActions}>
               <button type="button" className={styles.btnSecondary} onClick={resetForm}>
                 Cancelar
@@ -296,6 +304,7 @@ export default function KnowledgeBase() {
                   <span className={`${styles.cardStatus} ${item.active ? styles.cardStatusActive : styles.cardStatusOff}`}>
                     {item.active ? 'Activo' : 'Inactivo'}
                   </span>
+                  {item.proactive && <span className={styles.cardProactive}>🔥 Proactivo</span>}
                 </div>
                 <h3 className={styles.cardTitle}>{item.title}</h3>
                 {item.tipo === 'pdf' && (

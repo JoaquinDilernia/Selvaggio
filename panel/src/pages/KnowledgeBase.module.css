@@ -247,3 +247,20 @@
   margin-bottom: var(--space-2);
   word-break: break-all;
 }
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.cardProactive {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  padding: 2px var(--space-2);
+  background: #fff7ed;
+  color: #c2410c;
+}

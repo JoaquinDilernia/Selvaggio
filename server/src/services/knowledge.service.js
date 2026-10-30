@@ -19,7 +19,7 @@ export async function getKnowledgeBasePrompt() {
     .map(doc => doc.data())
     .filter(d => d.content?.trim())
     .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
-    .map(d => `### ${d.title}${d.tipo === 'pdf' ? ' (contenido del PDF, se puede mandar con enviar_documento)' : ''}\n${d.content}`);
+    .map(d => `### ${d.proactive ? '🔥 ' : ''}${d.title}${d.tipo === 'pdf' ? ' (contenido del PDF, se puede mandar con enviar_documento)' : ''}\n${d.content}`);
 
   return sections.join('\n\n');
 }
@@ -84,6 +84,7 @@ export async function createKnowledgeItem(item) {
     ...item,
     active: item.active ?? true,
     order: item.order ?? 99,
+    proactive: item.proactive ?? false,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

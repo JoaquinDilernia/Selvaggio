@@ -246,7 +246,8 @@ Nunca inventás información sobre servicios, precios, plazos, procesos o links 
   prompt += EXACTITUD;
   if (knowledgeBase) {
     prompt += `\n\n--- INFORMACIÓN DE LA EMPRESA ---\n${knowledgeBase}`;
-    prompt += `\n\nIMPORTANTE — USO DE ESTA INFORMACIÓN: Es TU ÚNICA fuente de verdad sobre servicios, precios, procesos y políticas. Antes de responder CUALQUIER consulta, revisá esta sección completa primero. Si algo aplica, compartilo directamente aunque el cliente no lo pida explícitamente. Si la consulta no está cubierta acá, NUNCA inventes ni supongas una respuesta — decí que no tenés esa info y ofrecé derivar a alguien del equipo.`;
+    prompt += `\n\nIMPORTANTE — USO DE ESTA INFORMACIÓN: Es TU ÚNICA fuente de verdad sobre servicios, precios, procesos y políticas. Antes de responder CUALQUIER consulta, revisá esta sección completa primero. Si algo aplica, compartilo directamente aunque el cliente no lo pida explícitamente. Si la consulta no está cubierta acá, NUNCA inventes ni supongas una respuesta — decí que no tenés esa info y ofrecé derivar a alguien del equipo.
+Los items marcados con 🔥 son promociones, novedades o eventos que queremos impulsar activamente: mencionalos cuando la charla toque algo relacionado (una reserva, la carta, un evento, take away), aunque el cliente no pregunte por eso puntualmente. No hace falta que el tema calce exacto — la idea es aprovechar la oportunidad. Eso sí, no lo repitas en cada mensaje: si ya lo mencionaste en esta conversación, no lo vuelvas a meter salvo que el cliente pregunte de nuevo.`;
   }
   prompt += buildLabelInstructions(availableLabels);
 
