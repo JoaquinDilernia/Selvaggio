@@ -1,5 +1,6 @@
 import { getDb } from './firebase.service.js';
 import admin from 'firebase-admin';
+import { createLiveQuery } from './liveQuery.js';
 
 const COLLECTION = 'bot-selvaggio_conversations';
 
@@ -295,11 +296,21 @@ function mapConversationDoc(doc, data) {
   };
 }
 
-export async function listConversations(filters = {}) {
-  const db = getDb();
-  const snapshot = await db.collection(COLLECTION).orderBy('updatedAt', 'desc').limit(200).get();
+// Las queries que el panel repite cada pocos segundos, en memoria (ver
+// liveQuery.js). La de escaladas la usan también /api/stats y el badge.
+const recentQuery = createLiveQuery(
+  () => getDb().collection(COLLECTION).orderBy('updatedAt', 'desc').limit(200), 'recent');
+const escalatedQuery = createLiveQuery(
+  () => getDb().collection(COLLECTION).where('status', '==', 'escalated'), 'escalated');
 
-  let docs = snapshot.docs.map((doc) => mapConversationDoc(doc, doc.data()));
+export function getEscalatedDocs() {
+  return escalatedQuery.getDocs();
+}
+
+export async function listConversations(filters = {}) {
+  const recentDocs = await recentQuery.getDocs();
+
+  let docs = recentDocs.map((doc) => mapConversationDoc(doc, doc.data()));
 
   if (filters.channel) docs = docs.filter(d => d.channel === filters.channel);
   if (filters.status)  docs = docs.filter(d => d.status === filters.status);

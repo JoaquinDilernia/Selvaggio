@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import admin from 'firebase-admin';
 import { getDb } from '../services/firebase.service.js';
+import { getEscalatedDocs } from '../services/conversation.service.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { aggregateConversations, arMidnight, fromArWallClock, toDate, isoDate, previousRange } from '../services/statsAggregate.js';
 import { waitingSummary } from '../services/waiting.js';
@@ -62,7 +63,7 @@ router.get('/', async (req, res) => {
       db.collection('bot-selvaggio_agents').get(),
       db.collection('bot-selvaggio_areas').get(),
       db.collection('bot-selvaggio_conversations').where('urgent', '==', true).get(),
-      db.collection('bot-selvaggio_conversations').where('status', '==', 'escalated').get(),
+      getEscalatedDocs().then(docs => ({ docs })), // en memoria, ver conversation.service
       db.collection('bot-selvaggio_config').doc('bot_config').get().catch(() => ({ exists: false, data: () => ({}) })),
     ]);
 
@@ -144,7 +145,7 @@ waitingRouter.get('/', async (req, res) => {
   try {
     const db = getDb();
     const [escalatedSnap, agentsSnap] = await Promise.all([
-      db.collection('bot-selvaggio_conversations').where('status', '==', 'escalated').get(),
+      getEscalatedDocs().then(docs => ({ docs })), // en memoria, ver conversation.service
       db.collection('bot-selvaggio_agents').get(),
     ]);
     const agents = agentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));

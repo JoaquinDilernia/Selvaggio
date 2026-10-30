@@ -794,7 +794,7 @@ export default function Conversations() {
       for (const a of agents) { map[a.email] = a.name; map[a.id] = a.name; }
       setNameMap(map);
     });
-    pollConvRef.current = setInterval(loadConversations, 10000);
+    pollConvRef.current = setInterval(() => { if (!document.hidden) loadConversations(); }, 10000);
     return () => clearInterval(pollConvRef.current);
   }, []);
 
@@ -875,7 +875,7 @@ export default function Conversations() {
     setTemplateParams([]);
     setTemplateSendError('');
     setReplyingTo(null);
-    pollMsgRef.current = setInterval(() => loadMessages(selectedIdRef.current), 5000);
+    pollMsgRef.current = setInterval(() => { if (!document.hidden) loadMessages(selectedIdRef.current); }, 5000);
     return () => clearInterval(pollMsgRef.current);
   }, [selected?.id]);
 
