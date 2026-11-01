@@ -185,6 +185,18 @@ function limpiar(s, max = 300) {
 }
 
 /**
+ * Reserva vigente del mismo contacto entre `reservas` (ya filtradas por fecha
+ * y horario, o por evento). El modelo a veces vuelve a llamar a la tool de
+ * crear en los mensajes que siguen a la confirmación ("si si", el
+ * cumpleaños…) y cada llamada creaba otra reserva: con esto la segunda
+ * devuelve la que ya existe en vez de duplicarla.
+ */
+export function reservaDelMismoContacto(reservas, { contactId, telefono }) {
+  return reservas.find(x => x.estado !== 'cancelada'
+    && ((contactId && x.contactId === contactId) || (telefono && x.telefono === telefono))) ?? null;
+}
+
+/**
  * Crea una reserva de mesa validando cupo dentro de una transacción (dos
  * personas que piden el último lugar a la vez no pueden pasar las dos).
  * @param {object} datos  nombre, telefono, cantidadPersonas, fecha, horario,
@@ -219,14 +231,25 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
 
+  const db = getDb();
+  const destino = real ? colEscritura(COL.mesas) : COL.sandboxMesas;
+  const quien = { contactId: meta.contactId, telefono: r.telefono };
+
+  // Antes del chequeo de cupo: la reserva repetida ya ocupa su lugar y, si no,
+  // el segundo intento respondería "no hay lugar" sobre su propia reserva.
+  if (!esWeb) {
+    const snap = await db.collection(destino).where('fecha', '==', r.fecha).where('horario', '==', r.horario).get();
+    const previa = reservaDelMismoContacto(snap.docs.map(d => ({ id: d.id, ...d.data() })), quien);
+    if (previa) return { ...previa, sandbox: !real, yaExistia: true };
+  }
+
   const disp = await disponibilidadMesas(r.fecha, { now, incluirSandbox: !esWeb, personas: r.cantidadPersonas, config: cfg });
   if (!disp.abierto) throw Object.assign(new Error(`Ese día no se puede reservar (${disp.motivo})`), { status: 409 });
   const slot = disp.horarios.find(h => h.hora === r.horario);
   if (!slot) throw Object.assign(new Error(`El horario ${r.horario} no existe ese día. Horarios: ${disp.horarios.map(h => h.hora).join(', ')}`), { status: 409 });
 
-  const db = getDb();
-  const destino = real ? colEscritura(COL.mesas) : COL.sandboxMesas;
   const ref = db.collection(destino).doc();
+  let previa = null;
 
   await db.runTransaction(async (tx) => {
     // Re-chequeo del cupo adentro de la transacción.
@@ -234,7 +257,11 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
     let ocupadas = 0;
     for (const c of cols) {
       const snap = await tx.get(db.collection(c).where('fecha', '==', r.fecha).where('horario', '==', r.horario));
-      ocupadas += snap.docs.map(d => d.data()).filter(x => x.estado !== 'cancelada').reduce((s, x) => s + personasDe(x), 0);
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Mismo chequeo que arriba, por si dos mensajes llegan casi juntos.
+      if (!esWeb && c === destino) previa = reservaDelMismoContacto(docs, quien);
+      if (previa) return;
+      ocupadas += docs.filter(x => x.estado !== 'cancelada').reduce((s, x) => s + personasDe(x), 0);
     }
     if (!slot.disponible) {
       throw Object.assign(new Error(slot.lugares > 0
@@ -255,6 +282,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
       createdAt: new Date().toISOString(),
     });
   });
+  if (previa) return { ...previa, sandbox: !real, yaExistia: true };
 
   // El upsert de selvaggio_clientes (por email, como hace la web) solo en
   // modo live: en sandbox no se toca nada que vea la web.
@@ -292,6 +320,11 @@ export async function crearReservaEvento(datos, meta = {}, { now = new Date() } 
   if (!r.telefono) errores.push('falta el teléfono');
   if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1 || r.cantidadPersonas > 60) errores.push('cantidad de personas inválida');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
+
+  // Igual que en mesas: la tool repetida devuelve la reserva que ya tenía.
+  const yaHay = await db.collection(colEscritura(COL.mesas)).where('eventoId', '==', evDoc.id).get();
+  const previa = reservaDelMismoContacto(yaHay.docs.map(d => ({ id: d.id, ...d.data() })), { contactId: meta.contactId, telefono: r.telefono });
+  if (previa) return { ...previa, yaExistia: true };
 
   const ref = db.collection(colEscritura(COL.mesas)).doc();
   const reserva = {

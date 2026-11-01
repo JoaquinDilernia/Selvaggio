@@ -287,6 +287,8 @@ TAKE AWAY (picadas para llevar o con envío):
  * Claude se los explique al cliente (cupo lleno, día cerrado, datos faltantes).
  * @param {object} ctx { contactId, contactName }
  */
+const YA_EXISTIA = 'Esta persona ya tenía esta reserva: NO se creó otra. No la anuncies como nueva. Si quiere cambiar algo (personas, sector), usá modificar_reserva.';
+
 export async function runReservaTool(name, input, ctx) {
   try {
     switch (name) {
@@ -306,7 +308,10 @@ export async function runReservaTool(name, input, ctx) {
           { ...input, telefono: ctx.contactId },
           { origen: 'bot', contactId: ctx.contactId },
         );
-        return { ok: true, estado: reserva.estado, fecha: reserva.fecha, horario: reserva.horario, cantidadPersonas: reserva.cantidadPersonas };
+        return {
+          ok: true, estado: reserva.estado, fecha: reserva.fecha, horario: reserva.horario, cantidadPersonas: reserva.cantidadPersonas,
+          ...(reserva.yaExistia && { aviso: YA_EXISTIA }),
+        };
       }
 
       case 'mis_reservas':
@@ -326,7 +331,10 @@ export async function runReservaTool(name, input, ctx) {
       case 'reservar_evento': {
         if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp' };
         const r = await crearReservaEvento({ ...input, telefono: ctx.contactId }, { contactId: ctx.contactId });
-        return { ok: true, estado: r.estado, evento: r.evento, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas };
+        return {
+          ok: true, estado: r.estado, evento: r.evento, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas,
+          ...(r.yaExistia && { aviso: YA_EXISTIA }),
+        };
       }
 
       case 'consultar_fechas_cava': {

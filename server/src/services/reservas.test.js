@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { horariosDelDia, ahoraAR } from './reservas.service.js';
+import { horariosDelDia, ahoraAR, reservaDelMismoContacto } from './reservas.service.js';
 
 // Octubre 2026: 5 = lunes, 6 = martes, 9 = viernes, 10 = sábado, 11 = domingo
 
@@ -111,4 +111,18 @@ test('prompt del bot: usa la capacidad, el mínimo/máximo y los precios configu
   assert.match(txt, /desde 12 hasta 40 personas/);
   assert.match(txt, /\$75\.000 por persona/);
   assert.match(txt, /Seña de \$150\.000/);
+});
+
+test('reserva repetida del mismo contacto: devuelve la que ya tenía', () => {
+  const reservas = [
+    { id: 'a', contactId: '5491100000001', estado: 'confirmada' },
+    { id: 'b', contactId: '5491100000002', estado: 'cancelada' },
+    { id: 'c', telefono: '5491100000003', estado: 'confirmada' },
+  ];
+  assert.equal(reservaDelMismoContacto(reservas, { contactId: '5491100000001' })?.id, 'a');
+  assert.equal(reservaDelMismoContacto(reservas, { contactId: 'x', telefono: '5491100000003' })?.id, 'c');
+  // La cancelada no cuenta: puede volver a reservar ese horario
+  assert.equal(reservaDelMismoContacto(reservas, { contactId: '5491100000002' }), null);
+  assert.equal(reservaDelMismoContacto(reservas, { contactId: '5491100000009' }), null);
+  assert.equal(reservaDelMismoContacto(reservas, {}), null);
 });
