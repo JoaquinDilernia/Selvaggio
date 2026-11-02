@@ -64,3 +64,9 @@
 .estado_pendiente { background: var(--color-status-waiting-bg); color: var(--color-status-waiting); border-color: transparent; }
 .estado_preparando { background: #fdf0e1; color: #9a5b13; border-color: transparent; }
 .estado_listo { background: #e3f5e9; color: #1a6635; border-color: transparent; }
+
+/* Confirmación automática de las 18 h */
+.confBadge { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: help; }
+.confOk   { background: #e7f6ec; color: #1f7a3d; }
+.confPend { background: #fff6e0; color: #96620a; }
+.confErr  { background: #fdecec; color: #b42318; }

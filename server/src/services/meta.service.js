@@ -132,7 +132,9 @@ export async function downloadMediaAsBase64(mediaId) {
   }
 }
 
-export async function sendWhatsAppTemplate(to, templateName, language = 'es_AR', params = []) {
+// opciones.botones: payload de cada botón de respuesta rápida (en orden), para
+// saber a qué se refiere el cliente cuando toca uno (ej. qué reserva confirma).
+export async function sendWhatsAppTemplate(to, templateName, language = 'es_AR', params = [], { botones = [] } = {}) {
   if (!process.env.META_ACCESS_TOKEN || !process.env.META_PHONE_NUMBER_ID) {
     console.log('[meta] sendWhatsAppTemplate skipped — tokens not configured');
     return null;
@@ -141,14 +143,18 @@ export async function sendWhatsAppTemplate(to, templateName, language = 'es_AR',
     name: templateName,
     language: { code: language },
   };
+  const components = [];
   if (params.length > 0) {
-    template.components = [
-      {
-        type: 'body',
-        parameters: params.map(p => ({ type: 'text', text: p })),
-      },
-    ];
+    components.push({
+      type: 'body',
+      parameters: params.map(p => ({ type: 'text', text: p })),
+    });
   }
+  botones.forEach((payload, i) => components.push({
+    type: 'button', sub_type: 'quick_reply', index: String(i),
+    parameters: [{ type: 'payload', payload }],
+  }));
+  if (components.length) template.components = components;
   const { data } = await axios.post(
     `${META_API_URL}/${process.env.META_PHONE_NUMBER_ID}/messages`,
     { messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'template', template },
@@ -330,6 +336,23 @@ export function parseWhatsAppMessage(webhookBody) {
         text: reply?.title ?? '',
         type: 'interactive',
         interactiveId: reply?.id ?? null,
+        mediaId: null,
+        timestamp: msg.timestamp,
+        contactName,
+        replyToWaMsgId,
+      };
+    }
+
+    // Botón de respuesta rápida de una plantilla: llega como type 'button'
+    // (no 'interactive') y sin msg.text — antes se descartaba.
+    if (msg.type === 'button') {
+      return {
+        channel: 'whatsapp',
+        from: msg.from,
+        messageId: msg.id,
+        text: msg.button?.text ?? '',
+        type: 'button',
+        buttonPayload: msg.button?.payload ?? null,
         mediaId: null,
         timestamp: msg.timestamp,
         contactName,

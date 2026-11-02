@@ -6,6 +6,19 @@ import styles from './Reservas.module.css';
 // Todas las reservas de mesa (web + bot, igual que el admin de la web) con
 // marca de cuáles tomó el bot, y los pedidos de take away que tomó el bot.
 
+// Estado de la confirmación automática de las 18 h (confirmacionWhatsapp).
+function confirmacionBadge(c) {
+  if (!c) return null;
+  if (c.respuesta === 'confirmar') return { cls: 'confOk', txt: '✔ Confirmó', title: 'Tocó "Confirmo" en el WhatsApp de las 18 h' };
+  if (c.respuesta === 'modificar') return { cls: 'confPend', txt: 'Pidió modificar', title: 'Tocó "Quiero modificarla": el bot sigue la charla' };
+  if (c.respuesta === 'cancelar') return { cls: 'confErr', txt: 'Pidió cancelar', title: 'Tocó "Cancelar reserva": si confirma, el bot la borra' };
+  if (c.estado === 'enviada' || c.estado === 'enviando') return { cls: 'confPend', txt: 'Sin respuesta', title: 'Se le mandó la confirmación de las 18 h' };
+  if (c.estado === 'duplicada') return { cls: 'confPend', txt: 'Duplicada', title: 'Mismo teléfono que otra reserva de hoy: la confirmación se mandó una sola vez' };
+  if (c.estado === 'sin_telefono') return { cls: 'confErr', txt: 'Sin celular', title: 'No se pudo mandar la confirmación: teléfono inválido' };
+  if (c.estado === 'error') return { cls: 'confErr', txt: 'No se envió', title: c.error || 'Error al mandar la confirmación' };
+  return null;
+}
+
 function hoyAR() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
 }
@@ -118,7 +131,7 @@ export default function Reservas() {
               <thead>
                 <tr>
                   <th>Fecha</th><th>Hora</th><th>Personas</th><th>Ubicación / evento</th><th>Nombre</th><th>Teléfono</th>
-                  <th>Restricciones / comentarios</th><th>Origen</th><th></th>
+                  <th>Restricciones / comentarios</th><th>Origen / confirmación</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -144,6 +157,10 @@ export default function Reservas() {
                     <td>
                       <span className={r.origen === 'bot' ? styles.badgeBot : styles.badgeWeb}>{r.origen === 'bot' ? 'Bot' : 'Web'}</span>
                       {r.archivada && <span className={styles.muted}> · archivada</span>}
+                      {(() => {
+                        const b = confirmacionBadge(r.confirmacion);
+                        return b && <span className={`${styles.confBadge} ${styles[b.cls]}`} title={b.title}>{b.txt}</span>;
+                      })()}
                     </td>
                     <td>
                       {r.contactId && (

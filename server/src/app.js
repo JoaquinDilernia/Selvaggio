@@ -26,6 +26,7 @@ import { asegurarPlantillaPedidoListo } from './services/comandas.service.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { iniciarArchivoReservas } from './services/archivoReservas.service.js';
 import { iniciarAutoArchivo } from './services/autoArchivo.service.js';
+import { iniciarConfirmacionReservas } from './services/confirmacionReservas.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
@@ -47,6 +48,7 @@ iniciarSyncClientes();
 iniciarArchivoReservas();
 // Charlas del bot quietas 12 h → archivadas (cuentan como resueltas por el bot).
 iniciarAutoArchivo();
+iniciarConfirmacionReservas();
 
 // Middleware
 const allowedOrigins = [

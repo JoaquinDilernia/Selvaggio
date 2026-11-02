@@ -28,6 +28,7 @@ export { isWithinBusinessHours };
 import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
 import { configReservas, normalizarConfigReservas } from './reservas.service.js';
 import { documentosTool, documentosPrompt, runDocumentoTool } from './documentos.tools.js';
+import { parsePayload, registrarRespuesta, respuestaConfirmo, contextoParaBot } from './confirmacionReservas.service.js';
 
 const URGENCY_KEYWORDS = [
   /urgente/i, /urgencia/i, /reclamo/i, /estafa/i, /fraude/i,
@@ -218,6 +219,14 @@ async function processIncomingMessageInternal(msg) {
     console.log(`[bot] Conversación ${from} reabierta automáticamente desde '${previousStatus}'`);
   }
 
+  // Botón del recordatorio de reserva de las 18 h: se anota en la reserva
+  // siempre (aunque esté atendiendo una persona), y si el bot está activo
+  // "Confirmo" se contesta solo y modificar/cancelar sigue con Claude.
+  const botonReserva = type === 'button' ? parsePayload(msg.buttonPayload) : null;
+  const reservaBoton = botonReserva
+    ? await registrarRespuesta(botonReserva, from).catch(e => { console.error('[bot] respuesta de confirmación:', e.message); return null; })
+    : null;
+
   if (conversation.humanMode) {
     const SAVEABLE_MEDIA = { image: true, audio: true, video: true, document: true, sticker: true };
     if (SAVEABLE_MEDIA[type]) {
@@ -250,6 +259,18 @@ async function processIncomingMessageInternal(msg) {
   // texto. Solo si la transcripción falla se cae al aviso de "no puedo
   // escucharlo" de antes.
   let yaGuardado = false;
+
+  if (botonReserva) {
+    await appendMessage(from, { role: 'user', content: text || botonReserva.accion, contactName, messageId, ...(replyTo && { replyTo }) });
+    if (botonReserva.accion === 'confirmar') {
+      const reply = respuestaConfirmo(reservaBoton);
+      await appendMessage(from, { role: 'assistant', content: reply });
+      if (channel === 'whatsapp') await sendWhatsAppMessage(from, reply);
+      return;
+    }
+    text = contextoParaBot(botonReserva, reservaBoton);
+    yaGuardado = true;
+  }
   if (type === 'audio') {
     const transcript = await transcribeIncomingAudio({ mediaId, mediaUrl });
     if (transcript) {

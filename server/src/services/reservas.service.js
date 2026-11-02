@@ -372,6 +372,9 @@ export async function listarReservasMesas({ desde, hasta } = {}) {
         origen: porBot ? 'bot' : 'web',
         contactId: r.contactId ?? null,
         createdAt: r.createdAt ?? null,
+        confirmacion: r.confirmacionWhatsapp
+          ? { estado: r.confirmacionWhatsapp.estado, respuesta: r.confirmacionWhatsapp.respuesta ?? null, error: r.confirmacionWhatsapp.error ?? null }
+          : null,
       };
     })
     .sort((a, b) => `${a.fecha} ${a.horario}`.localeCompare(`${b.fecha} ${b.horario}`));
