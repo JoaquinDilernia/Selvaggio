@@ -27,7 +27,7 @@ import { isWithinBusinessHours, describirHorario } from './horario.js';
 export { isWithinBusinessHours };
 import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
 import { configReservas, normalizarConfigReservas } from './reservas.service.js';
-import { documentosTool, documentosPrompt, runDocumentoTool, encolarPdfCava } from './documentos.tools.js';
+import { documentosTool, documentosPrompt, runDocumentoTool, encolarPdfsAutomaticos } from './documentos.tools.js';
 import { sessionHistory } from './sessionHistory.js';
 import { parsePayload, registrarRespuesta, respuestaConfirmo, contextoParaBot } from './confirmacionReservas.service.js';
 
@@ -426,9 +426,8 @@ async function processIncomingMessageInternal(msg) {
     }
   }
 
-  // Respaldo: si se habló de La Cava y el modelo no mandó la propuesta, sale igual.
-  const cavaAuto = encolarPdfCava({ docs: docsEnviables, history: sessionHistory(history), userText: text ?? '', reply: cleanText, toolsUsadas, cola: docsAEnviar });
-  if (cavaAuto) console.log(`[bot] PDF de La Cava encolado automáticamente para ${from}`);
+  // Respaldo: si se habló de La Cava o de la Degustación y el modelo no mandó el PDF, sale igual.
+  for (const doc of encolarPdfsAutomaticos({ docs: docsEnviables, history: sessionHistory(history), userText: text ?? '', reply: cleanText, toolsUsadas, cola: docsAEnviar })) console.log(`[bot] PDF "${doc.title}" encolado automáticamente para ${from}`);
 
   for (const doc of docsAEnviar) await enviarDocumento(from, doc);
 

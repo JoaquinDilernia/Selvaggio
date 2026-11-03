@@ -33,12 +33,14 @@ export function documentosTool(docs) {
 export function documentosPrompt(docs) {
   if (!docs.length) return '';
   const cava = documentoCava(docs);
+  const degu = documentoDegustacion(docs);
   const lista = docs.map(d => `- ${d.id} — "${d.title}" (uso: ${USO_LABEL[d.uso] ?? d.uso})`).join('\n');
   return `--- DOCUMENTOS PARA ENVIAR ---
 Podés mandar estos PDFs con la tool enviar_documento:
 ${lista}
 Si te piden la carta, el menú o una propuesta y hay un PDF que corresponde, mandalo y acompañalo con una frase corta ("Te paso la carta"). No pegues el contenido entero del PDF en el chat: respondé lo puntual y mandá el archivo si lo quieren completo.${cava ? `
-LA CAVA: cuando consulten por La Cava (precio, fechas, disponibilidad, cómo es, cumpleaños o grupos grandes), mandá el PDF ${cava.id} la primera vez en la conversación aunque no lo pidan, y decilo en el texto ("Te paso la propuesta de La Cava").` : ""}`;
+LA CAVA: cuando consulten por La Cava (precio, fechas, disponibilidad, cómo es, cumpleaños o grupos grandes), mandá el PDF ${cava.id} la primera vez en la conversación aunque no lo pidan, y decilo en el texto ("Te paso la propuesta de La Cava").` : ""}${degu ? `
+DEGUSTACIÓN: cuando pregunten por la Degustación Selvaggio (precio, qué incluye, si conviene pedirla), mandá el PDF ${degu.id} la primera vez en la conversación aunque no lo pidan. El "menú de pasos" es otra cosa (evento de la agenda).` : ""}`;
 }
 
 /**
@@ -54,34 +56,48 @@ export function runDocumentoTool(input, docs, cola) {
   return { ok: true, enviado: doc.title, nota: 'El archivo se manda después de tu mensaje.' };
 }
 
-// ── PDF de La Cava automático ─────────────────────────────────────────────
-// El modelo solo mandaba el PDF cuando el cliente lo pedía explícitamente;
-// en "¿está libre la cava el 13?" o "somos 40" contestaba con texto. La
-// propuesta de La Cava es lo que vende el evento, así que la primera vez que
-// la conversación toca La Cava sale sí o sí (una vez por sesión).
+// ── PDFs automáticos (La Cava y Degustación) ──────────────────────────────
+// El modelo solo mandaba estos PDFs cuando el cliente pedía "el PDF"; en
+// "¿está libre la cava el 13?" o "¿precio de la degustación completa?"
+// contestaba con texto. La primera vez en la sesión que se toca el tema, el
+// PDF sale sí o sí. Se busca por TÍTULO primero (el 'uso' puede estar mal
+// marcado en la KB).
 
 const RE_CAVA = /\bcava\b/i;
+const RE_DEGUSTACION = /degustaci[oó]n/i;
 
-/** PDF de La Cava de la lista (por uso; si nadie lo marcó, por título). */
+/** PDF de La Cava de la lista (por título; si no, por uso, sin confundirlo con la degustación). */
 export function documentoCava(docs) {
-  return docs.find(d => d.uso === 'cava') ?? docs.find(d => RE_CAVA.test(d.title ?? ''));
+  return docs.find(d => RE_CAVA.test(d.title ?? ''))
+    ?? docs.find(d => d.uso === 'cava' && !RE_DEGUSTACION.test(d.title ?? ''));
+}
+
+/** PDF de la Degustación Selvaggio (por título). */
+export function documentoDegustacion(docs) {
+  return docs.find(d => RE_DEGUSTACION.test(d.title ?? '') && !RE_CAVA.test(d.title ?? ''));
+}
+
+function yaEnviado(doc, history, cola) {
+  if (cola.some(d => d.id === doc.id)) return true;
+  const nombre = doc.fileName || `${doc.title}.pdf`;
+  return history.some(m => m.role === 'assistant' && m.mediaType === 'document'
+    && (m.mediaUrl === doc.fileUrl || m.fileName === nombre));
 }
 
 /**
- * Encola el PDF de La Cava si en este turno se habló de La Cava y todavía no
- * se mandó en la sesión. Devuelve el doc encolado o null.
+ * Encola los PDFs de La Cava / Degustación si en este turno se habló del tema
+ * y todavía no se mandaron en la sesión. Devuelve los docs encolados.
  * @param {object} p { docs, history (sesión actual), userText, reply, toolsUsadas: Set, cola }
  */
-export function encolarPdfCava({ docs, history = [], userText = '', reply = '', toolsUsadas = new Set(), cola }) {
-  const doc = documentoCava(docs);
-  if (!doc) return null;
-  if (cola.some(d => d.id === doc.id)) return null;
-  const nombre = doc.fileName || `${doc.title}.pdf`;
-  const yaEnviado = history.some(m => m.role === 'assistant' && m.mediaType === 'document'
-    && (m.mediaUrl === doc.fileUrl || m.fileName === nombre));
-  if (yaEnviado) return null;
+export function encolarPdfsAutomaticos({ docs, history = [], userText = '', reply = '', toolsUsadas = new Set(), cola }) {
+  const encolados = [];
   const hablaDeCava = toolsUsadas.has('consultar_fechas_cava') || RE_CAVA.test(userText) || RE_CAVA.test(reply);
-  if (!hablaDeCava) return null;
-  cola.push(doc);
-  return doc;
+  const cava = documentoCava(docs);
+  if (cava && hablaDeCava && !yaEnviado(cava, history, cola)) { cola.push(cava); encolados.push(cava); }
+
+  // La propuesta de La Cava también dice "degustación": si el tema es la cava, no va este.
+  const degu = documentoDegustacion(docs);
+  const hablaDeDegustacion = RE_DEGUSTACION.test(userText) || /degustaci[oó]n selvaggio/i.test(reply);
+  if (degu && hablaDeDegustacion && !hablaDeCava && !yaEnviado(degu, history, cola)) { cola.push(degu); encolados.push(degu); }
+  return encolados;
 }
