@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { claveDiaAR, inicioDiaAR, finDiaAR } from '../../utils/analyticsDate';
+import { authFetch, BASE_URL } from '../../../lib/api';
+import { claveDiaAR, inicioDiaAR } from '../../utils/analyticsDate';
 import FiltersBar from './analytics/FiltersBar';
 import { RANGOS } from './analytics/rangos';
 import FunnelsSection from './analytics/FunnelsSection';
 import DayOfWeekChart from './analytics/DayOfWeekChart';
 import DailyEvolutionChart from './analytics/DailyEvolutionChart';
+import CavaSection, { variacion, fechaCorta } from './analytics/CavaSection';
+import { descargarCsv } from './analytics/exportCsv';
 import './TabsShared.css';
 import './AnalyticsTab.css';
 
@@ -20,6 +21,32 @@ const restarDias = (claveDia, dias) => {
 
 const RANGO_DEFAULT = RANGOS.find(r => r.id === '7d');
 
+// Panorama general del período fuera de La Cava (el chat entero y la web).
+function Panorama({ actual, anterior }) {
+  const items = [
+    { label: 'Conversaciones del chat', valor: actual.conversaciones, previo: anterior.conversaciones, sub: `${actual.conversacionesNuevas} nuevas` },
+    { label: 'Visitas a la página de La Cava', valor: actual.visitasCava, previo: anterior.visitasCava },
+    { label: "Toques en 'Reservar La Cava'", valor: actual.toquesCava, previo: anterior.toquesCava, sub: 'botón de la web' },
+  ];
+  return (
+    <div className="an-panorama">
+      {items.map(i => {
+        const badge = variacion(i.valor, i.previo);
+        return (
+          <div key={i.label} className="an-panorama__item">
+            <span className="an-kpi__label">{i.label}</span>
+            <span className="an-panorama__valor">{i.valor.toLocaleString('es-AR')}</span>
+            <span className="an-kpi__pie">
+              {badge && <span className={`an-badge an-badge--${badge.tono}`}>{badge.texto}</span>}
+              {i.sub && <span className="an-kpi__sub">{i.sub}</span>}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AnalyticsTab() {
   const [preset, setPreset] = useState('7d');
   const [fechaDesde, setFechaDesde] = useState(() => restarDias(hoyAR(), RANGO_DEFAULT.dias - 1));
@@ -27,31 +54,32 @@ function AnalyticsTab() {
   const [categoria, setCategoria] = useState('todas');
   const [eventosActuales, setEventosActuales] = useState([]);
   const [eventosAnteriores, setEventosAnteriores] = useState([]);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => { cargar(); }, [fechaDesde, fechaHasta]);
 
+  // Lo trae el backend: las reglas de Firestore solo dejan leer analytics al
+  // rol admin (al resto le daba todo 0) y las conversaciones del bot no se
+  // pueden leer desde el navegador.
   const cargar = async () => {
     setCargando(true);
+    setError('');
     try {
-      const inicioActual = inicioDiaAR(fechaDesde);
-      const finActual = finDiaAR(fechaHasta);
-      const duracionMs = finActual.getTime() - inicioActual.getTime();
-      const inicioAnterior = new Date(inicioActual.getTime() - duracionMs);
-
-      const q = query(
-        collection(db, 'selvaggio_analytics_eventos'),
-        where('timestamp', '>=', Timestamp.fromDate(inicioAnterior)),
-        where('timestamp', '<=', Timestamp.fromDate(finActual))
-      );
-      const snap = await getDocs(q);
-      const todos = snap.docs.map(d => d.data());
-      setEventosActuales(todos.filter(e => e.timestamp.toMillis() >= inicioActual.getTime()));
-      setEventosAnteriores(todos.filter(e => e.timestamp.toMillis() < inicioActual.getTime()));
+      const r = await authFetch(`${BASE_URL}/api/gestion/analytics?desde=${fechaDesde}&hasta=${fechaHasta}`);
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(json.error || `Error ${r.status}`);
+      const todos = json.eventos.map(e => ({ ...e, timestamp: new Date(e.t) }));
+      setEventosActuales(todos.filter(e => e.t >= json.inicioActualMs));
+      setEventosAnteriores(todos.filter(e => e.t < json.inicioActualMs));
+      setData(json);
     } catch (err) {
       console.error('Error cargando analytics:', err);
+      setError(err.message || 'No se pudieron cargar los datos');
       setEventosActuales([]);
       setEventosAnteriores([]);
+      setData(null);
     } finally {
       setCargando(false);
     }
@@ -79,10 +107,23 @@ function AnalyticsTab() {
   };
 
   return (
-    <div className="tab-inner">
-      <div className="tab-header">
-        <h2>Analytics</h2>
-        <p>Tráfico y funnel de conversión, medidos de forma nativa e independiente del pixel de Meta.</p>
+    <div className="tab-inner an-root">
+      <div className="tab-header an-header">
+        <div>
+          <h2>Analytics</h2>
+          <p>
+            La Cava, el chat y la web, del {fechaCorta(fechaDesde)} al {fechaCorta(fechaHasta)}.
+            Medido de forma propia, independiente del pixel de Meta.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="an-export"
+          disabled={!data}
+          onClick={() => data && descargarCsv(data)}
+        >
+          Exportar CSV
+        </button>
       </div>
 
       <FiltersBar
@@ -97,21 +138,42 @@ function AnalyticsTab() {
       />
 
       {cargando ? (
-        <div className="loading-state">Cargando…</div>
+        <div className="an-skeleton" aria-label="Cargando">
+          {[0, 1, 2, 3, 4, 5].map(i => <span key={i} />)}
+        </div>
+      ) : error ? (
+        <div className="loading-state">No se pudieron cargar los datos: {error}</div>
       ) : (
         <>
-          <FunnelsSection
-            eventosActuales={eventosActuales}
-            eventosAnteriores={eventosAnteriores}
-            categoria={categoria}
-          />
-          <DayOfWeekChart eventosActuales={eventosActuales} categoria={categoria} />
-          <DailyEvolutionChart
-            eventosActuales={eventosActuales}
-            categoria={categoria}
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
-          />
+          <CavaSection data={data} />
+
+          <section className="an-seccion">
+            <div className="an-seccion__head">
+              <h3 className="an-seccion__titulo">Panorama</h3>
+            </div>
+            <Panorama actual={data.resumen.actual} anterior={data.resumen.anterior} />
+          </section>
+
+          <section className="an-seccion">
+            <div className="an-seccion__head">
+              <h3 className="an-seccion__titulo">Embudos de la web</h3>
+              <span className="an-card__nota">del botón a la reserva o el pedido confirmado</span>
+            </div>
+            <FunnelsSection
+              eventosActuales={eventosActuales}
+              eventosAnteriores={eventosAnteriores}
+              categoria={categoria}
+            />
+            <div className="an-grid-2 an-grid-2--parejo">
+              <DayOfWeekChart eventosActuales={eventosActuales} categoria={categoria} />
+              <DailyEvolutionChart
+                eventosActuales={eventosActuales}
+                categoria={categoria}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+              />
+            </div>
+          </section>
         </>
       )}
     </div>
