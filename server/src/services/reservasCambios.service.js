@@ -56,7 +56,7 @@ export function aplicarCambios(actual, cambios, cfg) {
   if (cambios.cantidadPersonas !== undefined) {
     const n = parseInt(cambios.cantidadPersonas, 10);
     if (!Number.isInteger(n) || n < 1) throw err('Cantidad de personas inválida');
-    if (!actual.evento && n > cfg.mesaMaximo) throw err(`Las mesas son de hasta ${cfg.mesaMaximo} personas; para más, derivá al equipo`);
+    if (!actual.evento && cfg.mesaMaximo && n > cfg.mesaMaximo) throw err(`Las mesas son de hasta ${cfg.mesaMaximo} personas; para más, derivá al equipo`);
     set('cantidadPersonas', n);
   }
   if (cambios.preferencia !== undefined) {

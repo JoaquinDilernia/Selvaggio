@@ -32,7 +32,9 @@ function ReservaMesas() {
   const [excepcionDia, setExcepcionDia] = useState(null);
   const config = useConfigReservas();
   // Desde el mínimo de La Cava ya no es una mesa.
-  const maxPersonasMesa = config.mesaMaximo;
+  // Sin tope por mesa: el límite es el cupo del horario.
+  const sinTopeMesa = config.mesaMaximo == null;
+  const maxPersonasMesa = config.mesaMaximo ?? config.personasPorHorario;
 
   useEffect(() => {
     trackViewContent('Reserva Mesa', 'Reservas');
@@ -273,7 +275,7 @@ function ReservaMesas() {
               <button type="button" className="rf-number-btn" onClick={() => changePersonas(1)}
                 disabled={formData.cantidadPersonas >= maxPersonasMesa}>+</button>
             </div>
-            {formData.cantidadPersonas >= maxPersonasMesa && (
+            {!sinTopeMesa && formData.cantidadPersonas >= maxPersonasMesa && (
               <p className="rf-horarios-hint">
                 ¿Son más de {maxPersonasMesa}? <Link to="/reserva-cava">Reservá La Cava</Link> (desde {config.cavaMinimo} personas)
               </p>
