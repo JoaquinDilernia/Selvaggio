@@ -63,3 +63,16 @@ test('planSerie: un suelto con otro título no bloquea la fecha', () => {
   const { upserts } = planSerie(serie, [], { hoy, sueltos: [{ fecha: '2026-11-13', titulo: 'Noche de vinos y alfajores' }] });
   assert.ok(upserts.some(u => u.data.fecha === '2026-11-13'));
 });
+
+import { limpiarSerie } from './eventosFijos.service.js';
+test('limpiarSerie: valida título, día y rango', () => {
+  assert.throws(() => limpiarSerie({ diaSemana: 5 }), /título/);
+  assert.throws(() => limpiarSerie({ titulo: 'X', diaSemana: 7 }), /día/);
+  assert.throws(() => limpiarSerie({ titulo: 'X', diaSemana: 5, desde: '2026-12-01', hasta: '2026-11-01' }), /Hasta/);
+  const s = limpiarSerie({ titulo: ' Pintura ', diaSemana: '5', desde: '2026-11-01' });
+  assert.equal(s.titulo, 'Pintura');
+  assert.equal(s.diaSemana, 5);
+  assert.equal(s.visible, true);
+  assert.equal(s.activo, true);
+  assert.deepEqual(limpiarSerie({ horaFin: '03:00' }, { parcial: true }), { horaFin: '03:00' });
+});

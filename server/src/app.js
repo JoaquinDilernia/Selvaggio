@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { completarNombresInstagram } from './services/igNames.service.js';
+import { iniciarJobEventosFijos } from './services/eventosFijos.service.js';
+import eventosFijosRoutes from './routes/eventosFijos.routes.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -111,6 +113,7 @@ app.use('/api/costs',         requireAuth, requireBotAccess, requireAtLeastAtenc
 app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
 app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
 app.use('/api/gestion',       requireAuth, requireSector('gestion'), gestionRoutes);
+app.use('/api/eventos-fijos', requireAuth, requireSector('contenido'), eventosFijosRoutes);
 app.use('/api/comandas',      requireAuth, requireSector('cocina'), comandasRoutes);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
@@ -124,6 +127,7 @@ app.listen(PORT, () => {
   ensureBaseLabels().catch(err => console.error('[labels] No se pudieron crear las etiquetas base:', err.message));
   asegurarPlantillaPedidoListo().catch(err => console.error('[comandas] No se pudo asegurar la plantilla pedido listo:', err.message));
   completarNombresInstagram().catch(err => console.error('[ig] No se pudieron completar los nombres de IG:', err.message));
+  iniciarJobEventosFijos();
 });
 
 export default app;
