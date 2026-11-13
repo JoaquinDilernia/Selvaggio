@@ -35,7 +35,7 @@ function CapacidadTab() {
     const n = (k) => Number(form[k]);
     const entero = (k) => Number.isInteger(n(k)) && n(k) > 0;
     if (!entero('personasPorHorario')) return 'Personas por horario tiene que ser un número mayor a 0';
-    if (form.mesaMaximo !== '' && !entero('mesaMaximo')) return 'El máximo por mesa tiene que ser un número mayor a 0 (o dejalo vacío: sin máximo)';
+    if (!entero('mesaMaximo')) return 'El máximo por mesa tiene que ser un número mayor a 0';
     if (!entero('cavaMinimo') || n('cavaMinimo') < 2) return 'El mínimo de La Cava tiene que ser 2 o más';
     if (form.cavaMaximo !== '' && (!entero('cavaMaximo') || n('cavaMaximo') < n('cavaMinimo'))) return 'El máximo de La Cava tiene que ser mayor o igual al mínimo (o dejalo vacío)';
     if (!entero('cavaPrecioPersona')) return 'El precio por persona tiene que ser un número mayor a 0';
@@ -50,7 +50,7 @@ function CapacidadTab() {
     try {
       await setDoc(doc(db, 'selvaggio_configuracion', 'reservas'), {
         personasPorHorario: Number(form.personasPorHorario),
-        mesaMaximo: form.mesaMaximo === '' ? null : Number(form.mesaMaximo),
+        mesaMaximo: Number(form.mesaMaximo),
         cavaMinimo: Number(form.cavaMinimo),
         cavaMaximo: form.cavaMaximo === '' ? null : Number(form.cavaMaximo),
         cavaPrecioPersona: Number(form.cavaPrecioPersona),
@@ -69,7 +69,7 @@ function CapacidadTab() {
   if (cargando) return <p style={{ color: '#6b635a', textAlign: 'center', padding: 40 }}>Cargando…</p>;
 
   // Grupos que no entran en una mesa y tampoco llegan al mínimo de La Cava.
-  const hueco = form.mesaMaximo !== '' && Number(form.mesaMaximo) + 1 < Number(form.cavaMinimo)
+  const hueco = Number(form.mesaMaximo) + 1 < Number(form.cavaMinimo)
     ? [Number(form.mesaMaximo) + 1, Number(form.cavaMinimo) - 1] : null;
 
   return (
@@ -91,9 +91,9 @@ function CapacidadTab() {
         </div>
         <div className="cal-form__field">
           <label>Máximo de personas por mesa</label>
-          <input type="number" min="1" value={form.mesaMaximo} onChange={set('mesaMaximo')} placeholder="Sin máximo" />
+          <input type="number" min="1" value={form.mesaMaximo} onChange={set('mesaMaximo')} />
           <p style={{ fontSize: 12, color: '#8a8279', margin: '4px 0 0' }}>
-            Grupos más grandes no pueden reservar mesa; la web los manda a La Cava. Vacío = sin máximo (solo cuenta el cupo del horario).
+            Grupos más grandes no pueden reservar mesa; la web los manda a La Cava.
           </p>
         </div>
         </div>

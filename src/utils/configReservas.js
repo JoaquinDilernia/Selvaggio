@@ -6,7 +6,7 @@ import { db } from '../firebase/config';
 // Mismos defaults y validación que server/src/services/reservas.service.js.
 export const CONFIG_RESERVAS_DEFAULT = Object.freeze({
   personasPorHorario: 16,
-  mesaMaximo: 9, // personas por mesa (null = sin tope: manda el cupo del horario)
+  mesaMaximo: 9, // personas por mesa
   cavaMinimo: 10,
   cavaMaximo: null, // sin tope
   cavaPrecioPersona: 60000,
@@ -23,8 +23,6 @@ export function normalizarConfigReservas(raw) {
   for (const k of ['personasPorHorario', 'mesaMaximo', 'cavaMinimo', 'cavaPrecioPersona', 'cavaSena']) {
     c[k] = enteroPositivo(raw?.[k]) ?? CONFIG_RESERVAS_DEFAULT[k];
   }
-  // Vacío en el panel (null) = mesas sin tope; si el campo no existe, default.
-  if (raw && raw.mesaMaximo === null) c.mesaMaximo = null;
   const max = enteroPositivo(raw?.cavaMaximo);
   c.cavaMaximo = max && max >= c.cavaMinimo ? max : null;
   return c;

@@ -35,7 +35,7 @@ export const COL = {
 const CONFIG_DOC = ['selvaggio_configuracion', 'reservas'];
 const CONFIG_DEFAULT = Object.freeze({
   personasPorHorario: 16,
-  mesaMaximo: 9, // personas por mesa (null = sin tope: manda el cupo del horario)
+  mesaMaximo: 9, // personas por mesa
   cavaMinimo: 10,
   cavaMaximo: null, // sin tope
   cavaPrecioPersona: 60000,
@@ -53,8 +53,6 @@ export function normalizarConfigReservas(raw) {
   for (const k of ['personasPorHorario', 'mesaMaximo', 'cavaMinimo', 'cavaPrecioPersona', 'cavaSena']) {
     c[k] = enteroPositivo(raw?.[k]) ?? CONFIG_DEFAULT[k];
   }
-  // Vacío en el panel (null) = mesas sin tope; si el campo no existe, default.
-  if (raw && raw.mesaMaximo === null) c.mesaMaximo = null;
   const max = enteroPositivo(raw?.cavaMaximo);
   c.cavaMaximo = max && max >= c.cavaMinimo ? max : null;
   return c;
@@ -228,7 +226,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
   if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1) errores.push('cantidad de personas inválida');
-  else if (cfg.mesaMaximo && r.cantidadPersonas > cfg.mesaMaximo) errores.push(`las mesas son de hasta ${cfg.mesaMaximo} personas (La Cava es desde ${cfg.cavaMinimo})`);
+  else if (r.cantidadPersonas > cfg.mesaMaximo) errores.push(`las mesas son de hasta ${cfg.mesaMaximo} personas (La Cava es desde ${cfg.cavaMinimo})`);
   if (!PREFERENCIAS.includes(r.preferencia)) errores.push(`la preferencia tiene que ser ${PREFERENCIAS.join(' o ')}`);
   if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });

@@ -160,10 +160,3 @@ test('review#5: el prompt no dice CONFIRMADA sin excepción para la seña pendie
   const linea = p.split('\n').find(l => l.includes('reservar_evento') && l.includes('CONFIRMADA'));
   assert.match(linea, /senaPendiente/);
 });
-
-test('config de reservas: mesaMaximo vacío (null) = mesas sin tope; sin cargar usa el default', async () => {
-  const { normalizarConfigReservas } = await import('./reservas.service.js');
-  assert.equal(normalizarConfigReservas({ mesaMaximo: null }).mesaMaximo, null);
-  assert.equal(normalizarConfigReservas({}).mesaMaximo, 9);
-  assert.equal(normalizarConfigReservas({ mesaMaximo: 'abc' }).mesaMaximo, 9);
-});
