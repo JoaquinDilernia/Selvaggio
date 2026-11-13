@@ -93,6 +93,7 @@ async function aplicarEtiquetas(contactId, nombres, labels, yaTiene) {
 const INSTAGRAM_PROMPT = `CANAL: INSTAGRAM (DM).
 - Por acá NO podés crear, cambiar ni cancelar reservas ni pedidos de take away. Sí podés consultar disponibilidad y responder todo lo demás.
 - Para reservar mesa pasá https://selvaggio.com.ar/#/reserva-mesas ; para La Cava https://selvaggio.com.ar/#/reserva-cava ; para take away https://selvaggio.com.ar/#/take-away ; para cambiar o cancelar una reserva, que escriba por WhatsApp.
+- Por acá NO se pueden mandar PDFs (carta, propuesta de La Cava, Degustación): contá en texto lo que incluye y nunca digas que mandaste o vas a mandar un archivo. Si quiere el PDF, que escriba por WhatsApp.
 - Mensajes cortos y sin formato: Instagram no muestra negritas (nada de asteriscos).`;
 
 async function enviarDocumento(to, doc, channel = 'whatsapp') {
@@ -372,8 +373,10 @@ async function processIncomingMessageInternal(msg) {
   const customerContext = buildCustomerContext(customer);
 
   console.log(`[bot] Llamando a Claude para ${from}`);
-  // Los PDFs salen como archivo por WhatsApp y por Instagram (adjunto por URL).
-  const docsEnviables = ['whatsapp', 'instagram'].includes(channel) ? documentos : [];
+  // Los PDFs salen como archivo solo por WhatsApp. Por Instagram un adjunto
+  // "file" le llega al cliente como un link raro de Facebook (lookaside.fbsbx /
+  // l.facebook.com), no como PDF: ahí el bot cuenta el contenido en texto.
+  const docsEnviables = channel === 'whatsapp' ? documentos : [];
   const docsAEnviar = [];
   const toolsUsadas = new Set();
   // Capacidad, mínimo/máximo, precio y seña de La Cava (Gestión → Capacidad).
