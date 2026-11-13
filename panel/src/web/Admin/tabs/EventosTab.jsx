@@ -3,28 +3,36 @@ import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { prepararImagen, METADATA_CACHE } from '../../utils/subirArchivos';
 import { db, storage } from '../../firebase/config';
+import { authFetch, BASE_URL } from '../../../lib/api';
+
+const DIAS = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
+const FORM_VACIO = {
+  titulo: '', fecha: '', horaInicio: '', horaFin: '', descripcion: '', infoBot: '', imagen: '',
+  visible: true, esPopup: false, popupImagen: '', ctaTexto: '', ctaLink: '',
+  repite: '', hasta: '', esPago: '', precio: '', sena: '', alias: '',
+};
+// '' = sin dato (eventos viejos), 'si' / 'no'
+const esPagoDe = (v) => (v === true ? 'si' : v === false ? 'no' : '');
+const esPagoA = (v) => (v === 'si' ? true : v === 'no' ? false : null);
+
+async function apiFijos(path = '', options = {}) {
+  const res = await authFetch(`${BASE_URL}/api/eventos-fijos${path}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error del servidor');
+  return data;
+}
 import './TabsShared.css';
 
 function EventosTab() {
   const [eventos, setEventos] = useState([]);
+  const [series, setSeries] = useState([]);
+  const [editandoSerie, setEditandoSerie] = useState(null);
+  const [guardando, setGuardando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [form, setForm] = useState({
-    titulo: '',
-    fecha: '',
-    horaInicio: '',
-    horaFin: '',
-    descripcion: '',
-    infoBot: '',
-    imagen: '',
-    visible: true,
-    esPopup: false,
-    popupImagen: '',
-    ctaTexto: '',
-    ctaLink: ''
-  });
+  const [form, setForm] = useState(FORM_VACIO);
   const [uploadingPopup, setUploadingPopup] = useState(false);
 
   useEffect(() => { cargar(); }, []);
@@ -32,10 +40,14 @@ function EventosTab() {
   const cargar = async () => {
     setCargando(true);
     try {
-      const snap = await getDocs(collection(db, 'selvaggio_eventos'));
+      const [snap, fijos] = await Promise.all([
+        getDocs(collection(db, 'selvaggio_eventos')),
+        apiFijos().catch(err => { console.error('Error cargando eventos fijos:', err); return { series: [] }; }),
+      ]);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       items.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
       setEventos(items);
+      setSeries(fijos.series ?? []);
     } catch (err) {
       console.error('Error cargando eventos:', err);
     } finally {
@@ -44,8 +56,9 @@ function EventosTab() {
   };
 
   const resetForm = () => {
-    setForm({ titulo: '', fecha: '', horaInicio: '', horaFin: '', descripcion: '', infoBot: '', imagen: '', visible: true, esPopup: false, popupImagen: '', ctaTexto: '', ctaLink: '' });
+    setForm(FORM_VACIO);
     setEditando(null);
+    setEditandoSerie(null);
     setShowForm(false);
   };
 
@@ -86,12 +99,43 @@ function EventosTab() {
   };
 
   const guardar = async () => {
-    if (!form.titulo || !form.fecha) {
-      alert('Completá al menos título y fecha');
+    const esSerie = form.repite !== '';
+    if (!form.titulo || (!esSerie && !form.fecha)) {
+      alert(esSerie ? 'Completá al menos el título' : 'Completá al menos título y fecha');
+      return;
+    }
+    if (form.esPago === 'si' && !form.precio.trim()) {
+      alert('Si el evento es pago, cargá el precio');
+      return;
+    }
+    const pago = {
+      esPago: esPagoA(form.esPago),
+      precio: form.esPago === 'si' ? form.precio.trim() : '',
+      sena: form.esPago === 'si' ? form.sena.trim() : '',
+      alias: form.esPago === 'si' ? form.alias.trim() : '',
+    };
+    if (esSerie) {
+      setGuardando(true);
+      try {
+        const body = {
+          titulo: form.titulo, diaSemana: Number(form.repite), desde: form.fecha || '', hasta: form.hasta || '',
+          horaInicio: form.horaInicio || '', horaFin: form.horaFin || '', descripcion: form.descripcion || '',
+          infoBot: form.infoBot || '', imagen: form.imagen || '', ctaTexto: form.ctaTexto || '', ctaLink: form.ctaLink || '',
+          visible: form.visible, ...pago,
+        };
+        await apiFijos(editandoSerie ? `/${editandoSerie}` : '', { method: editandoSerie ? 'PUT' : 'POST', body });
+        await cargar();
+        resetForm();
+      } catch (err) {
+        alert(`No se pudo guardar el evento fijo: ${err.message}`);
+      } finally {
+        setGuardando(false);
+      }
       return;
     }
     try {
       const data = {
+        ...pago,
         titulo: form.titulo,
         fecha: form.fecha,
         horaInicio: form.horaInicio || '',
@@ -116,6 +160,8 @@ function EventosTab() {
       }
 
       if (editando) {
+        // Una fecha de un evento fijo editada a mano ya no la pisa la serie.
+        if (eventos.find(e => e.id === editando)?.serieId) data.editadoManual = true;
         await updateDoc(doc(db, 'selvaggio_eventos', editando), data);
       } else {
         data.creadoEn = new Date().toISOString();
@@ -142,13 +188,52 @@ function EventosTab() {
       esPopup: ev.esPopup || false,
       popupImagen: ev.popupImagen || '',
       ctaTexto: ev.ctaTexto || '',
-      ctaLink: ev.ctaLink || ''
+      ctaLink: ev.ctaLink || '',
+      repite: '', hasta: '',
+      esPago: esPagoDe(ev.esPago), precio: ev.precio || '', sena: ev.sena || '', alias: ev.alias || '',
     });
     setEditando(ev.id);
+    setEditandoSerie(null);
     setShowForm(true);
   };
 
+  const editarSerie = (s) => {
+    setForm({
+      ...FORM_VACIO,
+      titulo: s.titulo || '', fecha: s.desde || '', hasta: s.hasta || '', repite: String(s.diaSemana),
+      horaInicio: s.horaInicio || '', horaFin: s.horaFin || '', descripcion: s.descripcion || '',
+      infoBot: s.infoBot || '', imagen: s.imagen || '', visible: s.visible !== false,
+      ctaTexto: s.ctaTexto || '', ctaLink: s.ctaLink || '',
+      esPago: esPagoDe(s.esPago), precio: s.precio || '', sena: s.sena || '', alias: s.alias || '',
+    });
+    setEditandoSerie(s.id);
+    setEditando(null);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const eliminarSerie = async (s) => {
+    if (!window.confirm(`¿Eliminar el evento fijo "${s.titulo}"? Se borran también sus próximas fechas (las que editaste a mano quedan).`)) return;
+    try {
+      await apiFijos(`/${s.id}`, { method: 'DELETE' });
+      await cargar();
+    } catch (err) {
+      alert(`No se pudo eliminar: ${err.message}`);
+    }
+  };
+
   const eliminar = async (id) => {
+    const ev = eventos.find(e => e.id === id);
+    if (ev?.serieId && series.some(s => s.id === ev.serieId)) {
+      if (!window.confirm(`¿Sacar el ${formatFecha(ev.fecha)}? Solo esa fecha: el evento fijo sigue las demás semanas.`)) return;
+      try {
+        await apiFijos(`/${ev.serieId}/excluir`, { method: 'POST', body: { fecha: ev.fecha } });
+        setEventos(eventos.filter(e => e.id !== id));
+      } catch (err) {
+        alert(`No se pudo sacar la fecha: ${err.message}`);
+      }
+      return;
+    }
     if (!window.confirm('¿Eliminar este evento?')) return;
     try {
       await deleteDoc(doc(db, 'selvaggio_eventos', id));
@@ -160,7 +245,7 @@ function EventosTab() {
 
   const toggleVisible = async (ev) => {
     try {
-      await updateDoc(doc(db, 'selvaggio_eventos', ev.id), { visible: !ev.visible });
+      await updateDoc(doc(db, 'selvaggio_eventos', ev.id), { visible: !ev.visible, ...(ev.serieId && { editadoManual: true }) });
       setEventos(eventos.map(e => e.id === ev.id ? { ...e, visible: !e.visible } : e));
     } catch {
       alert('Error al actualizar');
@@ -211,7 +296,7 @@ function EventosTab() {
       {showForm && (
         <div className="cal-form" style={{ marginBottom: 28 }}>
           <h3 className="cal-form__title">
-            {editando ? '✏️ Editar evento' : '🆕 Nuevo evento'}
+            {editandoSerie ? '✏️ Editar evento fijo' : editando ? '✏️ Editar evento' : '🆕 Nuevo evento'}
           </h3>
 
           <div className="cal-form__field">
@@ -224,9 +309,39 @@ function EventosTab() {
             />
           </div>
 
+          {!editando && (
+            <div className="cal-form__row">
+              <div className="cal-form__field">
+                <label>🔁 Se repite</label>
+                <select
+                  value={form.repite}
+                  onChange={e => setForm(prev => ({ ...prev, repite: e.target.value, esPopup: e.target.value !== '' ? false : prev.esPopup }))}
+                >
+                  <option value="">No, es una sola fecha</option>
+                  {DIAS.map((d, i) => <option key={i} value={String(i)}>Todos los {d}</option>)}
+                </select>
+              </div>
+              {form.repite !== '' && (
+                <div className="cal-form__field">
+                  <label>Hasta (opcional)</label>
+                  <input
+                    type="date"
+                    value={form.hasta}
+                    onChange={e => setForm(prev => ({ ...prev, hasta: e.target.value }))}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          {editando && eventos.find(e => e.id === editando)?.serieId && (
+            <p style={{ fontSize: 13, color: '#8a5a00', background: '#fdf6ee', padding: '8px 12px', borderRadius: 6, margin: '0 0 12px' }}>
+              🔁 Esta es una fecha de un evento fijo. Lo que cambies acá vale solo para este día; para cambiar todas las semanas, editá el evento fijo.
+            </p>
+          )}
+
           <div className="cal-form__row">
             <div className="cal-form__field">
-              <label>Fecha *</label>
+              <label>{form.repite !== '' ? 'Desde' : 'Fecha *'}</label>
               <input
                 type="date"
                 value={form.fecha}
@@ -274,6 +389,38 @@ function EventosTab() {
             </p>
           </div>
 
+          {/* Pago: el bot le pasa al cliente precio, seña y alias */}
+          <div className="cal-form__field" style={{ background: form.esPago === 'si' ? '#f3f7ee' : 'transparent', padding: form.esPago === 'si' ? 16 : 0, borderRadius: 8 }}>
+            <label>💲 ¿Es pago?</label>
+            <select value={form.esPago} onChange={e => setForm(prev => ({ ...prev, esPago: e.target.value }))}>
+              <option value="">Sin especificar</option>
+              <option value="no">No, es gratis</option>
+              <option value="si">Sí, es pago</option>
+            </select>
+            {form.esPago === 'si' && (
+              <div className="cal-form__row" style={{ marginTop: 12 }}>
+                <div className="cal-form__field">
+                  <label>Precio *</label>
+                  <input type="text" value={form.precio} placeholder="Ej: $25.000 por persona"
+                    onChange={e => setForm(prev => ({ ...prev, precio: e.target.value }))} />
+                </div>
+                <div className="cal-form__field">
+                  <label>Seña (opcional)</label>
+                  <input type="text" value={form.sena} placeholder="Ej: $10.000 por persona"
+                    onChange={e => setForm(prev => ({ ...prev, sena: e.target.value }))} />
+                </div>
+                <div className="cal-form__field">
+                  <label>Alias para la seña</label>
+                  <input type="text" value={form.alias} placeholder="Ej: selvaggio.vinos"
+                    onChange={e => setForm(prev => ({ ...prev, alias: e.target.value }))} />
+                </div>
+              </div>
+            )}
+            <p style={{ fontSize: 12, color: '#8a8279', margin: '4px 0 0' }}>
+              El bot usa esto para decir si es gratis o cuánto sale, y a qué alias pasar la seña.
+            </p>
+          </div>
+
           <div className="cal-form__field">
             <label>Imagen</label>
             <input type="file" accept="image/*" onChange={handleImage} />
@@ -294,8 +441,8 @@ function EventosTab() {
             </label>
           </div>
 
-          {/* Configuración de popup */}
-          <div className="cal-form__field" style={{ background: form.esPopup ? '#fdf6ee' : 'transparent', padding: form.esPopup ? 16 : 0, borderRadius: 8, transition: 'all 0.3s' }}>
+          {/* Configuración de popup (solo eventos de una fecha) */}
+          {form.repite === '' && (<div className="cal-form__field" style={{ background: form.esPopup ? '#fdf6ee' : 'transparent', padding: form.esPopup ? 16 : 0, borderRadius: 8, transition: 'all 0.3s' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600 }}>
               <input
                 type="checkbox"
@@ -343,21 +490,55 @@ function EventosTab() {
                 </div>
               </div>
             )}
-          </div>
+          </div>)}
 
           <div className="cal-form__actions">
-            <button className="btn-action" onClick={guardar} disabled={uploading}>
-              {editando ? 'Guardar cambios' : 'Crear evento'}
+            <button className="btn-action" onClick={guardar} disabled={uploading || guardando}>
+              {guardando ? 'Guardando…' : (editando || editandoSerie) ? 'Guardar cambios' : form.repite !== '' ? 'Crear evento fijo' : 'Crear evento'}
             </button>
             <button className="btn-action btn-action--outline" onClick={resetForm}>Cancelar</button>
           </div>
         </div>
       )}
 
+      {/* Eventos fijos */}
+      {series.length > 0 && (
+        <>
+          <h3 style={{ fontFamily: "'Cormorant Garant', serif", fontSize: 22, fontWeight: 400, margin: '28px 0 12px' }}>
+            🔁 Eventos fijos
+          </h3>
+          <div className="items-grid">
+            {series.map(s => (
+              <div key={s.id} className="item-card">
+                <div style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <h4 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{s.titulo}</h4>
+                    {s.activo === false && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#fce4ec', color: '#c62828' }}>Pausado</span>}
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b635a' }}>
+                    🔁 Todos los {DIAS[s.diaSemana]}
+                    {s.horaInicio && ` · ${s.horaInicio}`}
+                    {s.horaFin && ` – ${s.horaFin}`}
+                  </p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#8a8279' }}>
+                    {s.hasta ? `Hasta el ${formatFecha(s.hasta)}` : 'Sin fecha de fin'}
+                    {s.esPago === true ? ` · 💲 ${s.precio}` : s.esPago === false ? ' · Gratis' : ''}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <button className="btn-action btn-action--small" onClick={() => editarSerie(s)}>Editar</button>
+                    <button className="btn-action btn-action--small btn-action--danger" onClick={() => eliminarSerie(s)}>Eliminar</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Lista de eventos */}
       {cargando ? (
         <p style={{ color: '#6b635a', textAlign: 'center', padding: 40 }}>Cargando eventos…</p>
-      ) : eventos.length === 0 ? (
+      ) : eventos.length === 0 && series.length === 0 ? (
         <p style={{ color: '#6b635a', textAlign: 'center', padding: 40 }}>No hay eventos creados aún.</p>
       ) : (
         <>
@@ -385,6 +566,11 @@ function EventosTab() {
                         }}>
                           {ev.visible ? 'Visible' : 'Oculto'}
                         </span>
+                        {ev.serieId && (
+                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#ede7f6', color: '#4527a0', whiteSpace: 'nowrap' }}>
+                            🔁 Fijo
+                          </span>
+                        )}
                         {ev.esPopup && (
                           <span style={{
                             fontSize: 11,
