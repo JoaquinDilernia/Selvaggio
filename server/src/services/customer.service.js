@@ -11,7 +11,7 @@ export async function getOrCreateCustomer(contactId, channel, contactName = null
 
   if (doc.exists) {
     const updates = { lastContactAt: new Date() };
-    if (contactName && !doc.data().contactName) updates.contactName = contactName;
+    if (contactName && (!doc.data().contactName || doc.data().contactName === 'Cliente')) updates.contactName = contactName;
     await docRef.update(updates);
     const landingClient = await findLandingClient(contactId);
     return { id: doc.id, ...doc.data(), ...updates, landingClient };

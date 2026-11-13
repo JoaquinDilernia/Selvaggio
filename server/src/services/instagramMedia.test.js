@@ -73,3 +73,11 @@ test('prepareInstagramMedia: Word no se puede por IG', async () => {
     MediaRejectedError,
   );
 });
+
+import { formatInstagramName } from './meta.service.js';
+test('formatInstagramName: "Nombre (@usuario)", solo @usuario, o null', () => {
+  assert.equal(formatInstagramName({ name: 'Paula', username: 'pauraton' }), 'Paula (@pauraton)');
+  assert.equal(formatInstagramName({ username: 'pauraton' }), '@pauraton');
+  assert.equal(formatInstagramName({ name: '  ', username: 'x' }), '@x');
+  assert.equal(formatInstagramName({}), null);
+});

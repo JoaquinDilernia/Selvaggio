@@ -15,7 +15,7 @@ export async function getOrCreateConversation(contactId, channel, contactName = 
 
   if (doc.exists) {
     const data = doc.data();
-    if (contactName && !data.contactName) {
+    if (contactName && (!data.contactName || data.contactName === 'Cliente') && data.contactName !== contactName) {
       await docRef.update({ contactName });
     }
     return { id: doc.id, ...data };

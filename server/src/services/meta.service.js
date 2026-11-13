@@ -89,6 +89,37 @@ async function resolveInstagramPage() {
   return igPageCache;
 }
 
+// El webhook de IG solo trae el id del cliente (IGSID); el nombre y el
+// @usuario hay que pedirlos aparte. "Paula (@pauraton)" o "@usuario".
+export function formatInstagramName({ name, username } = {}) {
+  const n = name?.trim();
+  const u = username?.trim();
+  if (n && u) return `${n} (@${u})`;
+  if (u) return `@${u}`;
+  return n || null;
+}
+
+const igProfileCache = new Map();
+
+export async function getInstagramContactName(igsid) {
+  if (!igsid || !process.env.META_ACCESS_TOKEN || !process.env.META_IG_PAGE_ID) return null;
+  if (igProfileCache.has(igsid)) return igProfileCache.get(igsid);
+  try {
+    const { token } = await resolveInstagramPage();
+    const { data } = await axios.get(`${META_API_URL}/${igsid}`, {
+      params: { fields: 'name,username' },
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 5000,
+    });
+    const display = formatInstagramName(data);
+    if (display) igProfileCache.set(igsid, display);
+    return display;
+  } catch (err) {
+    console.error(`[meta] No se pudo leer el perfil de IG ${igsid}:`, err.response?.data?.error?.message ?? err.message);
+    return null;
+  }
+}
+
 // `humanAgent`: manda con la etiqueta HUMAN_AGENT, que permite responder hasta
 // 7 días después del último mensaje del cliente (sin ella son 24 h). Solo para
 // mensajes escritos por una persona del equipo, nunca del bot (política de
@@ -486,7 +517,7 @@ export function parseInstagramMessage(webhookBody) {
       type: mappedType,
       mediaUrl: IG_TYPE_MAP[attachment?.type] ? (attachment.payload?.url ?? null) : null,
       timestamp: messaging.timestamp,
-      contactName: 'Cliente',
+      contactName: null, // se completa en el webhook con getInstagramContactName
     };
   } catch {
     return null;

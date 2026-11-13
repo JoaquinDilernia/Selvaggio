@@ -4,6 +4,7 @@ import {
   parseWhatsAppMessage,
   parseInstagramMessage,
   parseWhatsAppStatusUpdate,
+  getInstagramContactName,
 } from '../services/meta.service.js';
 import { processIncomingMessage } from '../services/bot.service.js';
 import { updateMessageStatusByWaMsgId } from '../services/conversation.service.js';
@@ -83,6 +84,7 @@ router.post('/', async (req, res) => {
       const msg = parseInstagramMessage(body);
       if (msg) {
         console.log(`[webhook] IG entrante de ${msg.from}: ${msg.text?.substring(0, 50)}`);
+        msg.contactName = (await getInstagramContactName(msg.from)) ?? 'Cliente';
         await processIncomingMessage(msg);
       }
     }

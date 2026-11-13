@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { completarNombresInstagram } from './services/igNames.service.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -122,6 +123,7 @@ app.listen(PORT, () => {
   console.log(`[server] Selvaggio server corriendo en puerto ${PORT}`);
   ensureBaseLabels().catch(err => console.error('[labels] No se pudieron crear las etiquetas base:', err.message));
   asegurarPlantillaPedidoListo().catch(err => console.error('[comandas] No se pudo asegurar la plantilla pedido listo:', err.message));
+  completarNombresInstagram().catch(err => console.error('[ig] No se pudieron completar los nombres de IG:', err.message));
 });
 
 export default app;
