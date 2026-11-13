@@ -296,10 +296,14 @@ function MessageBubble({
   // "Agente" genérico en vez de romper o mostrar un nombre incorrecto.
   const agentLabel = nameMap[msg.sentBy] ?? 'Agente';
   const token = localStorage.getItem('selvaggio_token');
-  // WhatsApp → proxy del backend por mediaId; Instagram → URL directa del CDN.
+  // WhatsApp → proxy del backend por mediaId. Instagram → copia propia en
+  // Storage (storagePath), porque la URL del CDN de IG vence en pocos días.
+  const tokenQs = `token=${encodeURIComponent(token ?? '')}`;
   const mediaProxyUrl = msg.mediaId
-    ? `${BASE_URL}/api/conversations/media/${msg.mediaId}?token=${encodeURIComponent(token ?? '')}${msg.fileName ? `&name=${encodeURIComponent(msg.fileName)}` : ''}`
-    : (msg.mediaUrl ?? null);
+    ? `${BASE_URL}/api/conversations/media/${msg.mediaId}?${tokenQs}${msg.fileName ? `&name=${encodeURIComponent(msg.fileName)}` : ''}`
+    : msg.storagePath
+      ? `${BASE_URL}/api/conversations/media-file?path=${encodeURIComponent(msg.storagePath)}&${tokenQs}`
+      : (msg.mediaUrl ?? null);
   const hasVisibleMedia = !!mediaProxyUrl && ['image', 'audio', 'video', 'document', 'sticker'].includes(msg.mediaType);
   const shownText = hasVisibleMedia ? mediaCaption(msg.content) : msg.content;
   const forwardable = isForwardable(msg);
@@ -2043,7 +2047,9 @@ export default function Conversations() {
                 )}
                 {windowApproaching && (
                   <div className={styles.windowWarning}>
-                    ⚠️ El cliente no escribe hace {Math.floor(lastClientHours)}h. La ventana de WhatsApp de 24h está por cerrarse — si no responde pronto, los mensajes dejarán de llegar.
+                    {selected?.channel === 'instagram'
+                      ? <>⚠️ El cliente no escribe hace {Math.floor(lastClientHours)}h. En Instagram no hay plantillas: pasada la ventana de Meta (24 h, hasta 7 días para respuestas del equipo) solo se le puede escribir cuando vuelva a mandar un mensaje.</>
+                      : <>⚠️ El cliente no escribe hace {Math.floor(lastClientHours)}h. La ventana de WhatsApp de 24h está por cerrarse — si no responde pronto, los mensajes dejarán de llegar.</>}
                   </div>
                 )}
                 {pendingFile ? (

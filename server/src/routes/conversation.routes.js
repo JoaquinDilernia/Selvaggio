@@ -28,8 +28,12 @@ import {
   getMetaMediaStream,
   downloadMetaMedia,
   downloadUrlMedia,
+  sendInstagramAttachment,
+  sendInstagramAsAgent,
+  isInstagramWindowError,
 } from '../services/meta.service.js';
-import { prepareWhatsAppMedia, MediaRejectedError, MAX_UPLOAD_BYTES } from '../services/media.service.js';
+import { saveMedia, signedMediaUrl, streamStoredMedia, isOwnMediaPath } from '../services/mediaStore.js';
+import { prepareWhatsAppMedia, prepareInstagramMedia, MediaRejectedError, MAX_UPLOAD_BYTES } from '../services/media.service.js';
 import { transcribeAudio } from '../services/transcription.service.js';
 import { createLabel } from '../services/label.service.js';
 import { getDb } from '../services/firebase.service.js';
@@ -99,6 +103,17 @@ router.get('/media/:mediaId', async (req, res) => {
     await getMetaMediaStream(req.params.mediaId, res, req.query.name ? String(req.query.name).slice(0, 200) : null);
   } catch (err) {
     if (!res.headersSent) res.status(502).json({ error: err.message });
+  }
+});
+
+// Archivos de Instagram guardados en Storage (ver mediaStore.js).
+router.get('/media-file', async (req, res) => {
+  const path = String(req.query.path ?? '');
+  if (!isOwnMediaPath(path)) return res.status(400).json({ error: 'Ruta inválida' });
+  try {
+    await streamStoredMedia(path, res);
+  } catch (err) {
+    if (!res.headersSent) res.status(err.code === 404 ? 404 : 502).json({ error: err.message });
   }
 });
 
@@ -318,6 +333,10 @@ function isWindowExpiredError(sendErr) {
 // "enviado" y recién después el error. Se chequea antes de mandar. Sin ningún
 // mensaje del cliente (conversación iniciada con plantilla) la ventana está
 // cerrada: la abre la RESPUESTA del cliente, no nuestra plantilla.
+// Instagram no tiene plantillas: pasados los 7 días (HUMAN_AGENT) solo se
+// puede volver a escribir cuando el cliente manda un mensaje.
+const IG_WINDOW_EXPIRED_MSG = 'Meta no deja escribirle por Instagram: pasó la ventana desde el último mensaje del cliente (24 h, o 7 días cuando Meta apruebe "Human Agent"). En Instagram no hay plantillas — hay que esperar a que el cliente vuelva a escribir.';
+
 function isWaWindowClosed(lastClientMessageAt) {
   return !lastClientMessageAt || Date.now() - tsMs(lastClientMessageAt) > WINDOW_MS;
 }
@@ -378,13 +397,14 @@ router.post('/:contactId/reply', async (req, res) => {
       if (channel === 'whatsapp') {
         waMsgId = await sendWhatsAppMessage(contactId, message.trim(), replyTo?.waMsgId ?? null);
       } else if (channel === 'instagram') {
-        await sendInstagramMessage(contactId, message.trim());
+        await sendInstagramAsAgent(opts => sendInstagramMessage(contactId, message.trim(), opts));
       }
     } catch (sendErr) {
       windowExpired = channel === 'whatsapp' && isWindowExpiredError(sendErr);
       const detail = sendErr.response?.data ?? sendErr.message;
       console.error('[reply] Error enviando por canal:', JSON.stringify(detail));
       sendError = typeof detail === 'object' ? JSON.stringify(detail) : detail;
+      if (channel === 'instagram' && isInstagramWindowError(sendErr)) sendError = IG_WINDOW_EXPIRED_MSG;
     }
 
     // Update message delivery status
@@ -394,7 +414,7 @@ router.post('/:contactId/reply', async (req, res) => {
       return res.status(502).json({
         error: windowExpired
           ? 'La ventana de WhatsApp de 24hs expiró. Necesitás enviar una plantilla aprobada para retomar la conversación.'
-          : `Guardado en panel pero falló el envío: ${sendError}`,
+          : sendError === IG_WINDOW_EXPIRED_MSG ? sendError : `Guardado en panel pero falló el envío: ${sendError}`,
         windowExpired,
       });
     }
@@ -485,6 +505,58 @@ async function sendWhatsAppFile(contactId, { buffer, mimetype, originalname, isV
   };
 }
 
+// Archivo del panel → Instagram. IG no lleva caption en adjuntos: si el
+// agente escribió texto, sale como mensaje aparte después del archivo.
+async function sendInstagramFile(req, res, { contactId, status, originalname }) {
+  const caption = String(req.body.caption ?? '').trim().slice(0, 1000);
+  let prepared;
+  try {
+    prepared = await prepareInstagramMedia({ buffer: req.file.buffer, mimetype: req.file.mimetype, originalname });
+  } catch (err) {
+    if (err instanceof MediaRejectedError) return res.status(400).json({ error: err.message });
+    throw err;
+  }
+
+  const msgId = crypto.randomUUID();
+  let sendError = null;
+  let storagePath = null;
+  try {
+    storagePath = await saveMedia(prepared.buffer, prepared.mimeType, prepared.fileName);
+    const url = await signedMediaUrl(storagePath);
+    await sendInstagramAsAgent(opts => sendInstagramAttachment(contactId, prepared.igType, url, opts));
+    if (caption) await sendInstagramAsAgent(opts => sendInstagramMessage(contactId, caption, opts));
+  } catch (sendErr) {
+    sendError = isInstagramWindowError(sendErr) ? IG_WINDOW_EXPIRED_MSG : describeSendError(sendErr);
+    console.error('[media] Error enviando media por IG:', sendError);
+  }
+
+  if (status === 'resolved' || status === 'bot_archived') {
+    await dispatchConversation(contactId, { status: 'escalated', humanMode: true, assignedTo: req.agent.email, escalationReason: 'equipo_inicio' });
+  }
+
+  await appendMessage(contactId, {
+    role: 'admin',
+    content: mediaLabel(prepared.mediaType, prepared.fileName, caption),
+    mediaType: prepared.mediaType,
+    mediaId: null,
+    ...(storagePath && { storagePath }),
+    fileName: prepared.fileName,
+    mimeType: prepared.mimeType,
+    fileSize: prepared.buffer.length,
+    msgId,
+    msgStatus: sendError ? 'error' : 'sent',
+    sentBy: req.agent.email,
+  });
+
+  if (sendError) {
+    return res.status(502).json({
+      error: sendError === IG_WINDOW_EXPIRED_MSG ? sendError : `Guardado en panel pero falló el envío: ${sendError}`,
+      windowExpired: false,
+    });
+  }
+  return res.json({ ok: true });
+}
+
 router.post('/:contactId/media', uploadSingle('file'), async (req, res) => {
   try {
     const { contactId } = req.params;
@@ -499,13 +571,16 @@ router.post('/:contactId/media', uploadSingle('file'), async (req, res) => {
       return res.status(409).json({ error: 'La ventana de WhatsApp de 24hs expiró. Necesitás enviar una plantilla aprobada para retomar la conversación.', windowExpired: true });
     }
 
-    // Antes un archivo a Instagram se guardaba como "enviado" sin mandarse
-    // nunca — la API de IG sólo acepta adjuntos por URL pública.
-    if (channel !== 'whatsapp') {
-      return res.status(400).json({ error: 'Por ahora los archivos sólo se pueden mandar por WhatsApp. En Instagram mandá el texto o un link.' });
-    }
-
     const originalname = decodeOriginalName(req.file.originalname);
+
+    // Instagram solo acepta adjuntos por URL pública: se guarda en Storage y
+    // se le pasa una URL firmada. La copia queda para mostrarlo en el panel.
+    if (channel === 'instagram') {
+      return sendInstagramFile(req, res, { contactId, status, originalname });
+    }
+    if (channel !== 'whatsapp') {
+      return res.status(400).json({ error: 'Por este canal no se pueden mandar archivos.' });
+    }
     const caption = String(req.body.caption ?? '').trim().slice(0, 1000);
     const isVoiceNote = req.body.voiceNote === '1';
     let replyTo = null;
@@ -652,7 +727,7 @@ router.post('/forward', async (req, res) => {
             const waMsgId = channel === 'whatsapp'
               ? await sendWhatsAppMessage(contactId, text)
               : channel === 'instagram'
-                ? await sendInstagramMessage(contactId, text)
+                ? await sendInstagramAsAgent(opts => sendInstagramMessage(contactId, text, opts))
                 : null; // otros canales (ej. chat web): el mensaje queda en el historial
             await appendMessage(contactId, {
               role: 'admin', content: text, msgId, msgStatus: 'sent', sentBy: req.agent.email, forwarded: true,

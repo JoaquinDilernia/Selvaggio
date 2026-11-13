@@ -14,7 +14,8 @@ import {
   setUrgentFlag,
   addLabelToConversation,
 } from './conversation.service.js';
-import { sendWhatsAppMessage, sendInstagramMessage, downloadMediaAsBase64, sendWhatsAppDocumentLink, downloadMetaMedia } from './meta.service.js';
+import { sendWhatsAppMessage, sendInstagramMessage, sendInstagramAttachment, downloadMediaAsBase64, sendWhatsAppDocumentLink, downloadMetaMedia } from './meta.service.js';
+import { persistRemoteMedia } from './mediaStore.js';
 import { transcribeAudio } from './transcription.service.js';
 import { getOrCreateCustomer, buildCustomerContext } from './customer.service.js';
 import { getAllLabels, createLabel, resolverEtiqueta } from './label.service.js';
@@ -87,10 +88,21 @@ async function aplicarEtiquetas(contactId, nombres, labels, yaTiene) {
   if (aplicadas.length) console.log(`[bot] Etiquetas aplicadas a ${contactId}:`, aplicadas);
 }
 
-async function enviarDocumento(to, doc) {
+// Por Instagram el bot no puede crear reservas ni pedidos (el contacto no es
+// un teléfono): que lo sepa de entrada en vez de enterarse por el error de la tool.
+const INSTAGRAM_PROMPT = `CANAL: INSTAGRAM (DM).
+- Por acá NO podés crear, cambiar ni cancelar reservas ni pedidos de take away. Sí podés consultar disponibilidad y responder todo lo demás.
+- Para reservar mesa pasá https://selvaggio.com.ar/#/reserva-mesas ; para take away https://selvaggio.com.ar/#/take-away ; para cambiar o cancelar una reserva, que escriba por WhatsApp.
+- Mensajes cortos y sin formato: Instagram no muestra negritas (nada de asteriscos).`;
+
+async function enviarDocumento(to, doc, channel = 'whatsapp') {
   const fileName = doc.fileName || `${doc.title}.pdf`;
   try {
-    const waMsgId = await sendWhatsAppDocumentLink(to, doc.fileUrl, fileName);
+    // IG no tiene "documento con nombre": va como adjunto tipo file por URL
+    // (la de Storage con token es pública, Meta la baja directo).
+    const waMsgId = channel === 'instagram'
+      ? (await sendInstagramAttachment(to, 'file', doc.fileUrl), null)
+      : await sendWhatsAppDocumentLink(to, doc.fileUrl, fileName);
     await appendMessage(to, {
       role: 'assistant',
       content: `[Archivo: ${fileName}]`,
@@ -175,11 +187,17 @@ async function processIncomingMessageInternal(msg) {
   let { text } = msg; // un audio transcripto o un archivo pasan a ser el texto del mensaje
   // Datos del adjunto que se guardan junto al mensaje para que el panel pueda
   // mostrarlo (nombre del archivo, tipo, y la URL de CDN si vino de Instagram).
+  // Instagram solo manda una URL de CDN que vence en días: se guarda copia
+  // propia (storagePath) para que el panel siga mostrando el archivo.
+  const igStored = channel === 'instagram' && mediaUrl && ['image', 'audio', 'document', 'video', 'sticker'].includes(type)
+    ? await persistRemoteMedia(mediaUrl)
+    : null;
   const mediaFields = {
     mediaId: mediaId ?? null,
     ...(mediaUrl && { mediaUrl }),
+    ...(igStored && { storagePath: igStored.path }),
     ...(msg.fileName && { fileName: msg.fileName }),
-    ...(msg.mimeType && { mimeType: msg.mimeType }),
+    ...((msg.mimeType || igStored?.mimeType) && { mimeType: msg.mimeType || igStored.mimeType }),
   };
 
   let conversation, history, knowledgeBase, customer, availableLabels, configDoc, areas, documentos;
@@ -273,7 +291,7 @@ async function processIncomingMessageInternal(msg) {
     yaGuardado = true;
   }
   if (type === 'audio') {
-    const transcript = await transcribeIncomingAudio({ mediaId, mediaUrl });
+    const transcript = await transcribeIncomingAudio({ mediaId, mediaUrl, stored: igStored });
     if (transcript) {
       await appendMessage(from, { role: 'user', content: '[Audio recibido]', transcript, mediaType: 'audio', ...mediaFields, contactName, messageId, ...(replyTo && { replyTo }) });
       text = `[Audio transcripto] ${transcript}`;
@@ -323,6 +341,8 @@ async function processIncomingMessageInternal(msg) {
   if (type === 'image') {
     if (mediaId) {
       imageData = await downloadMediaAsBase64(mediaId).catch(() => null);
+    } else if (igStored?.mimeType?.startsWith('image/')) {
+      imageData = { base64: igStored.buffer.toString('base64'), mimeType: igStored.mimeType };
     } else if (mediaUrl) {
       try {
         const axios = (await import('axios')).default;
@@ -352,8 +372,8 @@ async function processIncomingMessageInternal(msg) {
   const customerContext = buildCustomerContext(customer);
 
   console.log(`[bot] Llamando a Claude para ${from}`);
-  // Los PDFs se mandan como archivo solo por WhatsApp; en Instagram el bot pasa el contenido.
-  const docsEnviables = channel === 'whatsapp' ? documentos : [];
+  // Los PDFs salen como archivo por WhatsApp y por Instagram (adjunto por URL).
+  const docsEnviables = ['whatsapp', 'instagram'].includes(channel) ? documentos : [];
   const docsAEnviar = [];
   const toolsUsadas = new Set();
   // Capacidad, mínimo/máximo, precio y seña de La Cava (Gestión → Capacidad).
@@ -377,7 +397,7 @@ async function processIncomingMessageInternal(msg) {
       runTool: (name, input) => (toolsUsadas.add(name), name === 'enviar_documento')
         ? runDocumentoTool(input, docsEnviables, docsAEnviar)
         : runReservaTool(name, input, { contactId: from, contactName, channel, botConfig, customer }),
-      extraSystem: [reservasPrompt(new Date(), cfgReservas), documentosPrompt(docsEnviables)].filter(Boolean).join('\n\n'),
+      extraSystem: [reservasPrompt(new Date(), cfgReservas), documentosPrompt(docsEnviables), channel === 'instagram' ? INSTAGRAM_PROMPT : ''].filter(Boolean).join('\n\n'),
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);
@@ -429,7 +449,7 @@ async function processIncomingMessageInternal(msg) {
   // Respaldo: si se habló de La Cava o de la Degustación y el modelo no mandó el PDF, sale igual.
   for (const doc of encolarPdfsAutomaticos({ docs: docsEnviables, history: sessionHistory(history), userText: text ?? '', reply: cleanText, toolsUsadas, cola: docsAEnviar })) console.log(`[bot] PDF "${doc.title}" encolado automáticamente para ${from}`);
 
-  for (const doc of docsAEnviar) await enviarDocumento(from, doc);
+  for (const doc of docsAEnviar) await enviarDocumento(from, doc, channel);
 
   if (shouldEscalate) {
     await dispatchConversation(from, {
@@ -458,10 +478,12 @@ async function processIncomingMessageInternal(msg) {
 
 // WhatsApp manda el mediaId; Instagram, una URL directa. null si no se pudo
 // transcribir o el audio vino vacío (el llamador cae al aviso de antes).
-async function transcribeIncomingAudio({ mediaId, mediaUrl }) {
+async function transcribeIncomingAudio({ mediaId, mediaUrl, stored = null }) {
   try {
     let buffer, mimeType;
-    if (mediaId) {
+    if (stored?.buffer) {
+      ({ buffer, mimeType } = stored);
+    } else if (mediaId) {
       ({ buffer, mimeType } = await downloadMetaMedia(mediaId));
     } else if (mediaUrl) {
       const axios = (await import('axios')).default;

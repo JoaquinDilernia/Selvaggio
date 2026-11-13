@@ -89,27 +89,82 @@ async function resolveInstagramPage() {
   return igPageCache;
 }
 
-export async function sendInstagramMessage(recipientId, text) {
+// `humanAgent`: manda con la etiqueta HUMAN_AGENT, que permite responder hasta
+// 7 días después del último mensaje del cliente (sin ella son 24 h). Solo para
+// mensajes escritos por una persona del equipo, nunca del bot (política de
+// Meta), y requiere el permiso "Human Agent" aprobado en la app.
+async function postInstagramMessage(recipientId, message, { humanAgent = false } = {}) {
   if (!process.env.META_ACCESS_TOKEN || !process.env.META_IG_PAGE_ID) {
-    console.log('[meta] sendInstagramMessage skipped — tokens not configured');
+    console.log('[meta] envío por Instagram omitido — tokens no configurados');
     return null;
   }
   const { pageId, token } = await resolveInstagramPage();
+  const tagFields = humanAgent
+    ? { messaging_type: 'MESSAGE_TAG', tag: 'HUMAN_AGENT' }
+    : { messaging_type: 'RESPONSE' };
   const { data } = await postWithSafeRetry(
     `${META_API_URL}/${pageId}/messages`,
-    {
-      recipient: { id: recipientId },
-      message: { text },
-      messaging_type: 'RESPONSE',
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
+    { recipient: { id: recipientId }, message, ...tagFields },
+    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
   return data.message_id ?? null;
+}
+
+// Instagram corta los DMs en 1000 caracteres (Meta rechaza el mensaje entero
+// si se pasa). Se parte por párrafos/oraciones para que no quede a la mitad.
+export const IG_TEXT_MAX = 1000;
+export function splitInstagramText(text, max = IG_TEXT_MAX) {
+  const parts = [];
+  let rest = String(text ?? '').trim();
+  while (rest.length > max) {
+    const slice = rest.slice(0, max);
+    let cut = slice.lastIndexOf('\n');
+    if (cut < max * 0.5) cut = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('? '), slice.lastIndexOf('! '));
+    if (cut < max * 0.5) cut = slice.lastIndexOf(' ');
+    if (cut <= 0) cut = max - 1;
+    parts.push(rest.slice(0, cut + 1).trim());
+    rest = rest.slice(cut + 1).trim();
+  }
+  if (rest) parts.push(rest);
+  return parts;
+}
+
+// IG no interpreta *negrita* como WhatsApp: los asteriscos se verían tal cual.
+export function toInstagramText(text) {
+  return String(text ?? '').replace(/\*{1,2}([^*\n]+?)\*{1,2}/g, '$1');
+}
+
+export async function sendInstagramMessage(recipientId, text, opts = {}) {
+  let lastId = null;
+  for (const part of splitInstagramText(toInstagramText(text))) {
+    lastId = await postInstagramMessage(recipientId, { text: part }, opts);
+  }
+  return lastId;
+}
+
+// Adjunto por URL pública (la API de IG no acepta subir el archivo directo).
+// type: image | audio | video | file.
+export async function sendInstagramAttachment(recipientId, type, url, opts = {}) {
+  return postInstagramMessage(recipientId, { attachment: { type, payload: { url } } }, opts);
+}
+
+// Error de Meta por mensaje fuera de la ventana permitida (24 h, o 7 días con
+// HUMAN_AGENT). Code 10 + subcode 2534022 en la Messenger Platform.
+export function isInstagramWindowError(err) {
+  const e = err?.response?.data?.error ?? {};
+  return e.error_subcode === 2534022 || /outside of (the )?allowed window/i.test(e.message ?? '');
+}
+
+// Envío de un agente: primero normal (funciona aunque Meta todavía no haya
+// aprobado "Human Agent"); si Meta lo rechaza por ventana vencida, reintenta
+// con HUMAN_AGENT para llegar hasta los 7 días.
+export async function sendInstagramAsAgent(send) {
+  try {
+    return await send({ humanAgent: false });
+  } catch (err) {
+    if (!isInstagramWindowError(err)) throw err;
+    return send({ humanAgent: true });
+  }
 }
 
 export async function downloadMediaAsBase64(mediaId) {

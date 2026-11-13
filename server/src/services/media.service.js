@@ -161,3 +161,80 @@ export async function prepareWhatsAppMedia({ buffer, mimetype, originalname, isV
     `WhatsApp no permite enviar archivos .${ext || 'de este tipo'}. Se pueden mandar PDF, Word, Excel, PowerPoint, TXT/CSV, imágenes, videos MP4 y audios. Para otros formatos (ej. .zip), subilo a Drive y mandá el link.`
   );
 }
+
+// ── Instagram ──────────────────────────────────────────────────────────────
+// La API de mensajes de IG acepta: imagen png/jpeg/gif (8 MB), video
+// mp4/mov/webm (25 MB), audio aac/m4a/wav/mp4 (25 MB) y archivos PDF (25 MB).
+// https://developers.facebook.com/docs/messenger-platform/instagram/features/send-message
+const IG_IMAGE = new Set(['image/jpeg', 'image/png', 'image/gif']);
+const IG_VIDEO = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+const IG_AUDIO = new Set(['audio/aac', 'audio/mp4', 'audio/wav', 'audio/x-wav']);
+const IG_LIMITS = { image: 8 * MB, video: 25 * MB, audio: 25 * MB, file: 25 * MB };
+
+/** Cualquier audio → AAC (ADTS). Las notas de voz de Chrome son webm, que IG no acepta. */
+async function toAac(buffer) {
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) throw new Error('ffmpeg no disponible');
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ffmpegPath, [
+      '-hide_banner', '-loglevel', 'error',
+      '-i', 'pipe:0',
+      '-vn', '-map_metadata', '-1', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '64k',
+      '-f', 'adts', 'pipe:1',
+    ]);
+    const chunks = [];
+    let stderr = '';
+    proc.stdout.on('data', c => chunks.push(c));
+    proc.stderr.on('data', c => { stderr += c; });
+    proc.on('error', reject);
+    proc.on('close', code => {
+      if (code === 0 && chunks.length) resolve(Buffer.concat(chunks));
+      else reject(new Error(`ffmpeg salió con código ${code}: ${stderr.slice(0, 300)}`));
+    });
+    proc.stdin.on('error', () => {});
+    proc.stdin.end(buffer);
+  });
+}
+
+/**
+ * Deja un archivo listo para mandar por Instagram, o tira MediaRejectedError
+ * con un mensaje para el agente.
+ * @returns {Promise<{ buffer: Buffer, mimeType: string, igType: 'image'|'video'|'audio'|'file', mediaType: string, fileName: string }>}
+ */
+export async function prepareInstagramMedia({ buffer, mimetype, originalname }) {
+  let fileName = originalname || 'archivo';
+  const ext = extOf(fileName);
+  const mime = normalizeMime(mimetype, fileName);
+  const tooBig = (kind, limit) => new MediaRejectedError(`El ${kind} pesa ${prettySize(buffer.length)} y Instagram acepta hasta ${prettySize(limit)}.`);
+
+  if (mime.startsWith('image/')) {
+    if (!IG_IMAGE.has(mime)) throw new MediaRejectedError(`Instagram no acepta imágenes .${ext || mime.split('/')[1]}. Mandala en JPG o PNG.`);
+    if (buffer.length > IG_LIMITS.image) throw tooBig('archivo', IG_LIMITS.image);
+    return { buffer, mimeType: mime, igType: 'image', mediaType: 'image', fileName };
+  }
+  if (mime.startsWith('video/')) {
+    if (!IG_VIDEO.has(mime)) throw new MediaRejectedError(`Instagram no acepta videos .${ext || mime.split('/')[1]}. Mandalo en MP4.`);
+    if (buffer.length > IG_LIMITS.video) throw tooBig('video', IG_LIMITS.video);
+    return { buffer, mimeType: mime, igType: 'video', mediaType: 'video', fileName };
+  }
+  if (mime.startsWith('audio/')) {
+    let out = buffer;
+    let outMime = mime;
+    if (!IG_AUDIO.has(mime)) {
+      try {
+        out = await toAac(buffer);
+        outMime = 'audio/aac';
+        fileName = fileName.replace(/\.[a-z0-9]+$/i, '') + '.aac';
+      } catch (err) {
+        console.error('[media] No se pudo convertir el audio para IG:', err.message);
+        throw new MediaRejectedError('No se pudo convertir el audio para Instagram. Probá con un archivo .m4a o .mp3.');
+      }
+    }
+    if (out.length > IG_LIMITS.audio) throw tooBig('audio', IG_LIMITS.audio);
+    return { buffer: out, mimeType: outMime, igType: 'audio', mediaType: 'audio', fileName };
+  }
+  if (mime === 'application/pdf') {
+    if (buffer.length > IG_LIMITS.file) throw tooBig('PDF', IG_LIMITS.file);
+    return { buffer, mimeType: mime, igType: 'file', mediaType: 'document', fileName };
+  }
+  throw new MediaRejectedError(`Por Instagram solo se pueden mandar fotos, videos, audios y PDF (no .${ext || 'este tipo de archivo'}).`);
+}
