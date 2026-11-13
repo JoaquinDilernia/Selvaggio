@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { unaFechaPorSerie } from '../utils/proximosEventos';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, doc, getDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -114,7 +115,7 @@ function LandingDemo() {
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((ev) => ev.visible !== false && ev.fecha >= hoy)
         .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
-      setEventos(items);
+      setEventos(unaFechaPorSerie(items));
     }).catch(() => {});
 
     // Fetch carta PDF URL (stored by AdminCarta at selvaggio_configuracion/carta)
