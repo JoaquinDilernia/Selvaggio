@@ -160,3 +160,8 @@ test('review#5: el prompt no dice CONFIRMADA sin excepción para la seña pendie
   const linea = p.split('\n').find(l => l.includes('reservar_evento') && l.includes('CONFIRMADA'));
   assert.match(linea, /senaPendiente/);
 });
+
+test('sectores de mesa: Pérgola o Jardín (La Cava se reserva aparte)', async () => {
+  const { PREFERENCIAS } = await import('./reservas.service.js');
+  assert.deepEqual(PREFERENCIAS, ['Pérgola', 'Jardín']);
+});

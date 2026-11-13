@@ -327,7 +327,7 @@ function ReservaMesas() {
           <div className="rf-field">
             <label className="rf-label rf-label--req">Preferencia de ubicación</label>
             <div className="rf-pref-grid">
-              {['Jardín', 'Living'].map(op => (
+              {['Pérgola', 'Jardín'].map(op => (
                 <button key={op} type="button"
                   className={`rf-pref-btn${formData.preferencia === op ? ' rf-pref-btn--on' : ''}`}
                   onClick={() => setFormData(p => ({ ...p, preferencia: op }))}>

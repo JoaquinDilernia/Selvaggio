@@ -24,7 +24,7 @@ test('ya pasó: días anteriores y horarios de hoy que ya llegaron (la madrugada
 });
 
 test('aplica solo lo que cambia', () => {
-  const { nueva, tocados } = aplicarCambios(reserva, { horario: '22:00', cantidadPersonas: 4, preferencia: 'Living' }, cfg);
+  const { nueva, tocados } = aplicarCambios(reserva, { horario: '22:00', cantidadPersonas: 4, preferencia: 'Pérgola' }, cfg);
   assert.deepEqual(tocados, ['horario', 'preferencia']);
   assert.equal(nueva.horario, '22:00');
   assert.equal(nueva.fecha, '2026-10-31');

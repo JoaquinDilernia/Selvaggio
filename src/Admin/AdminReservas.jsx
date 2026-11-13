@@ -424,7 +424,7 @@ function AdminReservas() {
                     <label>Espacio</label>
                     <select name="preferencia" value={editForm.preferencia} onChange={handleEditFormChange}>
                       <option value="">Sin preferencia</option>
-                      <option value="Adentro / Living">Adentro / Living</option>
+                      {['Pérgola', 'Jardín', ...(editForm.preferencia && !['Pérgola', 'Jardín'].includes(editForm.preferencia) ? [editForm.preferencia] : [])].map(op => <option key={op} value={op}>{op}</option>)}
                     </select>
                   </div>
                   <div className="ar__form-group"><label>Restricciones</label><textarea name="restricciones" value={editForm.restricciones} onChange={handleEditFormChange} rows="2" /></div>
