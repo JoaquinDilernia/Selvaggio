@@ -146,3 +146,17 @@ test('eventoParaBot: pago sin seña no manda sena ni alias vacíos', async () =>
   const { eventoParaBot } = await import('./reservas.service.js');
   assert.deepEqual(eventoParaBot({ id: 'e4', titulo: 'X', fecha: '2026-11-21', esPago: true, precio: '$15.000', sena: '', alias: '' }).pago, { precio: '$15.000' });
 });
+
+test('review#4: evento pago sin precio no le manda "pago" vacío al bot', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  const ev = eventoParaBot({ id: 'e5', titulo: 'X', fecha: '2026-11-21', esPago: true, precio: '' });
+  assert.equal(ev.pago, undefined);
+  assert.equal(ev.gratis, undefined);
+});
+
+test('review#5: el prompt no dice CONFIRMADA sin excepción para la seña pendiente', async () => {
+  const { reservasPrompt } = await import('./reservas.tools.js');
+  const p = reservasPrompt(new Date('2026-11-13T15:00:00Z'), (await import('./reservas.service.js')).normalizarConfigReservas(null));
+  const linea = p.split('\n').find(l => l.includes('reservar_evento') && l.includes('CONFIRMADA'));
+  assert.match(linea, /senaPendiente/);
+});

@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fechasDeSerie, docGenerado, idGenerado, planSerie } from './eventosFijos.js';
+import { fechasDeSerie, docGenerado, idGenerado, planSerie, HORIZONTE_DIAS } from './eventosFijos.js';
 
 const hoy = '2026-11-13'; // viernes
 const serie = { id: 's1', diaSemana: 5, desde: '2026-11-01', titulo: 'Pintura y Vino', horaInicio: '19:00', horaFin: '02:00', visible: true };
 
 test('fechasDeSerie: todos los viernes de las próximas 8 semanas', () => {
-  assert.deepEqual(fechasDeSerie(serie, { hoy }), [
+  const dias = 56;
+  assert.deepEqual(fechasDeSerie(serie, { hoy, dias }), [
     '2026-11-13', '2026-11-20', '2026-11-27', '2026-12-04',
     '2026-12-11', '2026-12-18', '2026-12-25', '2027-01-01',
   ]);
@@ -35,7 +36,7 @@ test('planSerie: no pisa un generado editado a mano', () => {
   const { upserts, borrar } = planSerie(serie, [{ id: 'fijo_s1_2026-11-13', fecha: '2026-11-13', editadoManual: true }], { hoy });
   assert.ok(!upserts.some(u => u.id === 'fijo_s1_2026-11-13'));
   assert.ok(!borrar.includes('fijo_s1_2026-11-13'));
-  assert.equal(upserts.length, 7);
+  assert.equal(upserts.length, fechasDeSerie(serie, { hoy }).length - 1);
 });
 
 test('planSerie: cambiar el día borra los viejos y crea los nuevos', () => {
@@ -84,4 +85,21 @@ test('docGenerado: copia los datos de pago', () => {
   assert.equal(d.sena, '$5.000');
   assert.equal(d.alias, 'selva.alias');
   assert.equal(docGenerado(serie, '2026-11-20').esPago, undefined);
+});
+
+test('review#1: una fecha generada movida a mano no se regenera en su fecha original', () => {
+  const { upserts, borrar } = planSerie(serie, [{ id: 'fijo_s1_2026-11-20', fecha: '2026-11-21', editadoManual: true }], { hoy });
+  assert.ok(!upserts.some(u => u.id === 'fijo_s1_2026-11-20'));
+  assert.ok(!borrar.includes('fijo_s1_2026-11-20'));
+});
+
+test('review#2: ocultar una fecha no la congela; sigue tomando precio nuevo pero queda oculta', () => {
+  const { upserts } = planSerie({ ...serie, precio: '$50.000' }, [{ id: 'fijo_s1_2026-11-20', fecha: '2026-11-20', visibleManual: false }], { hoy });
+  const u = upserts.find(x => x.id === 'fijo_s1_2026-11-20');
+  assert.equal(u.data.precio, '$50.000');
+  assert.equal(u.data.visible, false);
+});
+
+test('review#9: el horizonte cubre lo que puede consultar el bot (90 días)', () => {
+  assert.ok(HORIZONTE_DIAS >= 90);
 });

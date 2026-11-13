@@ -227,7 +227,7 @@ function EventosTab() {
     if (ev?.serieId && series.some(s => s.id === ev.serieId)) {
       if (!window.confirm(`¿Sacar el ${formatFecha(ev.fecha)}? Solo esa fecha: el evento fijo sigue las demás semanas.`)) return;
       try {
-        await apiFijos(`/${ev.serieId}/excluir`, { method: 'POST', body: { fecha: ev.fecha } });
+        await apiFijos(`/${ev.serieId}/excluir`, { method: 'POST', body: { fecha: ev.fecha, eventoId: ev.id } });
         setEventos(eventos.filter(e => e.id !== id));
       } catch (err) {
         alert(`No se pudo sacar la fecha: ${err.message}`);
@@ -245,7 +245,7 @@ function EventosTab() {
 
   const toggleVisible = async (ev) => {
     try {
-      await updateDoc(doc(db, 'selvaggio_eventos', ev.id), { visible: !ev.visible, ...(ev.serieId && { editadoManual: true }) });
+      await updateDoc(doc(db, 'selvaggio_eventos', ev.id), { visible: !ev.visible, ...(ev.serieId && { visibleManual: !ev.visible }) });
       setEventos(eventos.map(e => e.id === ev.id ? { ...e, visible: !e.visible } : e));
     } catch {
       alert('Error al actualizar');
@@ -335,7 +335,7 @@ function EventosTab() {
           )}
           {editando && eventos.find(e => e.id === editando)?.serieId && (
             <p style={{ fontSize: 13, color: '#8a5a00', background: '#fdf6ee', padding: '8px 12px', borderRadius: 6, margin: '0 0 12px' }}>
-              🔁 Esta es una fecha de un evento fijo. Lo que cambies acá vale solo para este día; para cambiar todas las semanas, editá el evento fijo.
+              🔁 Esta es una fecha de un evento fijo. Si la guardás, queda separada: los cambios que hagas después en el evento fijo (precio, seña, alias, horario) ya no se aplican a este día. Para cambiar todas las semanas, editá el evento fijo.
             </p>
           )}
 

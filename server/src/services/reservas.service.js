@@ -578,7 +578,8 @@ function pagoDelEvento(e) {
     const v = String(e[k] ?? '').trim();
     if (v) pago[k] = v;
   }
-  return { pago };
+  // Sin precio cargado no hay nada que decir (el bot no tiene que inventarlo).
+  return pago.precio ? { pago } : {};
 }
 
 export function esLinkWhatsApp(url) {

@@ -21,7 +21,7 @@ router.post('/', handle(async (req) => ({ serie: await crearSerie(req.body) })))
 router.put('/:id', handle(async (req) => ({ serie: await actualizarSerie(req.params.id, req.body) })));
 router.delete('/:id', handle(async (req) => ({ ok: true, ...(await borrarSerie(req.params.id)) })));
 router.post('/:id/excluir', handle(async (req) => {
-  await excluirFecha(req.params.id, req.body?.fecha);
+  await excluirFecha(req.params.id, req.body?.fecha, req.body?.eventoId);
   return { ok: true };
 }));
 

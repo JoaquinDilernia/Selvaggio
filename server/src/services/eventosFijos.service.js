@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 import { getDb } from './firebase.service.js';
-import { ahoraAR, FECHA_RE } from './reservas.service.js';
+import { ahoraAR, FECHA_RE, COL } from './reservas.service.js';
 import { planSerie, idGenerado } from './eventosFijos.js';
 
 // Series de eventos fijos (selvaggio_eventos_fijos) → eventos por fecha en
@@ -19,7 +19,7 @@ export function limpiarSerie(body = {}, { parcial = false } = {}) {
   for (const k of CAMPOS_TEXTO) if (body[k] !== undefined) s[k] = String(body[k] ?? '').trim();
   if (body.visible !== undefined) s.visible = body.visible !== false;
   if (body.activo !== undefined) s.activo = body.activo !== false;
-  if (body.esPago !== undefined && body.esPago !== null) s.esPago = body.esPago === true;
+  if (body.esPago !== undefined) s.esPago = body.esPago === true ? true : body.esPago === false ? false : null;
   if (body.diaSemana !== undefined) s.diaSemana = Number(body.diaSemana);
   if (body.desde !== undefined) s.desde = String(body.desde || '');
   if (body.hasta !== undefined) s.hasta = String(body.hasta || '');
@@ -32,6 +32,7 @@ export function limpiarSerie(body = {}, { parcial = false } = {}) {
   if (s.desde && !FECHA_RE.test(s.desde)) throw httpError(400, 'Fecha "desde" inválida');
   if (s.hasta && !FECHA_RE.test(s.hasta)) throw httpError(400, 'Fecha "hasta" inválida');
   if (s.hasta && s.desde && s.hasta < s.desde) throw httpError(400, '"Hasta" no puede ser antes de "desde"');
+  if (s.esPago === true && s.precio !== undefined && !s.precio) throw httpError(400, 'Si el evento es pago, cargá el precio');
   if (!parcial) {
     s.visible ??= true;
     s.activo ??= true;
@@ -57,13 +58,26 @@ async function aplicarSerie(serieId, serie) {
   const futuros = (await db.collection(EVENTOS).where('fecha', '>=', hoy).get()).docs.map(d => ({ id: d.id, ...d.data() }));
   const existentes = futuros.filter(e => e.serieId === serieId);
   const sueltos = futuros.filter(e => !e.serieId);
-  const { upserts, borrar } = serie
+  const plan = serie
     ? planSerie(serie, existentes, { hoy, sueltos })
     : planSerie({ id: serieId, activo: false }, existentes, { hoy });
+  const { upserts } = plan;
+  // Una fecha con reservas no se borra (la reserva quedaría apuntando a la
+  // nada y nadie se enteraría): queda como editada a mano y se avisa.
+  const conReserva = await idsConReservas(plan.borrar);
+  const borrar = plan.borrar.filter(id => !conReserva.has(id));
+  for (const id of conReserva) {
+    console.warn(`[eventos-fijos] ${id} tiene reservas: no se borra, queda como fecha suelta`);
+    await db.collection(EVENTOS).doc(id).update({ editadoManual: true });
+  }
 
   const ahora = new Date().toISOString();
   const ops = [
-    ...upserts.map(u => b => b.set(db.collection(EVENTOS).doc(u.id), { ...u.data, actualizadoEn: ahora }, { merge: true })),
+    ...upserts.map(u => b => b.set(db.collection(EVENTOS).doc(u.id), {
+      ...u.data,
+      ...(typeof u.data.esPago !== 'boolean' && { esPago: admin.firestore.FieldValue.delete() }),
+      actualizadoEn: ahora,
+    }, { merge: true })),
     ...borrar.map(id => b => b.delete(db.collection(EVENTOS).doc(id))),
   ];
   for (let i = 0; i < ops.length; i += 450) {
@@ -72,6 +86,16 @@ async function aplicarSerie(serieId, serie) {
     await batch.commit();
   }
   return { generados: upserts.length, borrados: borrar.length };
+}
+
+async function idsConReservas(ids) {
+  const out = new Set();
+  const db = getDb();
+  for (let i = 0; i < ids.length; i += 30) {
+    const snap = await db.collection(COL.mesas).where('eventoId', 'in', ids.slice(i, i + 30)).get();
+    for (const d of snap.docs) if (d.data().estado !== 'cancelada') out.add(d.data().eventoId);
+  }
+  return out;
 }
 
 export async function sincronizarSerie(id) {
@@ -110,17 +134,19 @@ export async function actualizarSerie(id, body) {
 
 export async function borrarSerie(id) {
   await obtenerSerie(id);
+  const r = await aplicarSerie(id, null);
   await getDb().collection(SERIES).doc(id).delete();
-  return aplicarSerie(id, null);
+  return r;
 }
 
 /** Saca una fecha de la serie (feriado, no se hace ese día): no se vuelve a generar. */
-export async function excluirFecha(id, fecha) {
+export async function excluirFecha(id, fecha, eventoId = null) {
   if (!FECHA_RE.test(String(fecha))) throw httpError(400, 'Fecha inválida');
   await obtenerSerie(id);
   const db = getDb();
   await db.collection(SERIES).doc(id).update({ excluidas: admin.firestore.FieldValue.arrayUnion(fecha) });
-  await db.collection(EVENTOS).doc(idGenerado(id, fecha)).delete();
+  const docId = eventoId && String(eventoId).startsWith(`fijo_${id}_`) ? String(eventoId) : idGenerado(id, fecha);
+  await db.collection(EVENTOS).doc(docId).delete();
 }
 
 let timer = null;

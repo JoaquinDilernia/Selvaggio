@@ -4,7 +4,7 @@
 // Este módulo es puro: decide qué crear/actualizar/borrar. Firestore vive en
 // eventosFijos.service.js.
 
-export const HORIZONTE_DIAS = 56;
+export const HORIZONTE_DIAS = 91;
 
 const CAMPOS = ['titulo', 'horaInicio', 'horaFin', 'descripcion', 'infoBot', 'imagen', 'ctaTexto', 'ctaLink', 'visible', 'esPago', 'precio', 'sena', 'alias'];
 
@@ -53,10 +53,21 @@ export function planSerie(serie, existentes, { hoy, dias = HORIZONTE_DIAS, suelt
   const titulo = normalizar(serie.titulo);
   const tapadas = new Set(sueltos.filter(s => normalizar(s.titulo) === titulo).map(s => s.fecha));
   const fechas = fechasDeSerie(serie, { hoy, dias }).filter(f => !tapadas.has(f));
-  const manuales = new Set(existentes.filter(e => e.editadoManual).map(e => e.fecha));
-  const quedan = new Set(fechas);
+  // Editado a mano: por id (si lo movieron de fecha sigue siendo "su" doc) y por fecha.
+  const manualIds = new Set(existentes.filter(e => e.editadoManual).map(e => e.id));
+  const manualFechas = new Set(existentes.filter(e => e.editadoManual).map(e => e.fecha));
+  // Ocultar/mostrar una fecha no la congela: solo se respeta la visibilidad.
+  const visibilidad = new Map(existentes.filter(e => typeof e.visibleManual === 'boolean').map(e => [e.id, e.visibleManual]));
+  const quedan = new Set(fechas.map(f => idGenerado(serie.id, f)));
   return {
-    upserts: fechas.filter(f => !manuales.has(f)).map(f => ({ id: idGenerado(serie.id, f), data: docGenerado(serie, f) })),
-    borrar: existentes.filter(e => !e.editadoManual && !quedan.has(e.fecha)).map(e => e.id),
+    upserts: fechas
+      .filter(f => !manualFechas.has(f) && !manualIds.has(idGenerado(serie.id, f)))
+      .map(f => {
+        const id = idGenerado(serie.id, f);
+        const data = docGenerado(serie, f);
+        if (visibilidad.has(id)) data.visible = visibilidad.get(id);
+        return { id, data };
+      }),
+    borrar: existentes.filter(e => !e.editadoManual && !quedan.has(e.id)).map(e => e.id),
   };
 }
