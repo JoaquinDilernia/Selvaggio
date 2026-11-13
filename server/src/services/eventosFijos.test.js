@@ -76,3 +76,12 @@ test('limpiarSerie: valida título, día y rango', () => {
   assert.equal(s.activo, true);
   assert.deepEqual(limpiarSerie({ horaFin: '03:00' }, { parcial: true }), { horaFin: '03:00' });
 });
+
+test('docGenerado: copia los datos de pago', () => {
+  const d = docGenerado({ ...serie, esPago: true, precio: '$20.000', sena: '$5.000', alias: 'selva.alias' }, '2026-11-20');
+  assert.equal(d.esPago, true);
+  assert.equal(d.precio, '$20.000');
+  assert.equal(d.sena, '$5.000');
+  assert.equal(d.alias, 'selva.alias');
+  assert.equal(docGenerado(serie, '2026-11-20').esPago, undefined);
+});

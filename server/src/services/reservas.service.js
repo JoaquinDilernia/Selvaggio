@@ -333,9 +333,10 @@ export async function crearReservaEvento(datos, meta = {}, { now = new Date() } 
     fecha: ev.fecha,
     horario: ev.horaInicio || '',
     preferencia: '',
-    comentarios: [MARCA_BOT, `Evento: ${ev.titulo}`, limpiar(datos.comentarios)].filter(Boolean).join(' · '),
+    comentarios: [MARCA_BOT, `Evento: ${ev.titulo}`, ev.esPago === true && String(ev.sena ?? '').trim() ? `SEÑA PENDIENTE ${String(ev.sena).trim()}` : '', limpiar(datos.comentarios)].filter(Boolean).join(' · '),
     evento: ev.titulo,
     eventoId: evDoc.id,
+    ...(ev.esPago === true && String(ev.sena ?? '').trim() && { senaPendiente: String(ev.sena).trim() }),
     estado: 'confirmada',
     origen: 'bot',
     ...(meta.contactId && { contactId: meta.contactId }),
@@ -560,10 +561,24 @@ export function eventoParaBot(e) {
     // Lo que el admin carga solo para el bot (precio, qué incluye, políticas…);
     // no se muestra en la web.
     ...(infoBot && { infoInterna: infoBot }),
+    // Pago: precio, seña y alias que carga el equipo. Sin el dato (eventos
+    // viejos) no se dice nada: el bot no inventa si es gratis o pago.
+    ...pagoDelEvento(e),
     // El botón "Reservar" de la web suele ser un link a NUESTRO WhatsApp:
     // pasárselo al cliente que ya está en este chat lo trae de vuelta acá.
     ...(e.ctaLink && (esLinkWhatsApp(e.ctaLink) ? { reservaPorEsteChat: true } : { link: e.ctaLink })),
   };
+}
+
+function pagoDelEvento(e) {
+  if (e.esPago === false) return { gratis: true };
+  if (e.esPago !== true) return {};
+  const pago = {};
+  for (const k of ['precio', 'sena', 'alias']) {
+    const v = String(e[k] ?? '').trim();
+    if (v) pago[k] = v;
+  }
+  return { pago };
 }
 
 export function esLinkWhatsApp(url) {

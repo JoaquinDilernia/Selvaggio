@@ -250,6 +250,9 @@ HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especi
 - Si el cliente nombra algo que puede ser un evento (una cata, "menú de pasos", una noche temática, el nombre de una actividad), consultá la agenda ANTES de responder. Nunca digas que algo no existe sin haberlo chequeado.
 - Si el evento trae "infoInterna", es info que cargó el equipo para vos (precio, qué incluye, menú, políticas): usala para responder sobre ese evento. Contá lo que el cliente pregunte con tus palabras; no la pegues entera.
 - Si el evento trae "link", pasalo para reservar o sacar entradas.
+- PAGO: si el evento trae "gratis": true, decí que no tiene costo. Si trae "pago", contá el precio y, si tiene "sena", que para asegurar el lugar hay que transferir esa seña al alias "alias" y mandar el comprobante por este chat. Si no trae ni "pago" ni "gratis", no afirmes que es gratis ni inventes precio: usá infoInterna o derivá con [MOTIVO:sin_info|precio del evento].
+- Si reservar_evento devuelve "senaPendiente": decile que la reserva quedó tomada y que se termina de asegurar cuando mande el comprobante de la seña (monto y alias) por acá.
+- COMPROBANTE: si el cliente manda una imagen o archivo que parece el comprobante de una seña (de un evento o de La Cava), agradecé, decile que el equipo lo verifica y derivá con [MOTIVO:comprobante_sena|evento y monto].
 - Si no trae link (o trae reservaPorEsteChat: true), la reserva se toma ACÁ y queda CONFIRMADA: nunca le mandes un link de WhatsApp (ya está hablando con nosotros) ni digas que el equipo la confirma. Pedí nombre y cantidad de personas (y alergias si las hay), resumí y con el "sí" llamá a reservar_evento. Después decile que quedó confirmada, con el evento, día y hora.
 
 CUMPLEAÑOS: si en el PERFIL DEL CONTACTO dice "Cumpleaños: NO LO TENEMOS", pedíselo UNA sola vez, en un momento natural: después de resolver lo que vino a buscar (por ejemplo, al confirmar una reserva o pedido), nunca antes ni interrumpiendo. Algo como: "¿Me pasás tu fecha de cumpleaños? Es para mandarte una promo especial cuando se acerque 🎂". Es opcional: si no quiere, respetalo. Cuando lo diga, guardalo con guardar_cumpleanos (día y mes alcanzan; el año solo si lo da). Si no quiere, llamá guardar_cumpleanos con noQuiere=true. Si ya lo tenemos o no quiso darlo, no lo menciones.
@@ -334,6 +337,7 @@ export async function runReservaTool(name, input, ctx) {
         return {
           ok: true, estado: r.estado, evento: r.evento, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas,
           ...(r.yaExistia && { aviso: YA_EXISTIA }),
+          ...(r.senaPendiente && { senaPendiente: r.senaPendiente }),
         };
       }
 

@@ -126,3 +126,23 @@ test('reserva repetida del mismo contacto: devuelve la que ya tenía', () => {
   assert.equal(reservaDelMismoContacto(reservas, { contactId: '5491100000009' }), null);
   assert.equal(reservaDelMismoContacto(reservas, {}), null);
 });
+
+test('eventoParaBot: evento pago con seña trae precio, seña y alias', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  const ev = eventoParaBot({ id: 'e1', titulo: 'Tarot y vino', fecha: '2026-11-14', esPago: true, precio: '$30.000 por persona', sena: '$10.000', alias: 'selvaggio.vinos' });
+  assert.deepEqual(ev.pago, { precio: '$30.000 por persona', sena: '$10.000', alias: 'selvaggio.vinos' });
+  assert.equal(ev.gratis, undefined);
+});
+
+test('eventoParaBot: evento marcado gratis lo dice; sin dato no inventa', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  assert.equal(eventoParaBot({ id: 'e2', titulo: 'Vino y vinilos', fecha: '2026-11-21', esPago: false }).gratis, true);
+  const sinDato = eventoParaBot({ id: 'e3', titulo: 'X', fecha: '2026-11-21' });
+  assert.equal(sinDato.gratis, undefined);
+  assert.equal(sinDato.pago, undefined);
+});
+
+test('eventoParaBot: pago sin seña no manda sena ni alias vacíos', async () => {
+  const { eventoParaBot } = await import('./reservas.service.js');
+  assert.deepEqual(eventoParaBot({ id: 'e4', titulo: 'X', fecha: '2026-11-21', esPago: true, precio: '$15.000', sena: '', alias: '' }).pago, { precio: '$15.000' });
+});

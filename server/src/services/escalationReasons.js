@@ -5,6 +5,7 @@ export const BOT_REASONS = {
   cambio_reserva:  'Cambio o cancelación de una reserva ya hecha',
   evento_privado:  'Evento privado, grupo grande o presupuesto a medida',
   reclamo:         'Reclamo o problema con un pedido o una visita',
+  comprobante_sena: 'El cliente mandó el comprobante de una seña para verificar',
   propuesta:       'Proveedor, artista, prensa, empleo o alianza comercial',
   sin_info:        'No tiene la información en la base de conocimiento',
   pide_humano:     'El cliente pidió hablar con una persona',

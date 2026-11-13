@@ -9,7 +9,7 @@ const SERIES = 'selvaggio_eventos_fijos';
 const EVENTOS = 'selvaggio_eventos';
 const UN_DIA_MS = 24 * 60 * 60 * 1000;
 
-const CAMPOS_TEXTO = ['titulo', 'horaInicio', 'horaFin', 'descripcion', 'infoBot', 'imagen', 'ctaTexto', 'ctaLink'];
+const CAMPOS_TEXTO = ['titulo', 'horaInicio', 'horaFin', 'descripcion', 'infoBot', 'imagen', 'ctaTexto', 'ctaLink', 'precio', 'sena', 'alias'];
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
@@ -19,6 +19,7 @@ export function limpiarSerie(body = {}, { parcial = false } = {}) {
   for (const k of CAMPOS_TEXTO) if (body[k] !== undefined) s[k] = String(body[k] ?? '').trim();
   if (body.visible !== undefined) s.visible = body.visible !== false;
   if (body.activo !== undefined) s.activo = body.activo !== false;
+  if (body.esPago !== undefined && body.esPago !== null) s.esPago = body.esPago === true;
   if (body.diaSemana !== undefined) s.diaSemana = Number(body.diaSemana);
   if (body.desde !== undefined) s.desde = String(body.desde || '');
   if (body.hasta !== undefined) s.hasta = String(body.hasta || '');

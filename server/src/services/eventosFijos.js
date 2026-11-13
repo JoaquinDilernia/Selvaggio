@@ -6,7 +6,7 @@
 
 export const HORIZONTE_DIAS = 56;
 
-const CAMPOS = ['titulo', 'horaInicio', 'horaFin', 'descripcion', 'infoBot', 'imagen', 'ctaTexto', 'ctaLink', 'visible'];
+const CAMPOS = ['titulo', 'horaInicio', 'horaFin', 'descripcion', 'infoBot', 'imagen', 'ctaTexto', 'ctaLink', 'visible', 'esPago', 'precio', 'sena', 'alias'];
 
 const sumarDias = (fecha, n) => {
   const d = new Date(`${fecha}T12:00:00Z`);
@@ -35,7 +35,11 @@ export function fechasDeSerie(serie, { hoy, dias = HORIZONTE_DIAS }) {
 /** Documento de selvaggio_eventos para una fecha de la serie. */
 export function docGenerado(serie, fecha) {
   const d = { fecha, serieId: serie.id, generado: true, esPopup: false };
-  for (const k of CAMPOS) d[k] = k === 'visible' ? serie.visible !== false : (serie[k] ?? '');
+  for (const k of CAMPOS) {
+    if (k === 'visible') d.visible = serie.visible !== false;
+    else if (k === 'esPago') { if (typeof serie.esPago === 'boolean') d.esPago = serie.esPago; }
+    else d[k] = serie[k] ?? '';
+  }
   return d;
 }
 

@@ -26,3 +26,8 @@ test('solo las charlas que arrancó el equipo quedan fuera de la tasa del bot', 
   assert.equal(isTeamStarted('equipo_toma'), false);
   assert.equal(isTeamStarted(null), false);
 });
+
+test('comprobante_sena es un motivo del bot', async () => {
+  const { BOT_REASONS } = await import('./escalationReasons.js');
+  assert.ok(BOT_REASONS.comprobante_sena);
+});
