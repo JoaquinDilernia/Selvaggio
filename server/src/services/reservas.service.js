@@ -440,7 +440,8 @@ export const HORARIOS_CAVA = ['19:00', '19:30', '20:00', '20:30', '21:00', '21:3
  * subido (comprobanteUrl). Mismo criterio que src/Reservas/ReservaCava.jsx:
  * queda 'confirmada' al tener comprobante y bloquea el día entero.
  */
-export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath }, { now = new Date() } = {}) {
+/** Datos limpios de una reserva de La Cava o error 400 (reglas de la web). */
+export function validarReservaCava(datos, cfg, now = new Date()) {
   const r = {
     nombre: limpiar(datos.nombre, 80),
     telefono: limpiar(datos.telefono, 40),
@@ -451,7 +452,6 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
     fecha: limpiar(datos.fecha, 10),
     horario: limpiar(datos.horario, 5),
   };
-  const cfg = await configReservas();
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
@@ -460,9 +460,15 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
   else if (cfg.cavaMaximo && r.cantidadPersonas > cfg.cavaMaximo) errores.push(`máximo ${cfg.cavaMaximo} personas`);
   if (!FECHA_RE.test(r.fecha)) errores.push('fecha inválida');
   else if (r.fecha < ahoraAR(now).fecha) errores.push('la fecha ya pasó');
-  if (!HORARIOS_CAVA.includes(r.horario)) errores.push('horario inválido');
-  if (!comprobanteUrl) errores.push('falta el comprobante de la seña');
+  if (!HORARIOS_CAVA.includes(r.horario)) errores.push(`horario inválido (opciones: ${HORARIOS_CAVA.join(', ')})`);
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
+  return r;
+}
+
+export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath }, { now = new Date() } = {}) {
+  const cfg = await configReservas();
+  if (!comprobanteUrl) throw Object.assign(new Error('falta el comprobante de la seña'), { status: 400 });
+  const r = validarReservaCava(datos, cfg, now);
 
   const db = getDb();
   const ref = db.collection(colEscritura(COL.cava)).doc();
@@ -479,6 +485,35 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
 
   if (r.email) await upsertCliente({ ...r, apellido: '' }).catch(e => console.error('[reservas] upsert cliente cava:', e.message));
   return { id: ref.id, ...r, estado: 'confirmada' };
+}
+
+/**
+ * Reserva de La Cava tomada por el bot: sin comprobante todavía. Bloquea el día
+ * igual que la de la web y queda con senaPendiente hasta que el equipo verifica
+ * el comprobante que el cliente manda por el chat.
+ */
+export async function crearReservaCavaBot(datos, meta = {}, { now = new Date() } = {}) {
+  const cfg = await configReservas();
+  const r = validarReservaCava(datos, cfg, now);
+  const comentarios = limpiar(datos.comentarios);
+  const db = getDb();
+  const ref = db.collection(colEscritura(COL.cava)).doc();
+  let previa = null;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(db.collection(COL.cava).where('fecha', '==', r.fecha));
+    const activas = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.estado !== 'cancelada');
+    // La tool repetida devuelve la que ya tenía (no es "ocupado").
+    previa = reservaDelMismoContacto(activas, { contactId: meta.contactId, telefono: r.telefono });
+    if (previa) return;
+    if (activas.length) throw Object.assign(new Error('Ese día La Cava ya está reservada. Ofrecé otra fecha (consultar_fechas_cava).'), { status: 409 });
+    tx.set(ref, {
+      ...r, comentarios, estado: 'confirmada', seña: cfg.cavaSena, senaPendiente: true,
+      origen: 'bot', ...(meta.contactId && { contactId: meta.contactId }),
+      createdAt: new Date().toISOString(),
+    });
+  });
+  if (previa) return { ...previa, yaExistia: true };
+  return { id: ref.id, ...r, estado: 'confirmada', senaPendiente: true, sena: cfg.cavaSena, precioPersona: cfg.cavaPrecioPersona };
 }
 
 // ── Seguimiento de take away ─────────────────────────────────────────────

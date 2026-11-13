@@ -92,7 +92,7 @@ async function aplicarEtiquetas(contactId, nombres, labels, yaTiene) {
 // un teléfono): que lo sepa de entrada en vez de enterarse por el error de la tool.
 const INSTAGRAM_PROMPT = `CANAL: INSTAGRAM (DM).
 - Por acá NO podés crear, cambiar ni cancelar reservas ni pedidos de take away. Sí podés consultar disponibilidad y responder todo lo demás.
-- Para reservar mesa pasá https://selvaggio.com.ar/#/reserva-mesas ; para take away https://selvaggio.com.ar/#/take-away ; para cambiar o cancelar una reserva, que escriba por WhatsApp.
+- Para reservar mesa pasá https://selvaggio.com.ar/#/reserva-mesas ; para La Cava https://selvaggio.com.ar/#/reserva-cava ; para take away https://selvaggio.com.ar/#/take-away ; para cambiar o cancelar una reserva, que escriba por WhatsApp.
 - Mensajes cortos y sin formato: Instagram no muestra negritas (nada de asteriscos).`;
 
 async function enviarDocumento(to, doc, channel = 'whatsapp') {
@@ -381,7 +381,7 @@ async function processIncomingMessageInternal(msg) {
     console.error('[bot] No se pudo leer la config de reservas, uso los valores por defecto:', err.message);
     return normalizarConfigReservas(null);
   });
-  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'reservar_evento', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
+  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'reservar_evento', 'reservar_cava', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
   let botReply;
   try {
     botReply = await generateBotResponse(text ?? '', history, {

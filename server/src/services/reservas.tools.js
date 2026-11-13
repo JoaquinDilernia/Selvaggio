@@ -1,5 +1,5 @@
 import {
-  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda, crearReservaEvento,
+  disponibilidadMesas, crearReservaMesa, cavaOcupada, ahoraAR, agenda, crearReservaEvento, crearReservaCavaBot, HORARIOS_CAVA,
   PREFERENCIAS, normalizarConfigReservas,
 } from './reservas.service.js';
 import { describirHorario } from './horario.js';
@@ -149,6 +149,26 @@ export const RESERVAS_TOOLS = [
     },
   },
   {
+    name: 'reservar_cava',
+    description:
+      'Reserva La Cava (evento privado, uno por día) para el cliente. Antes chequeá la fecha con consultar_fechas_cava. ' +
+      'Llamala solo cuando el cliente confirmó nombre, cantidad de personas, fecha y horario. Queda tomada con la seña pendiente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+        cantidadPersonas: { type: 'integer', minimum: 1 },
+        fecha: { type: 'string', description: 'AAAA-MM-DD' },
+        horario: { type: 'string', enum: HORARIOS_CAVA, description: 'Hora de llegada.' },
+        traeTorta: { type: 'boolean', description: 'Si traen torta (cumpleaños).' },
+        email: { type: 'string', description: 'Opcional.' },
+        comentarios: { type: 'string', description: 'Motivo (cumpleaños, empresa…), alergias u otros pedidos.' },
+      },
+      required: ['nombre', 'cantidadPersonas', 'fecha', 'horario'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'ver_menu_takeaway',
     description: 'Menú de Take Away: picadas (con sus secciones y opciones para elegir), adicionales, precios, días/horario de retiro, zonas de envío gratis y medios de pago. Usala antes de ofrecer o armar un pedido.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false },
@@ -275,7 +295,9 @@ CAMBIOS Y CANCELACIONES (los hacés vos, no derives):
 LA CAVA (eventos privados, desde ${cfg.cavaMinimo}${cfg.cavaMaximo ? ` hasta ${cfg.cavaMaximo}` : ''} personas):
 - $${cfg.cavaPrecioPersona.toLocaleString('es-AR')} por persona: degustación completa con maridaje libre hasta las 00:00, panera y agua. Seña de $${cfg.cavaSena.toLocaleString('es-AR')} por transferencia.
 - Una sola reserva por día: usá consultar_fechas_cava para ver qué días están tomados.
-- Por WhatsApp NO se reserva La Cava (requiere el comprobante de la seña): pasá el link https://selvaggio.com.ar/#/reserva-cava o derivá al equipo si tienen dudas.
+- La reserva de La Cava se toma ACÁ con reservar_cava: pedí nombre, cantidad de personas, fecha, horario de llegada (${HORARIOS_CAVA.join(', ')}) y si traen torta; resumí (con el total aproximado: personas × precio) y con el "sí" llamala.
+- Queda TOMADA con la seña pendiente: decile que para asegurarla tiene que transferir la seña de $${cfg.cavaSena.toLocaleString('es-AR')} (datos de transferencia en la info del local) y mandar el comprobante por este chat. Cuando lo mande, aplicá la regla COMPROBANTE.
+- Si prefiere hacerlo solo, también puede reservar en https://selvaggio.com.ar/#/reserva-cava (sube el comprobante ahí).
 
 TAKE AWAY (picadas para llevar o con envío):
 - Usá ver_menu_takeaway para conocer picadas, opciones y precios: nunca inventes productos ni precios. Si una picada tiene secciones obligatorias, preguntá qué elige en cada una (respetando "elegirHasta").
@@ -345,6 +367,15 @@ export async function runReservaTool(name, input, ctx) {
         const dias = (new Date(input.hasta) - new Date(input.desde)) / 86400000;
         if (!(dias >= 0 && dias <= 62)) return { error: 'El rango tiene que ser de 0 a 62 días' };
         return { desde: input.desde, hasta: input.hasta, ocupadas: await cavaOcupada(input.desde, input.hasta) };
+      }
+
+      case 'reservar_cava': {
+        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp o reserve en https://selvaggio.com.ar/#/reserva-cava' };
+        const r = await crearReservaCavaBot({ ...input, telefono: ctx.contactId }, { contactId: ctx.contactId });
+        return {
+          ok: true, estado: r.estado, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas,
+          ...(r.yaExistia ? { aviso: 'Esta persona ya tenía La Cava reservada ese día: NO se creó otra. No la anuncies como nueva; si quiere cambiar algo, derivá al equipo.' } : { senaPendiente: r.sena, precioPorPersona: r.precioPersona }),
+        };
       }
 
       case 'ver_menu_takeaway':

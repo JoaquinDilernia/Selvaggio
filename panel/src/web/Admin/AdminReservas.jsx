@@ -120,6 +120,15 @@ function AdminReservas() {
     });
   };
 
+  const marcarSenaRecibida = async (id) => {
+    try {
+      await updateDoc(doc(db, "selvaggio_reservas_cava", id), { senaPendiente: false, senaRecibidaEn: new Date().toISOString() });
+      setReservasCava(prev => prev.map(x => x.id === id ? { ...x, senaPendiente: false } : x));
+    } catch (err) {
+      console.error("Error marcando la seña:", err);
+    }
+  };
+
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     setEditForm(prev => ({
@@ -282,6 +291,12 @@ function AdminReservas() {
                       <div className="ar__card-row"><span className="ar__card-label">Seña</span><span>${Number(r.seña ?? 100000).toLocaleString('es-AR')}</span></div>
                       <div className="ar__card-row"><span className="ar__card-label">Creada</span><span>{formatCreada(r.createdAt)}</span></div>
                     </div>
+                    {r.senaPendiente && (
+                      <div className="ar__sena-pendiente">
+                        <span>⏳ Seña pendiente (reservada por el bot). Verificá el comprobante en el chat.</span>
+                        <button onClick={() => marcarSenaRecibida(r.id)} className="ar__btn ar__btn--edit">Seña recibida</button>
+                      </div>
+                    )}
                     {r.comprobanteUrl && (
                       <a href={r.comprobanteUrl} target="_blank" rel="noopener noreferrer" className="ar__link">Ver comprobante ↗</a>
                     )}

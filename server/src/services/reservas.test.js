@@ -165,3 +165,26 @@ test('sectores de mesa: Pérgola o Jardín (La Cava se reserva aparte)', async (
   const { PREFERENCIAS } = await import('./reservas.service.js');
   assert.deepEqual(PREFERENCIAS, ['Pérgola', 'Jardín']);
 });
+
+// ── La Cava por el bot ──────────────────────────────────────────────────
+
+test('validarReservaCava: mismas reglas que la web (mínimo, máximo, horario, fecha)', async () => {
+  const { validarReservaCava, normalizarConfigReservas } = await import('./reservas.service.js');
+  const cfg = normalizarConfigReservas({ cavaMinimo: 10, cavaMaximo: 60 });
+  const now = new Date('2026-11-13T15:00:00-03:00');
+  const ok = { nombre: 'Ana', telefono: '5491100000000', cantidadPersonas: 15, fecha: '2026-11-20', horario: '20:00' };
+  assert.equal(validarReservaCava(ok, cfg, now).cantidadPersonas, 15);
+  assert.throws(() => validarReservaCava({ ...ok, cantidadPersonas: 8 }, cfg, now), /mínimo 10/);
+  assert.throws(() => validarReservaCava({ ...ok, cantidadPersonas: 61 }, cfg, now), /máximo 60/);
+  assert.throws(() => validarReservaCava({ ...ok, horario: '18:00' }, cfg, now), /horario/);
+  assert.throws(() => validarReservaCava({ ...ok, fecha: '2026-11-12' }, cfg, now), /ya pasó/);
+});
+
+test('prompt: La Cava se reserva por el chat con reservar_cava y queda con seña pendiente', async () => {
+  const { reservasPrompt } = await import('./reservas.tools.js');
+  const { RESERVAS_TOOLS } = await import('./reservas.tools.js');
+  const p = reservasPrompt(new Date('2026-11-13T15:00:00-03:00'));
+  assert.doesNotMatch(p, /NO se reserva La Cava/);
+  assert.match(p, /reservar_cava/);
+  assert.ok(RESERVAS_TOOLS.some(t => t.name === 'reservar_cava'));
+});
