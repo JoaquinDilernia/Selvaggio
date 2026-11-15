@@ -69,8 +69,8 @@ export function aplicarCambios(actual, cambios, cfg) {
 }
 
 /** Nota para el equipo (va en comentarios, que es lo que muestra el admin de la web). */
-export function notaCambio(antes, hoy) {
-  return `Modificada por WhatsApp (bot) el ${ddmm(hoy.fecha)} ${hoy.hora}; antes: ${describir(antes)}`;
+export function notaCambio(antes, hoy, canal = 'WhatsApp') {
+  return `Modificada por ${canal} (bot) el ${ddmm(hoy.fecha)} ${hoy.hora}; antes: ${describir(antes)}`;
 }
 
 function colsDeBusqueda() {
@@ -88,25 +88,25 @@ const paraBot = (id, r) => ({
 });
 
 /** Próximas reservas de mesa (y de eventos) de este contacto. */
-export async function reservasDelContacto(contactId, { now = new Date() } = {}) {
+export async function reservasDelContacto(contactId, { now = new Date(), filtro = null } = {}) {
   const hoy = ahoraAR(now);
   const db = getDb();
   const snaps = await Promise.all(colsDeBusqueda().map(c => db.collection(c).where('fecha', '>=', hoy.fecha).get()));
   return snaps.flatMap(s => s.docs.map(d => [d.id, d.data()]))
-    .filter(([, r]) => r.estado !== 'cancelada' && esDelContacto(r, contactId) && !yaPaso(r, hoy))
+    .filter(([, r]) => r.estado !== 'cancelada' && esDelContacto(r, contactId) && (!filtro || filtro(r)) && !yaPaso(r, hoy))
     .map(([id, r]) => paraBot(id, r))
     .sort((a, b) => `${a.fecha} ${a.horario}`.localeCompare(`${b.fecha} ${b.horario}`))
     .slice(0, 5);
 }
 
-async function buscarPropia(db, id, contactId, hoy) {
+async function buscarPropia(db, id, contactId, hoy, filtro = null) {
   if (!id) throw err('Falta el id de la reserva (sale de mis_reservas)');
   for (const c of colsDeBusqueda()) {
     const snap = await db.collection(c).doc(String(id)).get();
     if (!snap.exists) continue;
     const r = snap.data();
     // Mismo mensaje si no existe o es de otro: no confirmamos reservas ajenas.
-    if (!esDelContacto(r, contactId) || r.estado === 'cancelada') break;
+    if (!esDelContacto(r, contactId) || (filtro && !filtro(r)) || r.estado === 'cancelada') break;
     if (yaPaso(r, hoy)) throw err('Esa reserva ya pasó', 409);
     return { ref: snap.ref, col: c, r };
   }
@@ -117,11 +117,11 @@ async function buscarPropia(db, id, contactId, hoy) {
  * Cambia día, hora, personas, ubicación o restricciones de una reserva propia.
  * El cupo se re-chequea dentro de una transacción sin contar la propia reserva.
  */
-export async function modificarReservaMesa(id, cambios, contactId, { now = new Date() } = {}) {
+export async function modificarReservaMesa(id, cambios, contactId, { now = new Date(), filtro = null, canal = 'WhatsApp' } = {}) {
   const hoy = ahoraAR(now);
   const db = getDb();
   const cfg = await configReservas();
-  const { ref, col, r } = await buscarPropia(db, id, contactId, hoy);
+  const { ref, col, r } = await buscarPropia(db, id, contactId, hoy, filtro);
   const { nueva, tocados } = aplicarCambios(r, cambios, cfg);
 
   const cambiaLugar = tocados.some(k => ['fecha', 'horario', 'cantidadPersonas'].includes(k));
@@ -149,7 +149,7 @@ export async function modificarReservaMesa(id, cambios, contactId, { now = new D
       const libres = Math.max(0, cfg.personasPorHorario - ocupadas);
       throw err(libres ? `A las ${nueva.horario} quedan ${libres} lugares, no entran ${personasDe(nueva)} personas` : `A las ${nueva.horario} ya no hay lugar`, 409);
     }
-    const comentarios = [r.comentarios, notaCambio(r, hoy)].filter(Boolean).join(' · ').slice(-900);
+    const comentarios = [r.comentarios, notaCambio(r, hoy, canal)].filter(Boolean).join(' · ').slice(-900);
     tx.update(ref, {
       ...Object.fromEntries(tocados.map(k => [k, nueva[k]])),
       comentarios,
@@ -162,10 +162,10 @@ export async function modificarReservaMesa(id, cambios, contactId, { now = new D
 }
 
 /** Cancela una reserva propia: la borra de la agenda y guarda la copia. */
-export async function cancelarReservaMesa(id, contactId, { motivo = '', now = new Date() } = {}) {
+export async function cancelarReservaMesa(id, contactId, { motivo = '', now = new Date(), filtro = null, canal = 'WhatsApp' } = {}) {
   const hoy = ahoraAR(now);
   const db = getDb();
-  const { ref, col, r } = await buscarPropia(db, id, contactId, hoy);
+  const { ref, col, r } = await buscarPropia(db, id, contactId, hoy, filtro);
   const copia = db.collection(colEscritura(COL_CANCELADAS)).doc(ref.id);
   const batch = db.batch();
   batch.set(copia, {
@@ -174,6 +174,7 @@ export async function cancelarReservaMesa(id, contactId, { motivo = '', now = ne
     estado: 'cancelada',
     canceladaAt: new Date().toISOString(),
     canceladaPor: 'bot',
+    canceladaPorCanal: canal.toLowerCase(),
     motivoCancelacion: String(motivo || '').trim().slice(0, 300),
   });
   batch.delete(ref);

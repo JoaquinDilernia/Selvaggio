@@ -2,7 +2,6 @@
 // agenda) y pedidos de take away, comparado con lo que entró por la web.
 // Funciones puras: la ruta (/api/stats/reservas) trae los documentos.
 
-const MARCA_BOT = 'Por WhatsApp (bot)'; // misma marca que reservas.service
 
 const toMs = (v) => {
   if (!v) return null;
@@ -14,7 +13,7 @@ const toMs = (v) => {
 const cancelada = (estado) => /cancel/i.test(String(estado ?? ''));
 
 export function esReservaDelBot(r) {
-  return r.origen === 'bot' || String(r.comentarios ?? '').startsWith(MARCA_BOT);
+  return r.origen === 'bot' || /^\s*Por (WhatsApp|Instagram) \(bot\)/.test(String(r.comentarios ?? ''));
 }
 
 function enRango(doc, startMs, endMs) {

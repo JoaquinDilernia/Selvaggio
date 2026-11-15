@@ -26,7 +26,7 @@ import { getDefaultConfig } from '../routes/config.routes.js';
 import { isWithinBusinessHours, describirHorario } from './horario.js';
 
 export { isWithinBusinessHours };
-import { RESERVAS_TOOLS, reservasPrompt, runReservaTool } from './reservas.tools.js';
+import { toolsParaCanal, reservasPrompt, runReservaTool } from './reservas.tools.js';
 import { configReservas, normalizarConfigReservas } from './reservas.service.js';
 import { documentosTool, documentosPrompt, runDocumentoTool, encolarPdfsAutomaticos } from './documentos.tools.js';
 import { sessionHistory } from './sessionHistory.js';
@@ -88,11 +88,12 @@ async function aplicarEtiquetas(contactId, nombres, labels, yaTiene) {
   if (aplicadas.length) console.log(`[bot] Etiquetas aplicadas a ${contactId}:`, aplicadas);
 }
 
-// Por Instagram el bot no puede crear reservas ni pedidos (el contacto no es
-// un teléfono): que lo sepa de entrada en vez de enterarse por el error de la tool.
+// Por Instagram el contacto no es un teléfono: el bot pide el celular y con
+// eso reserva/pide igual que por WhatsApp (ver toolsParaCanal en reservas.tools).
 const INSTAGRAM_PROMPT = `CANAL: INSTAGRAM (DM).
-- Por acá NO podés crear, cambiar ni cancelar reservas ni pedidos de take away. Sí podés consultar disponibilidad y responder todo lo demás.
-- Para reservar mesa pasá https://selvaggio.com.ar/#/reserva-mesas ; para La Cava https://selvaggio.com.ar/#/reserva-cava ; para take away https://selvaggio.com.ar/#/take-away ; para cambiar o cancelar una reserva, que escriba por WhatsApp.
+- Por acá hacés TODO igual que por WhatsApp: reservas de mesa, eventos y La Cava, pedidos de take away, y ver, cambiar o cancelar reservas. No mandes al cliente a la web ni a WhatsApp para eso.
+- La diferencia: no tenemos su teléfono. Antes de crear, ver, cambiar o cancelar algo, pedile su celular con código de área (una sola vez, junto con los otros datos; si figura "Celular para reservas y pedidos" en el PERFIL DEL CONTACTO, usalo sin pedirlo) y pasalo en telefono. Contale que ahí le llega por WhatsApp la confirmación de la reserva.
+- Para ver, cambiar o cancelar algo que NO hizo por este Instagram (por la web o por WhatsApp), preguntá también a nombre de quién está y pasalo en nombreTitular. Si igual no aparece, derivá al equipo.
 - Por acá NO se pueden mandar PDFs (carta, propuesta de La Cava, Degustación): contá en texto lo que incluye y nunca digas que mandaste o vas a mandar un archivo. Si quiere el PDF, que escriba por WhatsApp.
 - Mensajes cortos y sin formato: Instagram no muestra negritas (nada de asteriscos).`;
 
@@ -384,7 +385,7 @@ async function processIncomingMessageInternal(msg) {
     console.error('[bot] No se pudo leer la config de reservas, uso los valores por defecto:', err.message);
     return normalizarConfigReservas(null);
   });
-  const reservasTools = channel === 'whatsapp' ? RESERVAS_TOOLS : RESERVAS_TOOLS.filter(t => !['crear_reserva_mesa', 'reservar_evento', 'reservar_cava', 'crear_pedido_takeaway', 'mis_pedidos_takeaway', 'guardar_cumpleanos'].includes(t.name));
+  const reservasTools = toolsParaCanal(channel);
   let botReply;
   try {
     botReply = await generateBotResponse(text ?? '', history, {
@@ -394,13 +395,13 @@ async function processIncomingMessageInternal(msg) {
       botConfig,
       imageData,
       areas,
-      // Crear reservas solo por WhatsApp: el contacto ES el teléfono de la
-      // reserva. En otros canales el bot solo puede consultar disponibilidad.
+      // Por WhatsApp el contacto ES el teléfono de la reserva; en otros canales
+      // las tools piden el celular (toolsParaCanal).
       tools: docsEnviables.length ? [...reservasTools, documentosTool(docsEnviables)] : reservasTools,
       runTool: (name, input) => (toolsUsadas.add(name), name === 'enviar_documento')
         ? runDocumentoTool(input, docsEnviables, docsAEnviar)
         : runReservaTool(name, input, { contactId: from, contactName, channel, botConfig, customer }),
-      extraSystem: [reservasPrompt(new Date(), cfgReservas), documentosPrompt(docsEnviables), channel === 'instagram' ? INSTAGRAM_PROMPT : ''].filter(Boolean).join('\n\n'),
+      extraSystem: [reservasPrompt(new Date(), cfgReservas, { channel }), documentosPrompt(docsEnviables), channel === 'instagram' ? INSTAGRAM_PROMPT : ''].filter(Boolean).join('\n\n'),
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);

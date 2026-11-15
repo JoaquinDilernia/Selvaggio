@@ -275,11 +275,12 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
       ...r,
       // El admin de la web no lee "origen": la marca en comentarios es lo que
       // le muestra al equipo que esta reserva la tomó el bot.
-      ...(meta.origen !== 'web' && { comentarios: [MARCA_BOT, r.comentarios].filter(Boolean).join(' · ') }),
+      ...(meta.origen !== 'web' && { comentarios: [marcaBot(meta), r.comentarios].filter(Boolean).join(' · ') }),
       // Igual que la web: la reserva de mesa queda confirmada al instante.
       estado: 'confirmada',
       origen: meta.origen ?? 'bot',
       ...(meta.contactId && { contactId: meta.contactId }),
+      ...camposCanal(meta),
       createdAt: new Date().toISOString(),
     });
   });
@@ -293,6 +294,12 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 }
 
 export const MARCA_BOT = 'Por WhatsApp (bot)';
+export const MARCA_BOT_IG = 'Por Instagram (bot)';
+/** Marca de comentarios según el canal por donde la tomó el bot. */
+export const marcaBot = (meta = {}) => (meta.instagramId ? MARCA_BOT_IG : MARCA_BOT);
+/** Campos que dejan registrado que la reserva/pedido vino por Instagram. */
+export const camposCanal = (meta = {}) => (meta.instagramId ? { canal: 'instagram', instagramId: meta.instagramId } : {});
+const MARCA_RE = /^\s*Por (WhatsApp|Instagram) \(bot\)/;
 
 /**
  * Reserva de lugar para un evento publicado en la agenda (Cerámica y vino,
@@ -334,13 +341,14 @@ export async function crearReservaEvento(datos, meta = {}, { now = new Date() } 
     fecha: ev.fecha,
     horario: ev.horaInicio || '',
     preferencia: '',
-    comentarios: [MARCA_BOT, `Evento: ${ev.titulo}`, ev.esPago === true && String(ev.sena ?? '').trim() ? `SEÑA PENDIENTE ${String(ev.sena).trim()}` : '', limpiar(datos.comentarios)].filter(Boolean).join(' · '),
+    comentarios: [marcaBot(meta), `Evento: ${ev.titulo}`, ev.esPago === true && String(ev.sena ?? '').trim() ? `SEÑA PENDIENTE ${String(ev.sena).trim()}` : '', limpiar(datos.comentarios)].filter(Boolean).join(' · '),
     evento: ev.titulo,
     eventoId: evDoc.id,
     ...(ev.esPago === true && String(ev.sena ?? '').trim() && { senaPendiente: String(ev.sena).trim() }),
     estado: 'confirmada',
     origen: 'bot',
     ...(meta.contactId && { contactId: meta.contactId }),
+    ...camposCanal(meta),
     createdAt: new Date().toISOString(),
   };
   await ref.set(reserva);
@@ -361,18 +369,19 @@ export async function listarReservasMesas({ desde, hasta } = {}) {
     .map(d => {
       const r = d.data();
       const comentarios = String(r.comentarios || '');
-      const porBot = r.origen === 'bot' || comentarios.startsWith(MARCA_BOT);
+      const porBot = r.origen === 'bot' || MARCA_RE.test(comentarios);
       return {
         id: d.id,
         fecha: r.fecha, horario: r.horario,
         nombre: r.nombre, apellido: r.apellido, telefono: r.telefono, email: r.email,
         cantidadPersonas: r.cantidadPersonas, preferencia: r.preferencia,
         restricciones: r.restricciones,
-        comentarios: porBot ? comentarios.replace(MARCA_BOT, '').replace(/^\s*·\s*/, '') : comentarios,
+        comentarios: porBot ? comentarios.replace(MARCA_RE, '').replace(/^\s*·\s*/, '') : comentarios,
         estado: r.estado, archivada: !!r.archivada,
         evento: r.evento ?? null,
         origen: porBot ? 'bot' : 'web',
         contactId: r.contactId ?? null,
+        canal: r.canal ?? (porBot ? 'whatsapp' : 'web'),
         createdAt: r.createdAt ?? null,
         confirmacion: r.confirmacionWhatsapp
           ? { estado: r.confirmacionWhatsapp.estado, respuesta: r.confirmacionWhatsapp.respuesta ?? null, error: r.confirmacionWhatsapp.error ?? null }
@@ -508,7 +517,7 @@ export async function crearReservaCavaBot(datos, meta = {}, { now = new Date() }
     if (activas.length) throw Object.assign(new Error('Ese día La Cava ya está reservada. Ofrecé otra fecha (consultar_fechas_cava).'), { status: 409 });
     tx.set(ref, {
       ...r, comentarios, estado: 'confirmada', seña: cfg.cavaSena, senaPendiente: true,
-      origen: 'bot', ...(meta.contactId && { contactId: meta.contactId }),
+      origen: 'bot', ...(meta.contactId && { contactId: meta.contactId }), ...camposCanal(meta),
       createdAt: new Date().toISOString(),
     });
   });

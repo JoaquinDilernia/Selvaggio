@@ -207,7 +207,7 @@ export async function previewCupon({ codigo, email, items, metodoPago }, { now =
  * Un pedido del bot fuera de BOT_MODE=live va al sandbox: no aparece en
  * Admin/Cocina, no suma usos a cupones reales y no toca selvaggio_clientes.
  */
-export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'web', contactId = null } = {}) {
+export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'web', contactId = null, instagramId = null } = {}) {
   const db = getDb();
   const sandbox = origen === 'bot' && !isLive();
   const catalogo = await cargarCatalogo(db);
@@ -264,7 +264,7 @@ export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'we
     tx.set(pedidoRef, {
       ...d, ...envio, items, ...totales,
       cuponCodigo: cupon ? (cupon.codigo ?? cupon.id) : '', cuponId: cupon ? cupon.id : '',
-      estado: 'pendiente', origen, ...(contactId && { contactId }), numeroPedido, createdAt: new Date(),
+      estado: 'pendiente', origen, ...(contactId && { contactId }), ...(instagramId && { canal: 'instagram', instagramId }), numeroPedido, createdAt: new Date(),
     });
 
     if (cupon && !sandbox) {
@@ -365,12 +365,13 @@ export async function cotizarPedido({ items, metodoPago, cuponCodigo, email }, {
 }
 
 /** Últimos pedidos de un contacto de WhatsApp (por teléfono normalizado). */
-export async function pedidosDelContacto(contactId, { limit = 3 } = {}) {
+export async function pedidosDelContacto(contactId, { limit = 3, filtro = null } = {}) {
   const db = getDb();
   const cols = [COL.pedidos, ...(isLive() ? [] : [COL.sandboxPedidos])];
   const snaps = await Promise.all(cols.map(c => db.collection(c).orderBy('createdAt', 'desc').limit(60).get()));
   return snaps.flatMap(s => s.docs.map(d => d.data()))
     .filter(p => p.contactId === contactId || toWaContactId(p.telefono) === contactId)
+    .filter(p => !filtro || filtro(p))
     .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
     .slice(0, limit)
     .map(p => ({ numeroPedido: p.numeroPedido, estado: p.estado, total: p.total, fechaRetiro: p.fechaRetiro, horaRetiro: p.horaRetiro, metodoEnvio: p.metodoEnvio }));

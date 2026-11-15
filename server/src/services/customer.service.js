@@ -56,12 +56,19 @@ export async function updateCustomerNotes(contactId, agentNotes) {
   });
 }
 
+/** Celular que dio un contacto de Instagram para reservas/pedidos (se reusa en la próxima). */
+export async function guardarTelefonoContacto(contactId, telefono) {
+  await getDb().collection(COLLECTION).doc(contactId).set({ telefonoWhatsapp: telefono, updatedAt: new Date() }, { merge: true });
+  invalidateCustomersCache();
+}
+
 export function buildCustomerContext(customer) {
   if (!customer) return null;
 
   const lines = [];
   if (customer.contactName) lines.push(`Nombre: ${customer.contactName}`);
   lines.push(`Canal: ${customer.channel}`);
+  if (customer.channel !== 'whatsapp' && customer.telefonoWhatsapp) lines.push(`Celular para reservas y pedidos: +${customer.telefonoWhatsapp} (ya lo dio: NO lo vuelvas a pedir; usalo salvo que diga otro)`);
   if (customer.firstContactAt) lines.push(`Primera consulta: ${formatDate(customer.firstContactAt)}`);
 
   const lc = customer.landingClient;

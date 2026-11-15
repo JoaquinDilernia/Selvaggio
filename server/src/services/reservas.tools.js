@@ -6,9 +6,15 @@ import { describirHorario } from './horario.js';
 import { guardarCumple } from './cumpleanos.service.js';
 import { reservasDelContacto, modificarReservaMesa, cancelarReservaMesa } from './reservasCambios.service.js';
 import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
+import { toWaContactId } from './phone.js';
+import { guardarTelefonoContacto } from './customer.service.js';
 
-// Tools que Claude puede llamar durante una conversación. El teléfono de la
-// reserva sale del contacto (no se le pide al cliente ni se acepta del modelo).
+// Tools que Claude puede llamar durante una conversación. Por WhatsApp el
+// teléfono de la reserva sale del contacto (no se le pide al cliente ni se
+// acepta del modelo). Por Instagram no hay teléfono: el bot se lo pide al
+// cliente y lo pasa en `telefono` (ver toolsParaCanal), y la reserva queda a
+// nombre de ese número igual que si hubiera escrito por WhatsApp (le llega la
+// confirmación de las 18 h, la ve con mis_reservas desde WhatsApp, etc.).
 
 export const RESERVAS_TOOLS = [
   {
@@ -256,11 +262,101 @@ export const RESERVAS_TOOLS = [
   },
 ];
 
+// Tools que en Instagram necesitan el celular del cliente (crean algo a su nombre).
+const TOOLS_CREAN = ['crear_reserva_mesa', 'reservar_evento', 'reservar_cava', 'crear_pedido_takeaway'];
+// Tools que en Instagram buscan cosas ya hechas: celular + a nombre de quién está.
+const TOOLS_BUSCAN = ['mis_reservas', 'modificar_reserva', 'cancelar_reserva', 'mis_pedidos_takeaway'];
+
+const PROP_TELEFONO = {
+  type: 'string',
+  description: 'Celular del cliente con código de área, tal como lo dio (ej. 11 2345-6789). Por Instagram es obligatorio: pedíselo si no figura en el PERFIL DEL CONTACTO.',
+};
+const PROP_NOMBRE_TITULAR = {
+  type: 'string',
+  description: 'A nombre de quién está la reserva/pedido (lo dice el cliente). Hace falta si no la hizo por este Instagram.',
+};
+
+/** Tools según el canal: por Instagram suman `telefono` (y `nombreTitular` para buscar). */
+export function toolsParaCanal(channel) {
+  if (channel === 'whatsapp') return RESERVAS_TOOLS;
+  return RESERVAS_TOOLS.map((t) => {
+    const crea = TOOLS_CREAN.includes(t.name);
+    const busca = TOOLS_BUSCAN.includes(t.name);
+    if (!crea && !busca) return t;
+    return {
+      ...t,
+      description: `${t.description} Por Instagram: pasá el celular del cliente en telefono${busca ? ' y, si no la hizo por este Instagram, a nombre de quién está en nombreTitular' : ''}.`,
+      input_schema: {
+        ...t.input_schema,
+        properties: {
+          ...t.input_schema.properties,
+          telefono: PROP_TELEFONO,
+          ...(busca && { nombreTitular: PROP_NOMBRE_TITULAR }),
+        },
+      },
+    };
+  });
+}
+
+/** Celular → id de WhatsApp (549…); null si no parece un celular. */
+export function telefonoValido(raw) {
+  const id = toWaContactId(raw);
+  if (!id) return null;
+  if (id.startsWith('54')) return /^549\d{10}$/.test(id) ? id : null;
+  return /^\d{8,15}$/.test(id) ? id : null; // del exterior: se acepta tal cual
+}
+
+const sinAcentos = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** El nombre que dice el cliente coincide (alguna palabra de 3+ letras) con el titular. */
+export function mismoTitular(dicho, r) {
+  const titular = new Set(sinAcentos(`${r.nombre ?? ''} ${r.apellido ?? ''}`).split(/[^a-zñ]+/).filter(w => w.length >= 3));
+  return sinAcentos(dicho).split(/[^a-zñ]+/).some(w => w.length >= 3 && titular.has(w));
+}
+
+/**
+ * Teléfono (id de WhatsApp) a cuyo nombre se crea o se busca. Por WhatsApp es
+ * el del chat; por Instagram, el que dio el cliente (y se guarda en su ficha
+ * para no volver a pedirlo).
+ */
+async function telefonoDeLaConversacion(input, ctx) {
+  if (ctx.channel === 'whatsapp') return { tel: ctx.contactId };
+  const guardado = ctx.customer?.telefonoWhatsapp || null;
+  if (!input.telefono && !guardado) {
+    return { error: 'Falta el celular del cliente. Pedíselo (con código de área) explicándole que es para dejar la reserva/pedido a su nombre y que ahí le llega la confirmación por WhatsApp; después volvé a llamar la herramienta con telefono.' };
+  }
+  const tel = telefonoValido(input.telefono || guardado);
+  if (!tel) return { error: 'Ese número no parece un celular válido. Pedile el celular con código de área (ej. 11 2345-6789).' };
+  if (tel !== guardado) {
+    await guardarTelefonoContacto(ctx.contactId, tel).catch(e => console.error('[reservas-tool] no se pudo guardar el celular de IG:', e.message));
+    if (ctx.customer) ctx.customer.telefonoWhatsapp = tel;
+  }
+  return { tel };
+}
+
+/**
+ * Por Instagram cualquiera puede escribir un número: para ver/cambiar/cancelar
+ * solo vale lo que se hizo desde ese mismo Instagram o, si se hizo por otro
+ * lado, cuando el nombre del titular coincide.
+ */
+function filtroInstagram(input, ctx) {
+  if (ctx.channel === 'whatsapp') return null;
+  const dicho = input.nombreTitular || '';
+  return (r) => r.instagramId === ctx.contactId || (dicho && mismoTitular(dicho, r));
+}
+
+const metaCanal = (ctx) => (ctx.channel === 'instagram' ? { instagramId: ctx.contactId } : {});
+const nombreCanal = (ctx) => (ctx.channel === 'instagram' ? 'Instagram' : 'WhatsApp');
+
 /**
  * Texto para el system prompt: reglas fijas + la fecha de hoy.
  * @param {object} cfg  configReservas() (capacidad, mínimo/máximo, precio y seña de La Cava)
+ * @param {{ channel?: string }} opts  por Instagram el teléfono se pide (no lo tenemos)
  */
-export function reservasPrompt(now = new Date(), cfg = normalizarConfigReservas(null)) {
+export function reservasPrompt(now = new Date(), cfg = normalizarConfigReservas(null), { channel = 'whatsapp' } = {}) {
+  const telefonoTexto = channel === 'whatsapp'
+    ? 'El teléfono ya lo tenemos: no lo pidas.'
+    : 'Pedí también su celular con código de área (por Instagram no lo tenemos; si figura en el PERFIL DEL CONTACTO, usalo sin volver a pedirlo).';
   const hoy = ahoraAR(now);
   const dia = new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'long' }).format(now);
   return `--- RESERVAS ---
@@ -280,7 +376,7 @@ CUMPLEAÑOS: si en el PERFIL DEL CONTACTO dice "Cumpleaños: NO LO TENEMOS", ped
 MESAS (hasta ${cfg.mesaMaximo} personas por mesa):
 - Si son más de ${cfg.mesaMaximo}, no se puede reservar mesa: ${cfg.cavaMinimo <= cfg.mesaMaximo + 1 ? 'ofrecé La Cava' : `desde ${cfg.cavaMinimo} ofrecé La Cava; entre ${cfg.mesaMaximo + 1} y ${cfg.cavaMinimo - 1} derivá al equipo`}.
 - Antes de ofrecer horarios usá consultar_disponibilidad_mesas (con la cantidad de personas si ya la sabés). Ofrecé solo horarios con disponible=true.
-- Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. El teléfono ya lo tenemos: no lo pidas.
+- Datos necesarios: nombre, cantidad de personas, fecha, horario y preferencia de ubicación (${PREFERENCIAS.join(' o ')}). Preguntá también por alergias/restricciones. El email es opcional. ${telefonoTexto}
 - Antes de crear la reserva, resumí los datos y pedí confirmación. Recién con el "sí" llamá a crear_reserva_mesa.
 - La reserva queda CONFIRMADA al crearla (igual que en la web): decíselo con el resumen (día, hora, personas, ubicación).
 
@@ -302,7 +398,7 @@ LA CAVA (eventos privados, desde ${cfg.cavaMinimo}${cfg.cavaMaximo ? ` hasta ${c
 TAKE AWAY (picadas para llevar o con envío):
 - Usá ver_menu_takeaway para conocer picadas, opciones y precios: nunca inventes productos ni precios. Si una picada tiene secciones obligatorias, preguntá qué elige en cada una (respetando "elegirHasta").
 - Para el retiro usá horarios_retiro_takeaway. Envío gratis solo a las localidades de envioGratisA (pedí dirección).
-- Antes de confirmar, usá cotizar_pedido_takeaway y mostrá el resumen con el total (efectivo tiene 10% de descuento). Recién con el "sí" llamá a crear_pedido_takeaway. El teléfono ya lo tenemos.
+- Antes de confirmar, usá cotizar_pedido_takeaway y mostrá el resumen con el total (efectivo tiene 10% de descuento). Recién con el "sí" llamá a crear_pedido_takeaway. ${telefonoTexto}
 - Al crear, pasale al cliente el número de pedido (TW-XXXXXX). El pago es al retirar/recibir.
 - Si preguntan cómo va su pedido, usá mis_pedidos_takeaway.`;
 }
@@ -317,9 +413,15 @@ const YA_EXISTIA = 'Esta persona ya tenía esta reserva: NO se creó otra. No la
 export async function runReservaTool(name, input, ctx) {
   try {
     switch (name) {
-      case 'guardar_cumpleanos':
-        if (ctx.channel !== 'whatsapp') return { error: 'Solo se guarda desde WhatsApp' };
-        return await guardarCumple(ctx.contactId, { fecha: input.fecha, noQuiere: input.noQuiere === true, landingClient: ctx.customer?.landingClient });
+      case 'guardar_cumpleanos': {
+        const datos = { fecha: input.fecha, noQuiere: input.noQuiere === true, landingClient: ctx.customer?.landingClient };
+        const res = await guardarCumple(ctx.contactId, datos);
+        // Por Instagram también en la ficha del celular que dio: el saludo de
+        // cumpleaños sale por WhatsApp a ese número.
+        const tel = ctx.channel !== 'whatsapp' && ctx.customer?.telefonoWhatsapp;
+        if (tel && !res.error) await guardarCumple(tel, { ...datos, landingClient: null }).catch(e => console.error('[reservas-tool] cumple en ficha WA:', e.message));
+        return res;
+      }
 
       case 'consultar_agenda':
         return await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
@@ -328,10 +430,12 @@ export async function runReservaTool(name, input, ctx) {
         return await disponibilidadMesas(input.fecha, { incluirSandbox: true, personas: input.personas });
 
       case 'crear_reserva_mesa': {
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden crear reservas; pasale el link https://selvaggio.com.ar/#/reserva-mesas' };
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        const { telefono: _t, ...datos } = input;
         const reserva = await crearReservaMesa(
-          { ...input, telefono: ctx.contactId },
-          { origen: 'bot', contactId: ctx.contactId },
+          { ...datos, telefono: tel },
+          { origen: 'bot', contactId: tel, ...metaCanal(ctx) },
         );
         return {
           ok: true, estado: reserva.estado, fecha: reserva.fecha, horario: reserva.horario, cantidadPersonas: reserva.cantidadPersonas,
@@ -339,23 +443,34 @@ export async function runReservaTool(name, input, ctx) {
         };
       }
 
-      case 'mis_reservas':
-        if (ctx.channel !== 'whatsapp') return { error: 'Solo desde WhatsApp' };
-        return { reservas: await reservasDelContacto(ctx.contactId) };
-
-      case 'modificar_reserva': {
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden cambiar reservas; que escriba por WhatsApp' };
-        const { id, ...cambios } = input;
-        return await modificarReservaMesa(id, cambios, ctx.contactId);
+      case 'mis_reservas': {
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        const reservas = await reservasDelContacto(tel, { filtro: filtroInstagram(input, ctx) });
+        if (!reservas.length && ctx.channel !== 'whatsapp' && !input.nombreTitular) {
+          return { reservas, aviso: 'Por Instagram solo se ven las reservas hechas desde este Instagram. Si la hizo por otro lado, preguntale a nombre de quién está y volvé a llamar con nombreTitular.' };
+        }
+        return { reservas };
       }
 
-      case 'cancelar_reserva':
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden cancelar reservas; que escriba por WhatsApp' };
-        return await cancelarReservaMesa(input.id, ctx.contactId, { motivo: input.motivo });
+      case 'modificar_reserva': {
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        const { id, telefono: _t, nombreTitular: _n, ...cambios } = input;
+        return await modificarReservaMesa(id, cambios, tel, { filtro: filtroInstagram(input, ctx), canal: nombreCanal(ctx) });
+      }
+
+      case 'cancelar_reserva': {
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        return await cancelarReservaMesa(input.id, tel, { motivo: input.motivo, filtro: filtroInstagram(input, ctx), canal: nombreCanal(ctx) });
+      }
 
       case 'reservar_evento': {
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp' };
-        const r = await crearReservaEvento({ ...input, telefono: ctx.contactId }, { contactId: ctx.contactId });
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        const { telefono: _t, ...datos } = input;
+        const r = await crearReservaEvento({ ...datos, telefono: tel }, { contactId: tel, ...metaCanal(ctx) });
         return {
           ok: true, estado: r.estado, evento: r.evento, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas,
           ...(r.yaExistia && { aviso: YA_EXISTIA }),
@@ -370,8 +485,10 @@ export async function runReservaTool(name, input, ctx) {
       }
 
       case 'reservar_cava': {
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden tomar reservas; que escriba por WhatsApp o reserve en https://selvaggio.com.ar/#/reserva-cava' };
-        const r = await crearReservaCavaBot({ ...input, telefono: ctx.contactId }, { contactId: ctx.contactId });
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        const { telefono: _t, ...datos } = input;
+        const r = await crearReservaCavaBot({ ...datos, telefono: tel }, { contactId: tel, ...metaCanal(ctx) });
         return {
           ok: true, estado: r.estado, fecha: r.fecha, horario: r.horario, cantidadPersonas: r.cantidadPersonas,
           ...(r.yaExistia ? { aviso: 'Esta persona ya tenía La Cava reservada ese día: NO se creó otra. No la anuncies como nueva; si quiere cambiar algo, derivá al equipo.' } : { senaPendiente: r.sena, precioPorPersona: r.precioPersona }),
@@ -388,22 +505,27 @@ export async function runReservaTool(name, input, ctx) {
         return await cotizarPedido({ ...input, email: input.email });
 
       case 'crear_pedido_takeaway': {
-        if (ctx.channel !== 'whatsapp') return { error: 'Por este canal no se pueden crear pedidos; pasale el link https://selvaggio.com.ar/#/take-away' };
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
         let cuponId = '';
         if (input.cuponCodigo) {
           const c = await cotizarPedido({ items: input.items, metodoPago: input.metodoPago, cuponCodigo: input.cuponCodigo, email: input.email });
           if (c.avisoCupon) return { error: c.avisoCupon };
           cuponId = c.cuponId;
         }
+        const { telefono: _t, ...datos } = input;
         const p = await crearPedidoTakeaway(
-          { ...input, telefono: ctx.contactId, cuponId },
-          { origen: 'bot', contactId: ctx.contactId },
+          { ...datos, telefono: tel, cuponId },
+          { origen: 'bot', contactId: tel, ...metaCanal(ctx) },
         );
         return { ok: true, numeroPedido: p.numeroPedido, total: p.total, estado: 'pendiente' };
       }
 
-      case 'mis_pedidos_takeaway':
-        return { pedidos: await pedidosDelContacto(ctx.contactId) };
+      case 'mis_pedidos_takeaway': {
+        const { tel, error } = await telefonoDeLaConversacion(input, ctx);
+        if (error) return { error };
+        return { pedidos: await pedidosDelContacto(tel, { filtro: filtroInstagram(input, ctx) }) };
+      }
 
       default:
         return { error: `Tool desconocida: ${name}` };
