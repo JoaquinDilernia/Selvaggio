@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { pesos } from '../api.js';
-import { vinoPara } from './vino.js';
+import { cepasPara, esSeccionVino, opcionDeCepa } from './vino.js';
+import { MARIDAJES } from '../data/maridajes.js';
 
 /** Modal para elegir las opciones de una picada (secciones del catálogo). */
 export default function ArmarPicada({ picada, inicial, onCerrar, onAgregar }) {
@@ -30,7 +31,17 @@ export default function ArmarPicada({ picada, inicial, onCerrar, onAgregar }) {
 
   const faltan = picada.secciones.filter((s) => !s.opcional && s.opciones.length && sel[s.id].length === 0);
   const nombresElegidos = useMemo(() => picada.secciones.flatMap((s) => s.opciones.filter((o) => sel[s.id].includes(o.id)).map((o) => o.nombre)), [picada, sel]);
-  const vino = vinoPara(nombresElegidos);
+  // Vino: si la picada trae sección "Vino", se recomienda una de sus opciones
+  // según lo que lleva (descripción + lo elegido); si no, solo la cepa.
+  const secVino = picada.secciones.find(esSeccionVino) ?? null;
+  const comida = [picada.nombre, picada.descripcion, ...picada.secciones.filter((s) => s !== secVino)
+    .flatMap((s) => s.opciones.filter((o) => sel[s.id].includes(o.id)).map((o) => o.nombre))].join(' ');
+  // La mejor cepa que esté en la carta de la picada (si ninguna está, la mejor en general).
+  const ranking = cepasPara(comida);
+  const conOpcion = secVino ? ranking.map((c) => ({ c, o: opcionDeCepa(secVino, c) })).find((x) => x.o) : null;
+  const cepa = conOpcion?.c ?? ranking[0] ?? MARIDAJES[0];
+  const recomendada = conOpcion?.o ?? null;
+  const vinoElegido = secVino ? secVino.opciones.find((o) => sel[secVino.id].includes(o.id)) : null;
 
   return (
     <div className="tw2-modal" role="dialog" aria-modal="true" aria-label={`Armá tu ${picada.nombre}`} onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
@@ -58,6 +69,7 @@ export default function ArmarPicada({ picada, inicial, onCerrar, onAgregar }) {
                   return (
                     <button key={o.id} type="button" className="tw2-chip" aria-pressed={on} disabled={lleno} onClick={() => tocar(sec, o.id)}>
                       {o.nombre}
+                      {recomendada?.id === o.id && <small className="tw2-chip__nota">Recomendado</small>}
                     </button>
                   );
                 })}
@@ -71,9 +83,22 @@ export default function ArmarPicada({ picada, inicial, onCerrar, onAgregar }) {
           <span className="tw2-script">Tu picada</span>
           <p className="tw2-side__list" aria-live="polite">{nombresElegidos.length ? nombresElegidos.join('\n') : 'Todavía no elegiste nada.'}</p>
           <div className="tw2-side__vino">
-            <p className="tw2-kicker tw2-kicker--soft">Te recomendamos</p>
-            <p className="tw2-side__cepa">{vino ? vino.n : 'Malbec'}</p>
-            <p className="tw2-side__why">{vino ? `${vino.d} ${vino.tip}` : 'Elegí algunos productos y te decimos qué vino va mejor.'}</p>
+            {vinoElegido ? (
+              <>
+                <p className="tw2-kicker tw2-kicker--soft">Tu vino</p>
+                <p className="tw2-side__cepa">{vinoElegido.nombre}</p>
+                {recomendada && recomendada.id !== vinoElegido.id && <p className="tw2-side__why">Para esta picada te sugerimos {recomendada.nombre}.</p>}
+              </>
+            ) : (
+              <>
+                <p className="tw2-kicker tw2-kicker--soft">Te recomendamos</p>
+                <p className="tw2-side__cepa">{recomendada ? recomendada.nombre : cepa.n}</p>
+                <p className="tw2-side__why">{cepa.d} {cepa.tip}</p>
+                {recomendada && (
+                  <button type="button" className="tw2-btn tw2-btn--line tw2-btn--claro" onClick={() => tocar(secVino, recomendada.id)}>Elegir este vino</button>
+                )}
+              </>
+            )}
           </div>
           <div className="tw2-cant">
             <span>Cantidad</span>
@@ -87,7 +112,7 @@ export default function ArmarPicada({ picada, inicial, onCerrar, onAgregar }) {
             type="button"
             className="tw2-btn tw2-btn--cream tw2-btn--full"
             disabled={faltan.length > 0}
-            onClick={() => onAgregar({ picadaId: picada.id, selecciones: sel, cantidad, vino: vino?.n ?? null })}
+            onClick={() => onAgregar({ picadaId: picada.id, selecciones: sel, cantidad, vino: secVino ? null : cepa.n })}
           >
             {inicial ? 'Guardar cambios' : 'Agregar al pedido'} · {pesos(picada.precio * cantidad)}
           </button>

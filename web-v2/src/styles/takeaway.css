@@ -197,3 +197,7 @@ span.tw2-paso { cursor: default; }
 .tw2-estados span { display: block; font-size: 14px; color: var(--mute); }
 
 .tw2-layout--uno { grid-template-columns: minmax(0, 760px); justify-content: center; }
+
+.tw2-btn--claro { margin-top: 12px; min-height: 40px; border-color: rgba(237,233,226,.5); color: #EDE9E2; }
+.tw2-btn--claro:hover { background: #EDE9E2 !important; color: var(--bordo) !important; }
+.tw2-card__desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

@@ -19,7 +19,7 @@ html { scroll-behavior: smooth; }
 * { box-sizing: border-box; }
 
 .v2-prueba {
-  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 200;
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 90;
   padding: 8px 16px; background: var(--terra); color: #fff; border-radius: 999px;
   font-family: var(--jost); font-weight: 500; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
   box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: none; white-space: nowrap;
