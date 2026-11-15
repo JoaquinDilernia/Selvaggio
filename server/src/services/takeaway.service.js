@@ -21,7 +21,10 @@ const COL = {
   cupones: 'selvaggio_cupones',
   config: 'selvaggio_configuracion',
   sandboxPedidos: 'bot-selvaggio_takeaway_sandbox',
+  // Pedidos de la web v2 mientras está en prueba (no los ve Cocina).
+  pruebaV2Pedidos: 'bot-selvaggio_v2_takeaway_prueba',
 };
+export const COL_PRUEBA_V2 = COL.pruebaV2Pedidos;
 
 export const METODOS_PAGO = ['efectivo', 'transferencia', 'tarjeta'];
 export const DESCUENTO_EFECTIVO = 0.10;
@@ -207,9 +210,10 @@ export async function previewCupon({ codigo, email, items, metodoPago }, { now =
  * Un pedido del bot fuera de BOT_MODE=live va al sandbox: no aparece en
  * Admin/Cocina, no suma usos a cupones reales y no toca selvaggio_clientes.
  */
-export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'web', contactId = null, instagramId = null } = {}) {
+export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'web', contactId = null, instagramId = null, pruebaV2 = false } = {}) {
   const db = getDb();
-  const sandbox = origen === 'bot' && !isLive();
+  // pruebaV2: la web v2 en prueba → colección aparte, sin cupones ni clientes reales.
+  const sandbox = pruebaV2 || (origen === 'bot' && !isLive());
   const catalogo = await cargarCatalogo(db);
   if (catalogo.config.activo === false) throw err(409, 'El take away no está tomando pedidos en este momento');
 
@@ -243,7 +247,7 @@ export async function crearPedidoTakeaway(body, { now = new Date(), origen = 'we
   const subtotal = items.reduce((a, i) => a + i.subtotal, 0);
   const cuponId = limpiar(body.cuponId, 40).toUpperCase() || null;
 
-  const pedidoRef = db.collection(sandbox ? COL.sandboxPedidos : colEscritura(COL.pedidos)).doc();
+  const pedidoRef = db.collection(pruebaV2 ? COL.pruebaV2Pedidos : sandbox ? COL.sandboxPedidos : colEscritura(COL.pedidos)).doc();
   const numeroPedido = 'TW-' + pedidoRef.id.slice(-6).toUpperCase();
   let totales;
 
@@ -302,6 +306,33 @@ async function upsertClientePedido(db, d) {
       tx.set(ref, { nombre, email: d.email, telefono: d.telefono || '', totalReservas: 0, totalPedidos: 1, ultimoPedido: ahora, creado: ahora });
     }
   });
+}
+
+// ── Para la web v2 ───────────────────────────────────────────────────────
+
+/** Catálogo público para la web: picadas con secciones/opciones, adicionales y reglas de retiro/envío. */
+export async function catalogoPublico() {
+  const { picadas, ingredientes, adicionales, config } = await cargarCatalogo(getDb());
+  const orden = (a, b) => (a.orden || 0) - (b.orden || 0);
+  return {
+    activo: config.activo !== false,
+    diasAbiertos: config.diasAbiertos || [],
+    horarioDesde: config.horarioDesde ?? null,
+    horarioHasta: config.horarioHasta ?? null,
+    zonasEnvio: config.zonasEnvio || [],
+    descuentoEfectivo: DESCUENTO_EFECTIVO,
+    metodosPago: METODOS_PAGO,
+    picadas: [...picadas.values()].filter(p => p.disponible !== false).sort(orden).map(p => ({
+      id: p.id, nombre: p.nombre, precio: p.precio, descripcion: p.descripcion || '', imagen: p.imagen || null,
+      secciones: (p.secciones || []).map(s => ({
+        id: s.id, nombre: s.nombre, limite: s.limite ?? null, opcional: !!s.opcional,
+        opciones: (s.ingredienteIds || []).filter(id => ingredientes.has(id) && ingredientes.get(id).disponible !== false)
+          .map(id => ({ id, nombre: ingredientes.get(id).nombre })),
+      })),
+    })),
+    adicionales: [...adicionales.values()].filter(a => a.disponible !== false).sort(orden)
+      .map(a => ({ id: a.id, nombre: a.nombre, precio: a.precio, descripcion: a.descripcion || '', imagen: a.imagen || null })),
+  };
 }
 
 // ── Para el bot ──────────────────────────────────────────────────────────

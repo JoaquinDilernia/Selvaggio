@@ -57,6 +57,7 @@ iniciarConfirmacionReservas();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000', // landing en dev (login de admin/caja/cocina)
+  'http://localhost:5174', 'https://v2.selvaggio.com.ar', // web v2 (dev y prueba)
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : []),
 ].filter(Boolean);
 

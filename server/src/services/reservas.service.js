@@ -532,11 +532,11 @@ export async function crearReservaCavaBot(datos, meta = {}, { now = new Date() }
  * teléfono (el número TW-XXXXXX solo no alcanza: es adivinable). Devuelve
  * únicamente lo que necesita la pantalla de seguimiento.
  */
-export async function seguimientoTakeaway(numeroPedido, ultimos4) {
+export async function seguimientoTakeaway(numeroPedido, ultimos4, { coleccion = 'selvaggio_takeaway_pedidos' } = {}) {
   const numero = String(numeroPedido ?? '').trim().toUpperCase();
   const tel4 = String(ultimos4 ?? '').replace(/\D/g, '');
   if (!numero || tel4.length !== 4) throw Object.assign(new Error('Número de pedido y últimos 4 del teléfono requeridos'), { status: 400 });
-  const snap = await getDb().collection('selvaggio_takeaway_pedidos').where('numeroPedido', '==', numero).limit(5).get();
+  const snap = await getDb().collection(coleccion).where('numeroPedido', '==', numero).limit(5).get();
   const doc = snap.docs.find(d => String(d.data().telefono ?? '').replace(/\D/g, '').endsWith(tel4));
   if (!doc) return null;
   const p = doc.data();

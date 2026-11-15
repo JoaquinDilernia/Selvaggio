@@ -4,7 +4,7 @@ import admin from 'firebase-admin';
 import {
   disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava, listarReservasMesas,
 } from '../services/reservas.service.js';
-import { previewCupon, crearPedidoTakeaway, listarPedidosBot } from '../services/takeaway.service.js';
+import { previewCupon, crearPedidoTakeaway, listarPedidosBot, catalogoPublico, horariosRetiro, cotizarPedido, COL_PRUEBA_V2 } from '../services/takeaway.service.js';
 import { subirArchivo } from '../services/storage.service.js';
 
 // Comprobantes: imagen (ya comprimida en el navegador) o PDF, hasta 10 MB.
@@ -44,6 +44,12 @@ function altaRateLimit(req, res, next) {
   next();
 }
 
+// La web v2 se identifica con este header. Mientras WEB_V2_REAL no sea "1",
+// lo que se carga desde ahí va a colecciones de prueba (Cocina no lo ve).
+export function esV2EnPrueba(req) {
+  return req.get('x-selvaggio-web') === 'v2' && process.env.WEB_V2_REAL !== '1';
+}
+
 function handle(fn) {
   return async (req, res) => {
     try { res.json(await fn(req)); }
@@ -80,9 +86,12 @@ publicReservasRouter.post('/reservas/cava', altaRateLimit, uploadComprobante.sin
 // El navegador manda solo qué eligió (ids y cantidades); precios, descuentos
 // y cupón se calculan acá con el catálogo.
 publicReservasRouter.post('/takeaway/cupon', handle(req => previewCupon(req.body ?? {})));
-publicReservasRouter.post('/takeaway/pedidos', altaRateLimit, handle(req => crearPedidoTakeaway(req.body ?? {})));
+publicReservasRouter.get('/takeaway/catalogo', handle(() => catalogoPublico()));
+publicReservasRouter.get('/takeaway/horarios', handle(req => horariosRetiro(req.query.fecha)));
+publicReservasRouter.post('/takeaway/cotizar', handle(req => cotizarPedido(req.body ?? {})));
+publicReservasRouter.post('/takeaway/pedidos', altaRateLimit, handle(req => crearPedidoTakeaway(req.body ?? {}, { pruebaV2: esV2EnPrueba(req) })));
 publicReservasRouter.get('/takeaway/seguimiento', handle(async req => {
-  const pedido = await seguimientoTakeaway(req.query.numero, req.query.tel);
+  const pedido = await seguimientoTakeaway(req.query.numero, req.query.tel, esV2EnPrueba(req) ? { coleccion: COL_PRUEBA_V2 } : {});
   if (!pedido) throw Object.assign(new Error('No encontramos un pedido con esos datos'), { status: 404 });
   return { pedido };
 }));
