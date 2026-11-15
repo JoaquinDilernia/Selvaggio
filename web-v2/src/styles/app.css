@@ -1,0 +1,30 @@
+/* Paleta y tipografías del diseño (LEEME): bordó, crema, negro, terracota. */
+:root {
+  --bordo: #440A33;
+  --bordo-osc: #1E0717;
+  --crema: #EFECE2;
+  --crema-2: #F4EFE6;
+  --negro: #151113;
+  --terra: #B5654E;
+  --rosa: #E2B8A6;
+  --texto: #3A2A33;
+  --mute: #6B5A63;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --script: 'Pinyon Script', cursive;
+  --lora: Lora, Georgia, serif;
+  --jost: Jost, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+* { box-sizing: border-box; }
+
+.v2-prueba {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 200;
+  padding: 8px 16px; background: var(--terra); color: #fff; border-radius: 999px;
+  font-family: var(--jost); font-weight: 500; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25); pointer-events: none; white-space: nowrap;
+}
+@media (max-width: 700px) { .v2-prueba { bottom: auto; top: 8px; font-size: 10px; } }
+
+/* En desktop el aviso de prueba va arriba a la derecha, debajo de la barra, para no tapar precios ni botones. */
+@media (min-width: 701px) { .v2-prueba { left: auto; right: 16px; top: 74px; bottom: auto; transform: none; font-size: 10px; } }

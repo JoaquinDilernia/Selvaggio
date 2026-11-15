@@ -1,0 +1,65 @@
+SELVAGGIO · PROPUESTA DE WEB NUEVA
+==================================
+
+QUÉ HAY EN ESTA CARPETA
+- index.html → la web completa (diseño, textos y animaciones en un solo archivo).
+- assets/     → fotos, logos, ilustraciones y el video del banner.
+- LEEME.txt   → este archivo.
+
+CÓMO VERLA
+Descomprimí la carpeta y abrí index.html con doble clic (Chrome, Safari o Edge).
+Importante: index.html y la carpeta assets tienen que quedar juntos.
+
+CÓMO SEGUIR EDITÁNDOLA CON TU IA (ChatGPT, Claude, Gemini, etc.)
+1. Subile el archivo index.html (no hace falta subir la carpeta assets).
+2. Pegale este texto de contexto y después pedile los cambios:
+
+   "Te paso la web de Selvaggio, un wine bar de autoservicio en Las Lomas de
+   San Isidro. Es un único archivo HTML con estilos y scripts adentro. Las
+   imágenes están en la carpeta assets/ y no hay que cambiarles el nombre.
+   Mantené el estilo: colores bordó (#440A33), crema (#EFECE2), negro
+   (#151113) y terracota (#B5654E); tipografías Cormorant Garamond (títulos),
+   Pinyon Script (detalles en cursiva), Lora (textos) y Jost (etiquetas en
+   mayúsculas). Devolveme el archivo completo con los cambios."
+
+3. Reemplazá index.html por el que te devuelva y abrilo para ver el resultado.
+
+ORDEN DE LA PÁGINA
+1. Bienvenida animada (se sirve una copa) → se puede saltear.
+2. Video de banner con botones Reservá / Take away y menú superior.
+3. Cómo funciona (3 pasos sobre la foto).
+4. La Cava: precio $65.000 por persona, qué incluye, seña, extras (DJ en vinilo, cata guiada).
+5. Reservas: 4 opciones → mesa · evento de la agenda · La Cava · evento a medida.
+   Mesa, evento y La Cava se reservan 100% en la web (sin WhatsApp):
+   - Mesa: nombre, apellido, email, WhatsApp, nacimiento, personas, fecha (calendario, lunes cerrado),
+     horario, ubicación (Pérgola / Jardín), comentarios y restricciones → "Solicitar reserva".
+   - Evento: lista de eventos de la agenda. Si es gratis se reserva como una mesa; si es pago pide
+     seña del 50% por transferencia + comprobante.
+   - La Cava: datos, personas (10 a 40), ¿traen torta?, fecha (días ocupados tachados), horario de
+     ingreso, extras, datos bancarios, seña $130.000 + comprobante → "Confirmar reserva".
+   Al confirmar muestra un código de reserva. HOY la reserva se guarda solo en el navegador
+   (prototipo): el programador tiene que conectarla al sistema (evento "selvaggio:reserva" en el código)
+   y traer del sistema los eventos y los días ocupados de La Cava (listas EVENTOS y CAVA_TOMADAS).
+   "Tu evento a medida" abre el formulario de cotización (hasta 120 personas).
+6. El espacio (galería de fotos en movimiento).
+7. Nuestra gastronomía: platos nuevos con la cepa recomendada.
+8. Take away: "El plan de hoy: picada en casa". "Armá tu picada" abre un armador que recomienda vino
+   y manda el pedido a Uvita por WhatsApp.
+9. Prensa: "No lo decimos solo nosotros" (4 notas + otros medios con link).
+10. Maridaje: juego "¿Qué tomás hoy?" (elegís una cepa y te dice con qué combinarla).
+11. Trabajá con nosotros.
+12. Pie de página con dirección, horarios y links.
+
+DATOS USADOS
+- WhatsApp: +54 9 11 6686-4692 (reservas, presupuestos y Uvita).
+- Dirección: Av. Fondo de la Legua 59, Las Lomas de San Isidro. Martes a domingo desde las 18 hs.
+- La Cava: 10 a 40 personas · $65.000 p/p · ingreso 19 a 22 hs · vino libre hasta las 00 · seña $130.000.
+- Eventos a medida: hasta 120 personas (cerrando Selvaggio entero).
+
+PENDIENTES / A CONFIRMAR
+- Nombres reales de los platos nuevos (los actuales son descriptivos) y validar los maridajes.
+- Eventos, precios y días ocupados de La Cava son de ejemplo: tienen que venir del sistema.
+- Usuario real de Instagram (hoy el link busca "selvaggio san isidro").
+- Botón "Trabajá con nosotros" apunta a https://www.selvaggio.com.ar/ (formulario actual de CV).
+- Fotos originales para los extras de La Cava (DJ y cata), hoy son recortes chicos.
+- Puntaje y reseñas de Google, si se quieren sumar.
