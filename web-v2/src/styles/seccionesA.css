@@ -83,5 +83,3 @@
   .a-job__row{grid-template-columns:none}
   .a-job__submit{justify-self:stretch}
 }
-/* Logo de A en la barra de arriba de Inicio */
-@media (max-width:700px){.v2-navlogo img{height:28px !important}}
