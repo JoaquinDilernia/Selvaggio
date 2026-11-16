@@ -28,6 +28,9 @@ export const COL = {
   cava: 'selvaggio_reservas_cava',
   calendario: 'selvaggio_calendario',
   sandboxMesas: 'bot-selvaggio_reservas_sandbox',
+  // Web v2 en prueba (sin WEB_V2_REAL=1): mesas, eventos y cava van acá, con
+  // `tipo`. No ocupan cupo ni los ve el admin de la web.
+  pruebaV2: 'bot-selvaggio_v2_reservas_prueba',
 };
 
 // ── Capacidad (Gestión → Capacidad del panel) ────────────────────────────
@@ -233,7 +236,8 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
 
   const db = getDb();
-  const destino = real ? colEscritura(COL.mesas) : COL.sandboxMesas;
+  const prueba = esWeb && meta.pruebaV2 === true;
+  const destino = prueba ? COL.pruebaV2 : real ? colEscritura(COL.mesas) : COL.sandboxMesas;
   const quien = { contactId: meta.contactId, telefono: r.telefono };
 
   // Antes del chequeo de cupo: la reserva repetida ya ocupa su lugar y, si no,
@@ -279,6 +283,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
       // Igual que la web: la reserva de mesa queda confirmada al instante.
       estado: 'confirmada',
       origen: meta.origen ?? 'bot',
+      ...(prueba && { tipo: 'mesa', webV2: true }),
       ...(meta.contactId && { contactId: meta.contactId }),
       ...camposCanal(meta),
       createdAt: new Date().toISOString(),
@@ -288,7 +293,7 @@ export async function crearReservaMesa(datos, meta = {}, { now = new Date() } = 
 
   // El upsert de selvaggio_clientes (por email, como hace la web) solo en
   // modo live: en sandbox no se toca nada que vea la web.
-  if (real && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente:', err.message));
+  if (real && !prueba && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente:', err.message));
 
   return { id: ref.id, sandbox: !real, ...r, estado: 'confirmada' };
 }
@@ -316,43 +321,102 @@ export async function crearReservaEvento(datos, meta = {}, { now = new Date() } 
   if (!ev || ev.visible === false) throw Object.assign(new Error('Ese evento no existe o ya no está publicado'), { status: 404 });
   if (ev.fecha < ahoraAR(now).fecha) throw Object.assign(new Error('Ese evento ya pasó'), { status: 409 });
 
+  const esWeb = meta.origen === 'web';
+  const prueba = esWeb && meta.pruebaV2 === true;
   const r = {
     nombre: limpiar(datos.nombre, 80),
     apellido: limpiar(datos.apellido, 80),
     telefono: limpiar(datos.telefono, 40),
     cantidadPersonas: parseInt(datos.cantidadPersonas, 10),
     restricciones: limpiar(datos.restricciones),
+    ...(esWeb && {
+      email: limpiar(datos.email, 120).toLowerCase(),
+      fechaNacimiento: FECHA_RE.test(datos.fechaNacimiento ?? '') ? datos.fechaNacimiento : '',
+    }),
   };
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
   if (!Number.isInteger(r.cantidadPersonas) || r.cantidadPersonas < 1 || r.cantidadPersonas > 60) errores.push('cantidad de personas inválida');
+  if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) errores.push('email inválido');
+  // Desde la web, el evento pago se reserva con el comprobante de la seña.
+  if (esWeb && ev.esPago === true && !meta.comprobanteUrl) errores.push('adjuntá el comprobante de la seña');
   if (errores.length) throw Object.assign(new Error(errores.join('; ')), { status: 400 });
 
-  // Igual que en mesas: la tool repetida devuelve la reserva que ya tenía.
-  const yaHay = await db.collection(colEscritura(COL.mesas)).where('eventoId', '==', evDoc.id).get();
+  const destino = prueba ? COL.pruebaV2 : colEscritura(COL.mesas);
+  // Igual que en mesas: la tool repetida (o el doble click en la web)
+  // devuelve la reserva que ya tenía.
+  const yaHay = await db.collection(destino).where('eventoId', '==', evDoc.id).get();
   const previa = reservaDelMismoContacto(yaHay.docs.map(d => ({ id: d.id, ...d.data() })), { contactId: meta.contactId, telefono: r.telefono });
   if (previa) return { ...previa, yaExistia: true };
 
-  const ref = db.collection(colEscritura(COL.mesas)).doc();
+  const sena = ev.esPago === true ? String(ev.sena ?? '').trim() : '';
+  const notaSena = !sena && !meta.comprobanteUrl ? ''
+    : meta.comprobanteUrl ? `SEÑA: comprobante adjunto (verificar)${sena ? ` · ${sena}` : ''}` : `SEÑA PENDIENTE ${sena}`;
+  const ref = db.collection(destino).doc();
   const reserva = {
     ...r,
-    email: '',
+    email: r.email ?? '',
     fecha: ev.fecha,
     horario: ev.horaInicio || '',
     preferencia: '',
-    comentarios: [marcaBot(meta), `Evento: ${ev.titulo}`, ev.esPago === true && String(ev.sena ?? '').trim() ? `SEÑA PENDIENTE ${String(ev.sena).trim()}` : '', limpiar(datos.comentarios)].filter(Boolean).join(' · '),
+    comentarios: [!esWeb && marcaBot(meta), `Evento: ${ev.titulo}`, notaSena, limpiar(datos.comentarios)].filter(Boolean).join(' · '),
     evento: ev.titulo,
     eventoId: evDoc.id,
-    ...(ev.esPago === true && String(ev.sena ?? '').trim() && { senaPendiente: String(ev.sena).trim() }),
+    ...(sena && !meta.comprobanteUrl && { senaPendiente: sena }),
+    ...(meta.comprobanteUrl && { comprobanteUrl: meta.comprobanteUrl, comprobantePath: meta.comprobantePath }),
     estado: 'confirmada',
-    origen: 'bot',
+    origen: esWeb ? 'web' : 'bot',
+    ...(prueba && { tipo: 'evento', webV2: true }),
     ...(meta.contactId && { contactId: meta.contactId }),
     ...camposCanal(meta),
     createdAt: new Date().toISOString(),
   };
   await ref.set(reserva);
+  if (esWeb && !prueba && r.email) await upsertCliente(r).catch(err => console.error('[reservas] upsert cliente evento:', err.message));
   return { id: ref.id, ...reserva };
+}
+
+/**
+ * Eventos de la agenda para la web (próximos 60 días, solo publicados). Sin
+ * infoBot (es interno). `linkExterno`: el evento se reserva en otro lado.
+ */
+export async function eventosPublicos({ now = new Date() } = {}) {
+  const hoy = ahoraAR(now).fecha;
+  const tope = new Date(`${hoy}T12:00:00Z`); tope.setUTCDate(tope.getUTCDate() + 60);
+  const snap = await getDb().collection('selvaggio_eventos')
+    .where('fecha', '>=', hoy).where('fecha', '<=', tope.toISOString().slice(0, 10)).get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(e => e.visible !== false && e.titulo)
+    .sort((a, b) => `${a.fecha} ${a.horaInicio || ''}`.localeCompare(`${b.fecha} ${b.horaInicio || ''}`))
+    .map(e => ({
+      id: e.id,
+      titulo: e.titulo,
+      fecha: e.fecha,
+      horaInicio: e.horaInicio || null,
+      horaFin: e.horaFin || null,
+      // El admin a veces pega texto con tiras de espacios (copiado de IG).
+      descripcion: String(e.descripcion || '').replace(/[ \t]{2,}/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim(),
+      imagen: e.imagen || null,
+      esPago: e.esPago === true ? true : e.esPago === false ? false : null,
+      ...(e.esPago === true && { precio: String(e.precio ?? '').trim(), sena: String(e.sena ?? '').trim(), alias: String(e.alias ?? '').trim() }),
+      ...(e.ctaLink && !esLinkWhatsApp(e.ctaLink) && { linkExterno: e.ctaLink, linkTexto: e.ctaTexto || null }),
+    }));
+}
+
+/** Lo que la web necesita de la capacidad (Gestión → Capacidad del panel). */
+export async function configPublica() {
+  const c = await configReservas();
+  return {
+    mesaMaximo: c.mesaMaximo,
+    cavaMinimo: c.cavaMinimo,
+    cavaMaximo: c.cavaMaximo,
+    cavaPrecioPersona: c.cavaPrecioPersona,
+    cavaSena: c.cavaSena,
+    horariosCava: HORARIOS_CAVA,
+    preferencias: PREFERENCIAS,
+    extrasCava: EXTRAS_CAVA,
+  };
 }
 
 /**
@@ -443,6 +507,12 @@ export async function cavaOcupada(desde, hasta) {
 }
 
 export const HORARIOS_CAVA = ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
+// Extras de La Cava (precios del diseño de la web nueva). La seña no cambia:
+// se suman al total que se paga el día del evento.
+export const EXTRAS_CAVA = [
+  { id: 'dj', nombre: 'DJ set en vinilo', detalle: '2 horas', precio: 350000 },
+  { id: 'cata', nombre: 'Cata de vinos guiada', detalle: '3 horas', precio: 250000 },
+];
 
 /**
  * Alta de reserva de La Cava desde la web, con el comprobante de la seña ya
@@ -461,6 +531,14 @@ export function validarReservaCava(datos, cfg, now = new Date()) {
     fecha: limpiar(datos.fecha, 10),
     horario: limpiar(datos.horario, 5),
   };
+  // Opcionales de la web v2 (el bot y la web vieja no los mandan).
+  const apellido = limpiar(datos.apellido, 80);
+  if (apellido) r.apellido = apellido;
+  for (const k of ['comentarios', 'restricciones']) { const v = limpiar(datos[k]); if (v) r[k] = v; }
+  let pedidos = datos.extras;
+  if (typeof pedidos === 'string') { try { pedidos = JSON.parse(pedidos); } catch { pedidos = [pedidos]; } }
+  const extras = EXTRAS_CAVA.filter(x => Array.isArray(pedidos) && pedidos.includes(x.id)).map(x => ({ id: x.id, nombre: x.nombre, precio: x.precio }));
+  if (extras.length) r.extras = extras;
   const errores = [];
   if (!r.nombre) errores.push('falta el nombre');
   if (!r.telefono) errores.push('falta el teléfono');
@@ -474,13 +552,15 @@ export function validarReservaCava(datos, cfg, now = new Date()) {
   return r;
 }
 
-export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath }, { now = new Date() } = {}) {
+export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath, pruebaV2 = false }, { now = new Date() } = {}) {
   const cfg = await configReservas();
   if (!comprobanteUrl) throw Object.assign(new Error('falta el comprobante de la seña'), { status: 400 });
   const r = validarReservaCava(datos, cfg, now);
+  if (pruebaV2) r.tipo = 'cava';
 
   const db = getDb();
-  const ref = db.collection(colEscritura(COL.cava)).doc();
+  // En prueba igual se chequea el día contra las reservas reales.
+  const ref = db.collection(pruebaV2 ? COL.pruebaV2 : colEscritura(COL.cava)).doc();
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(db.collection(COL.cava).where('fecha', '==', r.fecha));
     if (snap.docs.some(d => d.data().estado !== 'cancelada')) {
@@ -492,7 +572,7 @@ export async function crearReservaCava(datos, { comprobanteUrl, comprobantePath 
     });
   });
 
-  if (r.email) await upsertCliente({ ...r, apellido: '' }).catch(e => console.error('[reservas] upsert cliente cava:', e.message));
+  if (r.email && !pruebaV2) await upsertCliente({ ...r, apellido: r.apellido ?? '' }).catch(e => console.error('[reservas] upsert cliente cava:', e.message));
   return { id: ref.id, ...r, estado: 'confirmada' };
 }
 

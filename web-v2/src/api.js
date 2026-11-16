@@ -9,13 +9,15 @@ export const EN_PRUEBA = import.meta.env.VITE_PRUEBA !== '0';
 export const WHATSAPP = '5491166864692';
 export const waLink = (texto) => `https://wa.me/${WHATSAPP}${texto ? `?text=${encodeURIComponent(texto)}` : ''}`;
 
+// body: objeto (va como JSON) o FormData (multipart, para comprobantes).
 async function pedir(path, { method = 'GET', body } = {}) {
+  const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
   let res;
   try {
     res = await fetch(`${API_URL}/api/public${path}`, {
       method,
-      headers: { 'X-Selvaggio-Web': 'v2', ...(body && { 'Content-Type': 'application/json' }) },
-      body: body ? JSON.stringify(body) : undefined,
+      headers: { 'X-Selvaggio-Web': 'v2', ...(body && !multipart && { 'Content-Type': 'application/json' }) },
+      body: body ? (multipart ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     throw new Error('No pudimos conectarnos. Revisá tu conexión y probá de nuevo.');
@@ -30,6 +32,14 @@ export const api = {
   horarios: (fecha) => pedir(`/takeaway/horarios?fecha=${encodeURIComponent(fecha)}`),
   cotizar: (body) => pedir('/takeaway/cotizar', { method: 'POST', body }),
   crearPedido: (body) => pedir('/takeaway/pedidos', { method: 'POST', body }),
+  // Reservas
+  configReservas: () => pedir('/reservas/config'),
+  eventos: () => pedir('/eventos'),
+  disponibilidad: (fecha, personas) => pedir(`/mesas/disponibilidad?fecha=${encodeURIComponent(fecha)}&personas=${personas}`),
+  cavaOcupadas: (desde, hasta) => pedir(`/cava/ocupadas?desde=${desde}&hasta=${hasta}`),
+  reservarMesa: (body) => pedir('/reservas/mesas', { method: 'POST', body }),
+  reservarCava: (form) => pedir('/reservas/cava', { method: 'POST', body: form }),
+  reservarEvento: (body) => pedir('/reservas/evento', { method: 'POST', body }),
   seguimiento: (numero, tel4) => pedir(`/takeaway/seguimiento?numero=${encodeURIComponent(numero)}&tel=${encodeURIComponent(tel4)}`),
 };
 

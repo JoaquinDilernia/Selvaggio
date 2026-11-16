@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GenIntro from '../sections/gen/GenIntro.jsx';
 import GenInicio from '../sections/gen/GenInicio.jsx';
@@ -14,14 +14,9 @@ import GenTrabaja from '../sections/gen/GenTrabaja.jsx';
 import GenPresuModal from '../sections/gen/GenPresuModal.jsx';
 import GenFooter from '../sections/gen/GenFooter15.jsx';
 import { initMaridaje, initPresupuesto } from '../legacy/disenoScripts.js';
+import ReservaModal from '../reservas/ReservaModal.jsx';
 
-// Reservas: hasta que se conecte el formulario nuevo (fase 2), cada botón
-// lleva al formulario que ya funciona en la web actual.
-const RESERVA_ACTUAL = {
-  mesa: 'https://selvaggio.com.ar/#/reserva-mesas',
-  cava: 'https://selvaggio.com.ar/#/reserva-cava',
-  evento: 'https://selvaggio.com.ar/#/reserva-mesas',
-};
+const TIPOS_RESERVA = new Set(['mesa', 'evento', 'cava']);
 
 // La bienvenida se muestra una vez por sesión.
 function introYaVista() {
@@ -32,6 +27,7 @@ export default function Home() {
   const navigate = useNavigate();
   const raiz = useRef(null);
   const [intro, setIntro] = useState(() => !introYaVista());
+  const [reserva, setReserva] = useState(null); // 'mesa' | 'evento' | 'cava' | null
 
   // Bienvenida animada: se va sola (5,3 s) o con "Saltear".
   useEffect(() => {
@@ -57,6 +53,8 @@ export default function Home() {
     if (v) { v.muted = true; v.play()?.catch(() => {}); }
   }, []);
 
+  const cerrarReserva = useCallback(() => setReserva(null), []);
+
   // Clicks del diseño que ahora van a la app.
   function onClick(e) {
     if (e.target.closest('#skip')) { setIntro(false); return; }
@@ -65,7 +63,7 @@ export default function Home() {
     const href = a.getAttribute('href');
     if (href === '#armar') { e.preventDefault(); navigate('/take-away'); return; }
     const tipo = a.dataset.reserva;
-    if (tipo && RESERVA_ACTUAL[tipo]) { e.preventDefault(); window.open(RESERVA_ACTUAL[tipo], '_blank', 'noopener'); }
+    if (TIPOS_RESERVA.has(tipo)) { e.preventDefault(); setReserva(tipo); }
   }
 
   return (
@@ -84,6 +82,7 @@ export default function Home() {
       <GenTrabaja />
       <GenPresuModal />
       <GenFooter />
+      {reserva && <ReservaModal tipo={reserva} onClose={cerrarReserva} />}
     </div>
   );
 }

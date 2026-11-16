@@ -180,6 +180,20 @@ test('validarReservaCava: mismas reglas que la web (mínimo, máximo, horario, f
   assert.throws(() => validarReservaCava({ ...ok, fecha: '2026-11-12' }, cfg, now), /ya pasó/);
 });
 
+test('validarReservaCava: extras de la web v2 solo de la lista (también como JSON en multipart)', async () => {
+  const { validarReservaCava, normalizarConfigReservas } = await import('./reservas.service.js');
+  const cfg = normalizarConfigReservas({});
+  const now = new Date('2026-11-13T15:00:00-03:00');
+  const ok = { nombre: 'Ana', telefono: '5491100000000', cantidadPersonas: 15, fecha: '2026-11-20', horario: '20:00' };
+  assert.equal(validarReservaCava(ok, cfg, now).extras, undefined);
+  const r = validarReservaCava({ ...ok, extras: '["dj","inventado"]', apellido: ' Paz ', comentarios: 'cumple 40' }, cfg, now);
+  assert.deepEqual(r.extras.map(x => x.id), ['dj']);
+  assert.equal(r.extras[0].precio, 350000);
+  assert.equal(r.apellido, 'Paz');
+  assert.equal(r.comentarios, 'cumple 40');
+  assert.deepEqual(validarReservaCava({ ...ok, extras: ['cata', 'dj'] }, cfg, now).extras.map(x => x.id), ['dj', 'cata']);
+});
+
 test('prompt: La Cava se reserva por el chat con reservar_cava y queda con seña pendiente', async () => {
   const { reservasPrompt } = await import('./reservas.tools.js');
   const { RESERVAS_TOOLS } = await import('./reservas.tools.js');

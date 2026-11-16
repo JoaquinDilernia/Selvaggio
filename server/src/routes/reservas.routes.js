@@ -3,6 +3,7 @@ import multer from 'multer';
 import admin from 'firebase-admin';
 import {
   disponibilidadMesas, crearReservaMesa, cavaOcupada, seguimientoTakeaway, listarReservasBot, crearReservaCava, listarReservasMesas,
+  crearReservaEvento, eventosPublicos, configPublica,
 } from '../services/reservas.service.js';
 import { previewCupon, crearPedidoTakeaway, listarPedidosBot, catalogoPublico, horariosRetiro, cotizarPedido, COL_PRUEBA_V2 } from '../services/takeaway.service.js';
 import { subirArchivo } from '../services/storage.service.js';
@@ -60,7 +61,7 @@ function handle(fn) {
 publicReservasRouter.get('/mesas/disponibilidad', handle(req => disponibilidadMesas(req.query.fecha, { personas: req.query.personas })));
 // Alta de reserva de mesa desde la web (reemplaza el addDoc directo).
 publicReservasRouter.post('/reservas/mesas', altaRateLimit, handle(async req => {
-  const reserva = await crearReservaMesa(req.body ?? {}, { origen: 'web' });
+  const reserva = await crearReservaMesa(req.body ?? {}, { origen: 'web', pruebaV2: esV2EnPrueba(req) });
   return { ok: true, id: reserva.id, fecha: reserva.fecha, horario: reserva.horario };
 }));
 publicReservasRouter.get('/cava/ocupadas', handle(async req => ({ ocupadas: await cavaOcupada(req.query.desde, req.query.hasta) })));
@@ -69,18 +70,45 @@ publicReservasRouter.get('/cava/ocupadas', handle(async req => ({ ocupadas: awai
 // Si el día se ocupó mientras subía, se borra el archivo que ya se había subido.
 publicReservasRouter.post('/reservas/cava', altaRateLimit, uploadComprobante.single('comprobante'), handle(async req => {
   if (!req.file) throw Object.assign(new Error('Adjuntá el comprobante de la seña (imagen o PDF, hasta 10 MB)'), { status: 400 });
+  const pruebaV2 = esV2EnPrueba(req);
+  return conComprobante(req, pruebaV2, async (comp) => {
+    const reserva = await crearReservaCava(req.body ?? {}, { ...comp, pruebaV2 });
+    return { ok: true, id: reserva.id, fecha: reserva.fecha };
+  });
+}));
+
+// Agenda de eventos y capacidad para el formulario de reservas de la web v2.
+publicReservasRouter.get('/eventos', handle(async () => ({ eventos: await eventosPublicos() })));
+publicReservasRouter.get('/reservas/config', handle(() => configPublica()));
+
+// Reserva de lugar en un evento de la agenda. Si el evento es pago, viene el
+// comprobante de la seña (multipart); si es gratis, alcanza con los campos.
+publicReservasRouter.post('/reservas/evento', altaRateLimit, uploadComprobante.single('comprobante'), handle(async req => {
+  const pruebaV2 = esV2EnPrueba(req);
+  const meta = { origen: 'web', pruebaV2 };
+  const crear = async (comp = {}) => {
+    const reserva = await crearReservaEvento(req.body ?? {}, { ...meta, ...comp });
+    return { ok: true, id: reserva.id, fecha: reserva.fecha, horario: reserva.horario, evento: reserva.evento };
+  };
+  return req.file ? conComprobante(req, pruebaV2, crear) : crear();
+}));
+
+/**
+ * Sube el comprobante y corre `fn` con su url/path. Si el alta falla (día
+ * ocupado, datos inválidos), borra el archivo que ya se había subido.
+ */
+async function conComprobante(req, pruebaV2, fn) {
   const { url, path } = await subirArchivo(req.file.buffer, {
-    carpeta: 'comprobantes', nombre: req.file.originalname, contentType: req.file.mimetype,
+    carpeta: pruebaV2 ? 'comprobantes-prueba' : 'comprobantes', nombre: req.file.originalname, contentType: req.file.mimetype,
   });
   try {
-    const reserva = await crearReservaCava(req.body ?? {}, { comprobanteUrl: url, comprobantePath: path });
-    return { ok: true, id: reserva.id, fecha: reserva.fecha };
+    return await fn({ comprobanteUrl: url, comprobantePath: path });
   } catch (e) {
     const bucketName = process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
     await admin.storage().bucket(bucketName).file(path).delete().catch(() => {});
     throw e;
   }
-}));
+}
 
 // ── Take away ────────────────────────────────────────────────────────────
 // El navegador manda solo qué eligió (ids y cantidades); precios, descuentos

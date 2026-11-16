@@ -28,3 +28,12 @@ html { scroll-behavior: smooth; }
 
 /* En desktop el aviso de prueba va arriba a la derecha, debajo de la barra, para no tapar precios ni botones. */
 @media (min-width: 701px) { .v2-prueba { left: auto; right: 16px; top: 74px; bottom: auto; transform: none; font-size: 10px; } }
+
+/* Reservas (complementos del diseño rv-*) */
+.rv-chip:disabled { opacity: .4; text-decoration: line-through; cursor: default; }
+.rv-submit:disabled { opacity: .6; cursor: default; }
+.rv-evp--clip { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.rv-copy { margin-left: 10px; padding: 2px 10px; border: 1px solid rgba(68,10,51,.25); background: #fff; color: #440A33; font-family: Jost, sans-serif; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; vertical-align: middle; }
+/* En el diseño `.rv-price p` le gana a `.rv-big` y el precio quedaba en 15px. */
+.rv-price .rv-big { font-size: 56px; line-height: 1; }
+.rv-price .rv-big small { font-size: 22px; }
