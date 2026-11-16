@@ -7,6 +7,7 @@ import {
 } from '../services/reservas.service.js';
 import { previewCupon, crearPedidoTakeaway, listarPedidosBot, catalogoPublico, horariosRetiro, cotizarPedido, COL_PRUEBA_V2 } from '../services/takeaway.service.js';
 import { subirArchivo } from '../services/storage.service.js';
+import { galeriaPublica, prensaPublica, crearPostulacion } from '../services/webPublica.service.js';
 
 // Comprobantes: imagen (ya comprimida en el navegador) o PDF, hasta 10 MB.
 const uploadComprobante = multer({
@@ -80,6 +81,12 @@ publicReservasRouter.post('/reservas/cava', altaRateLimit, uploadComprobante.sin
 // Agenda de eventos y capacidad para el formulario de reservas de la web v2.
 publicReservasRouter.get('/eventos', handle(async () => ({ eventos: await eventosPublicos() })));
 publicReservasRouter.get('/reservas/config', handle(() => configPublica()));
+
+// Galería y prensa (se cargan desde el admin de la web) y postulaciones de
+// "Trabajá con nosotros" (las ve Gestión → Postulaciones).
+publicReservasRouter.get('/galeria', handle(() => galeriaPublica()));
+publicReservasRouter.get('/prensa', handle(() => prensaPublica()));
+publicReservasRouter.post('/postulaciones', altaRateLimit, handle(req => crearPostulacion(req.body ?? {}, { pruebaV2: esV2EnPrueba(req) })));
 
 // Reserva de lugar en un evento de la agenda. Si el evento es pago, viene el
 // comprobante de la seña (multipart); si es gratis, alcanza con los campos.

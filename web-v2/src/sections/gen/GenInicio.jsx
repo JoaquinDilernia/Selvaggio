@@ -13,14 +13,18 @@ export default function GenInicio() {
       {' '}
       <header style={{ position: "absolute", top: "38px", left: "0", right: "0", zIndex: "5" }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "22px 40px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px 32px" }}>
-          <nav className="topnav" aria-label="Principal" style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px" }}>
+          <a className="v2-navlogo" href="#inicio" aria-label="Selvaggio, inicio" style={{ display: "block", flex: "none", lineHeight: "0" }}>
+            <img src="/assets/logo-cream.png" alt="Selvaggio" style={{ height: "34px", width: "auto" }} />
+          </a>
+          {' '}
+          <nav className="topnav" aria-label="Principal" style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginLeft: "auto" }}>
             <a className="navlink" href="#como">Cómo funciona</a>
             {' '}
             <a className="navlink" href="#cava">La Cava</a>
             {' '}
             <a className="navlink" href="#reservar">Reservas</a>
             {' '}
-            <a className="navlink" href="#espacio">El espacio</a>
+            <a className="navlink" href="#galeria">Galería</a>
             {' '}
             <a className="navlink" href="#platos">Gastronomía</a>
             {' '}

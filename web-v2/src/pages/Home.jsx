@@ -2,19 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GenIntro from '../sections/gen/GenIntro.jsx';
 import GenInicio from '../sections/gen/GenInicio.jsx';
-import GenComo from '../sections/gen/GenComo.jsx';
 import GenCava from '../sections/gen/GenCava.jsx';
 import GenReservar from '../sections/gen/GenReservar.jsx';
-import GenEspacio from '../sections/gen/GenEspacio.jsx';
 import GenPlatos from '../sections/gen/GenPlatos.jsx';
 import GenTakeaway from '../sections/gen/GenTakeaway.jsx';
-import GenPrensa from '../sections/gen/GenPrensa.jsx';
 import GenMaridaje from '../sections/gen/GenMaridaje.jsx';
-import GenTrabaja from '../sections/gen/GenTrabaja.jsx';
 import GenPresuModal from '../sections/gen/GenPresuModal.jsx';
 import GenFooter from '../sections/gen/GenFooter15.jsx';
 import { initMaridaje, initPresupuesto } from '../legacy/disenoScripts.js';
 import ReservaModal from '../reservas/ReservaModal.jsx';
+// Propuesta A (web actual): Cómo funciona, Galería, Prensa y Trabajá con nosotros.
+import ComoA from '../sections/a/ComoA.jsx';
+import GaleriaA from '../sections/a/GaleriaA.jsx';
+import PrensaA from '../sections/a/PrensaA.jsx';
+import TrabajaA from '../sections/a/TrabajaA.jsx';
+import '../styles/seccionesA.css';
 
 const TIPOS_RESERVA = new Set(['mesa', 'evento', 'cava']);
 
@@ -71,15 +73,15 @@ export default function Home() {
     <div ref={raiz} onClick={onClick} style={{ fontFamily: 'Lora, Georgia, serif', color: '#3A2A33', background: '#EFECE2', width: '100%', overflowX: 'hidden' }}>
       {intro && <GenIntro />}
       <GenInicio />
-      <GenComo />
+      <ComoA />
       <GenCava />
       <GenReservar />
-      <GenEspacio />
+      <GaleriaA />
       <GenPlatos />
       <GenTakeaway />
-      <GenPrensa />
+      <PrensaA />
       <GenMaridaje />
-      <GenTrabaja />
+      <TrabajaA />
       <GenPresuModal />
       <GenFooter />
       {reserva && <ReservaModal tipo={reserva} onClose={cerrarReserva} />}

@@ -40,6 +40,10 @@ export const api = {
   reservarMesa: (body) => pedir('/reservas/mesas', { method: 'POST', body }),
   reservarCava: (form) => pedir('/reservas/cava', { method: 'POST', body: form }),
   reservarEvento: (body) => pedir('/reservas/evento', { method: 'POST', body }),
+  // Contenido del admin de la web y "Trabajá con nosotros"
+  galeria: () => pedir('/galeria'),
+  prensa: () => pedir('/prensa'),
+  postular: (body) => pedir('/postulaciones', { method: 'POST', body }),
   seguimiento: (numero, tel4) => pedir(`/takeaway/seguimiento?numero=${encodeURIComponent(numero)}&tel=${encodeURIComponent(tel4)}`),
 };
 
