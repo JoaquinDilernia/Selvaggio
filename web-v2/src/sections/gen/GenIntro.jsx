@@ -7,9 +7,9 @@ export default function GenIntro() {
         {' '}
         <svg width="168" height="210" viewBox="0 0 240 300" aria-hidden="true" style={{ overflow: "visible", marginTop: "40px", display: "block" }}>
           <defs>
-            <clippath id="bowl2">
+            <clipPath id="bowl2">
               <path d="M70,100 L170,100 C172,190 148,232 120,236 C92,232 68,190 70,100 Z" />
-            </clippath>
+            </clipPath>
           </defs>
           {' '}
           <rect className="intro-stream" x="118.5" y="64" width="3" height="172" fill="#8E1F4A" />

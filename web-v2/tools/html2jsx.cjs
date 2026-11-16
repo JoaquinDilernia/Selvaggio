@@ -69,8 +69,8 @@ let last = 0; let m;
 while ((m = reTok.exec(body))) {
   if (m.index > last) tokens.push({ t: 'text', v: body.slice(last, m.index) });
   if (m[1] !== undefined) tokens.push({ t: 'comment', v: m[1] });
-  else if (m[2]) tokens.push({ t: 'close', name: m[2].toLowerCase() });
-  else tokens.push({ t: 'open', name: m[3].toLowerCase(), raw: m[4] || '', self: !!m[5] });
+  else if (m[2]) tokens.push({ t: 'close', name: m[2] });
+  else tokens.push({ t: 'open', name: m[3], raw: m[4] || '', self: !!m[5] });
   last = reTok.lastIndex;
 }
 if (last < body.length) tokens.push({ t: 'text', v: body.slice(last) });
@@ -84,11 +84,11 @@ for (const tk of tokens) {
     const id = (tk.raw.match(/\bid="([^"]*)"/) || [])[1];
     const node = { name: tk.name, raw: tk.raw, id, children: [] };
     top.children.push(node);
-    if (!tk.self && !VOID.has(tk.name)) stack.push(node);
+    if (!tk.self && !VOID.has(tk.name.toLowerCase())) stack.push(node);
   } else if (tk.t === 'close') {
-    if (VOID.has(tk.name)) continue;
+    if (VOID.has(tk.name.toLowerCase())) continue;
     let i = stack.length - 1;
-    while (i > 0 && stack[i].name !== tk.name) i--;
+    while (i > 0 && stack[i].name.toLowerCase() !== tk.name.toLowerCase()) i--;
     if (i === 0) throw new Error('cierre sin apertura: ' + tk.name);
     stack.length = i;
   } else top.children.push(tk);
