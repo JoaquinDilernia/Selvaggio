@@ -32,7 +32,7 @@ export async function archivarInactivas(now = Date.now()) {
       // resolvedAt = última actividad (no "ahora"): así las estadísticas la
       // cuentan el día que terminó la charla.
       const last = new Date(toMs(d.data().updatedAt));
-      batch.update(d.ref, { status: 'bot_archived', resolvedAt: last, resolvedBy: null, waitingSince: null, archivadaAuto: true });
+      batch.update(d.ref, { status: 'bot_archived', resolvedAt: last, resolvedBy: null, waitingSince: null, unread: 0, archivadaAuto: true });
     }
     await batch.commit();
   }
