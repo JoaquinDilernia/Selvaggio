@@ -1,3 +1,4 @@
+import { esMensajeRepetido } from './duplicateGuard.js';
 import { generateBotResponse } from './claude.service.js';
 import { endsWithQuestion } from './closeGuard.js';
 import { parseReasonMarker } from './escalationReasons.js';
@@ -216,6 +217,14 @@ async function processIncomingMessageInternal(msg) {
     ]);
   } catch (err) {
     console.error('[bot] Error cargando contexto para', from, err.message);
+    return;
+  }
+  // Copias del mismo mensaje (reentrega de Meta o burbuja repetida): no se
+  // guardan ni se contestan. La cola por contacto garantiza que la copia se
+  // evalúa recién cuando el original ya quedó en el historial.
+  const repetido = esMensajeRepetido(msg, history);
+  if (repetido) {
+    console.log(`[bot] Mensaje repetido de ${from} (${repetido}) ignorado: ${String(text ?? '').substring(0, 50)}`);
     return;
   }
   // Sin config guardada (o con campos faltantes) se usan los defaults de Selvaggio.
