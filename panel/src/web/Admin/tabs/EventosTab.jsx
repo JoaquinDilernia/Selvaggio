@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { prepararImagen, METADATA_CACHE } from '../../utils/subirArchivos';
 import { db, storage } from '../../firebase/config';
@@ -21,6 +21,28 @@ async function apiFijos(path = '', options = {}) {
   if (!res.ok) throw new Error(data.error || 'Error del servidor');
   return data;
 }
+
+// Eventos sueltos: se guardan por el server para que quede quién hizo cada
+// cambio y lo borrado vaya a la papelera.
+async function apiEventos(path = '', options = {}) {
+  const res = await authFetch(`${BASE_URL}/api/eventos${path}`, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error del servidor');
+  return data;
+}
+
+const fechaHora = (iso) => (iso ? new Date(iso).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+const ACCION = { creado: 'creó', editado: 'editó', eliminado: 'eliminó', restaurado: 'restauró', ocultado: 'ocultó', mostrado: 'mostró' };
+
+// "Creado por Cielo · 25 nov 12:37 · editado por Brisa · 26 nov 10:02"
+function Autoria({ ev }) {
+  const partes = [];
+  if (ev.creadoPor?.nombre) partes.push(`Creado por ${ev.creadoPor.nombre}${ev.creadoEn ? ` · ${fechaHora(ev.creadoEn)}` : ''}`);
+  if (ev.editadoPor?.nombre) partes.push(`editado por ${ev.editadoPor.nombre}${ev.actualizadoEn ? ` · ${fechaHora(ev.actualizadoEn)}` : ''}`);
+  if (ev.restauradoPor?.nombre) partes.push(`restaurado por ${ev.restauradoPor.nombre}`);
+  if (!partes.length) return null;
+  return <p style={{ margin: '6px 0 0', fontSize: 11.5, color: '#9a9187' }}>{partes.join(' · ')}</p>;
+}
 import './TabsShared.css';
 
 function EventosTab() {
@@ -34,6 +56,10 @@ function EventosTab() {
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
   const [uploadingPopup, setUploadingPopup] = useState(false);
+  const [verPapelera, setVerPapelera] = useState(false);
+  const [papelera, setPapelera] = useState(null);
+  const [verHistorial, setVerHistorial] = useState(false);
+  const [historial, setHistorial] = useState(null);
 
   useEffect(() => { cargar(); }, []);
 
@@ -48,10 +74,39 @@ function EventosTab() {
       items.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
       setEventos(items);
       setSeries(fijos.series ?? []);
+      if (verPapelera) cargarPapelera();
+      if (verHistorial) cargarHistorial();
     } catch (err) {
       console.error('Error cargando eventos:', err);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const cargarPapelera = async () => {
+    try {
+      setPapelera((await apiEventos('/papelera')).papelera ?? []);
+    } catch (err) {
+      alert(`No se pudo abrir la papelera: ${err.message}`);
+    }
+  };
+
+  const cargarHistorial = async () => {
+    try {
+      setHistorial((await apiEventos('/historial?limite=100')).historial ?? []);
+    } catch (err) {
+      alert(`No se pudo abrir el historial: ${err.message}`);
+    }
+  };
+
+  const restaurar = async (item) => {
+    if (!window.confirm(`¿Restaurar "${item.titulo}"${item.fecha ? ` del ${formatFecha(item.fecha)}` : ''}?`)) return;
+    try {
+      await apiEventos(`/papelera/${item.id}/restaurar`, { method: 'POST' });
+      await cargar();
+      await cargarPapelera();
+    } catch (err) {
+      alert(`No se pudo restaurar: ${err.message}`);
     }
   };
 
@@ -133,6 +188,7 @@ function EventosTab() {
       }
       return;
     }
+    setGuardando(true);
     try {
       const data = {
         ...pago,
@@ -148,30 +204,17 @@ function EventosTab() {
         popupImagen: form.popupImagen || '',
         ctaTexto: form.ctaTexto || '',
         ctaLink: form.ctaLink || '',
-        actualizadoEn: new Date().toISOString()
       };
-
-      // Si se activa como popup, desactivar popup en cualquier otro evento
-      if (data.esPopup) {
-        const otrosPopup = eventos.filter(e => e.esPopup && e.id !== editando);
-        for (const otro of otrosPopup) {
-          await updateDoc(doc(db, 'selvaggio_eventos', otro.id), { esPopup: false });
-        }
-      }
-
-      if (editando) {
-        // Una fecha de un evento fijo editada a mano ya no la pisa la serie.
-        if (eventos.find(e => e.id === editando)?.serieId) data.editadoManual = true;
-        await updateDoc(doc(db, 'selvaggio_eventos', editando), data);
-      } else {
-        data.creadoEn = new Date().toISOString();
-        await addDoc(collection(db, 'selvaggio_eventos'), data);
-      }
+      // El server desactiva el popup de los otros eventos y, si es una fecha
+      // de un evento fijo, la marca como editada a mano.
+      await apiEventos(editando ? `/${editando}` : '', { method: editando ? 'PUT' : 'POST', body: data });
       await cargar();
       resetForm();
     } catch (err) {
       console.error('Error guardando evento:', err);
-      alert('Error al guardar');
+      alert(`No se pudo guardar el evento: ${err.message}`);
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -234,21 +277,23 @@ function EventosTab() {
       }
       return;
     }
-    if (!window.confirm('¿Eliminar este evento?')) return;
+    if (!window.confirm('¿Eliminar este evento? Va a la papelera: se puede restaurar.')) return;
     try {
-      await deleteDoc(doc(db, 'selvaggio_eventos', id));
+      await apiEventos(`/${id}`, { method: 'DELETE' });
       setEventos(eventos.filter(e => e.id !== id));
-    } catch {
-      alert('Error al eliminar');
+      if (verPapelera) cargarPapelera();
+      if (verHistorial) cargarHistorial();
+    } catch (err) {
+      alert(`No se pudo eliminar: ${err.message}`);
     }
   };
 
   const toggleVisible = async (ev) => {
     try {
-      await updateDoc(doc(db, 'selvaggio_eventos', ev.id), { visible: !ev.visible, ...(ev.serieId && { visibleManual: !ev.visible }) });
+      await apiEventos(`/${ev.id}`, { method: 'PUT', body: { visible: !ev.visible } });
       setEventos(eventos.map(e => e.id === ev.id ? { ...e, visible: !e.visible } : e));
-    } catch {
-      alert('Error al actualizar');
+    } catch (err) {
+      alert(`No se pudo actualizar: ${err.message}`);
     }
   };
 
@@ -286,10 +331,78 @@ function EventosTab() {
       </div>
 
       {/* Botón crear */}
-      {!showForm && (
-        <button className="btn-action" onClick={() => setShowForm(true)}>
-          + Nuevo evento
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {!showForm && (
+          <button className="btn-action" onClick={() => setShowForm(true)}>
+            + Nuevo evento
+          </button>
+        )}
+        <button
+          className="btn-action btn-action--outline"
+          onClick={() => { const v = !verPapelera; setVerPapelera(v); if (v) cargarPapelera(); }}
+        >
+          🗑 Papelera{papelera?.length ? ` (${papelera.length})` : ''}
         </button>
+        <button
+          className="btn-action btn-action--outline"
+          onClick={() => { const v = !verHistorial; setVerHistorial(v); if (v) cargarHistorial(); }}
+        >
+          🕓 Historial de cambios
+        </button>
+      </div>
+
+      {verPapelera && (
+        <div className="cal-form" style={{ margin: '16px 0 24px' }}>
+          <h3 className="cal-form__title">🗑 Papelera</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#6b635a' }}>
+            Los eventos eliminados quedan acá y se pueden restaurar. También aparecen los que se borraron por fuera del panel.
+          </p>
+          {papelera === null ? (
+            <p style={{ color: '#6b635a' }}>Cargando…</p>
+          ) : papelera.length === 0 ? (
+            <p style={{ color: '#6b635a' }}>La papelera está vacía.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {papelera.map(item => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid #e8e2d9', borderRadius: 6, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{item.titulo || '(sin título)'}</div>
+                    <div style={{ fontSize: 12.5, color: '#6b635a' }}>
+                      {item.fecha ? `📅 ${formatFecha(item.fecha)} · ` : ''}
+                      Eliminado por {item.eliminadoPor?.nombre ?? '—'} · {fechaHora(item.eliminadoEn)}
+                    </div>
+                  </div>
+                  <button className="btn-action btn-action--small" onClick={() => restaurar(item)}>Restaurar</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {verHistorial && (
+        <div className="cal-form" style={{ margin: '16px 0 24px' }}>
+          <h3 className="cal-form__title">🕓 Historial de cambios</h3>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#6b635a' }}>
+            Quién creó, editó, ocultó o eliminó cada evento (últimos 100 cambios).
+          </p>
+          {historial === null ? (
+            <p style={{ color: '#6b635a' }}>Cargando…</p>
+          ) : historial.length === 0 ? (
+            <p style={{ color: '#6b635a' }}>Todavía no hay cambios registrados.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: 2, fontSize: 13 }}>
+              {historial.map(h => (
+                <div key={h.id} style={{ padding: '7px 0', borderBottom: '1px solid #f0ebe3', color: h.origen === 'externo' ? '#b4532a' : '#3d3730' }}>
+                  <span style={{ color: '#9a9187' }}>{fechaHora(h.en)}</span>
+                  {' · '}<strong>{h.por?.nombre ?? '—'}</strong> {ACCION[h.accion] ?? h.accion}{' '}
+                  "{h.titulo || '(sin título)'}"{h.fecha && !String(h.eventoId).startsWith('serie:') ? ` del ${formatFecha(h.fecha)}` : ''}
+                  {h.detalle && <span style={{ color: '#8a8279' }}> — {h.detalle}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Formulario */}
@@ -594,6 +707,7 @@ function EventosTab() {
                           {ev.descripcion.length > 100 ? ev.descripcion.slice(0, 100) + '…' : ev.descripcion}
                         </p>
                       )}
+                      <Autoria ev={ev} />
                       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                         <button className="btn-action btn-action--small" onClick={() => editar(ev)}>Editar</button>
                         <button className="btn-action btn-action--small btn-action--outline" onClick={() => toggleVisible(ev)}>
@@ -621,6 +735,7 @@ function EventosTab() {
                       <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b635a' }}>
                         📅 {formatFecha(ev.fecha)}
                       </p>
+                      <Autoria ev={ev} />
                       <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                         <button className="btn-action btn-action--small btn-action--danger" onClick={() => eliminar(ev.id)}>Eliminar</button>
                       </div>

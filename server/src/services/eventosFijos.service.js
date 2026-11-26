@@ -2,6 +2,7 @@ import admin from 'firebase-admin';
 import { getDb } from './firebase.service.js';
 import { ahoraAR, FECHA_RE, COL } from './reservas.service.js';
 import { planSerie, idGenerado } from './eventosFijos.js';
+import { marcarPropio } from './eventosAuditoria.service.js';
 
 // Series de eventos fijos (selvaggio_eventos_fijos) → eventos por fecha en
 // selvaggio_eventos. Ver eventosFijos.js y docs/superpowers/specs/2026-11-13-eventos-fijos-design.md.
@@ -66,6 +67,8 @@ async function aplicarSerie(serieId, serie) {
   // nada y nadie se enteraría): queda como editada a mano y se avisa.
   const conReserva = await idsConReservas(plan.borrar);
   const borrar = plan.borrar.filter(id => !conReserva.has(id));
+  // Son cambios del sistema: el vigía de eventos no los registra como "por fuera del panel".
+  marcarPropio([...upserts.map(u => u.id), ...plan.borrar]);
   for (const id of conReserva) {
     console.warn(`[eventos-fijos] ${id} tiene reservas: no se borra, queda como fecha suelta`);
     await db.collection(EVENTOS).doc(id).update({ editadoManual: true });
@@ -146,7 +149,9 @@ export async function excluirFecha(id, fecha, eventoId = null) {
   const db = getDb();
   await db.collection(SERIES).doc(id).update({ excluidas: admin.firestore.FieldValue.arrayUnion(fecha) });
   const docId = eventoId && String(eventoId).startsWith(`fijo_${id}_`) ? String(eventoId) : idGenerado(id, fecha);
+  marcarPropio(docId);
   await db.collection(EVENTOS).doc(docId).delete();
+  return docId;
 }
 
 let timer = null;

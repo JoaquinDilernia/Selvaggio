@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { completarNombresInstagram } from './services/igNames.service.js';
 import { iniciarJobEventosFijos } from './services/eventosFijos.service.js';
 import eventosFijosRoutes from './routes/eventosFijos.routes.js';
+import eventosRoutes from './routes/eventos.routes.js';
+import { iniciarVigiaEventos } from './services/eventosAuditoria.service.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -117,6 +119,7 @@ app.use('/api/areas',         requireAuth, requireBotAccess, areaRoutes);
 app.use('/api/reservas',      requireAuth, requireBotAccess, requireAtLeastAtencionCliente, reservasRouter);
 app.use('/api/gestion',       requireAuth, requireSector('gestion'), gestionRoutes);
 app.use('/api/eventos-fijos', requireAuth, requireSector('contenido'), eventosFijosRoutes);
+app.use('/api/eventos',       requireAuth, requireSector('contenido'), eventosRoutes);
 app.use('/api/comandas',      requireAuth, requireSector('cocina'), comandasRoutes);
 app.use('/api/campaigns',     requireAuth, requireBotAccess, requireAtLeastAtencionCliente, campaignRoutes);
 
@@ -131,6 +134,8 @@ app.listen(PORT, () => {
   asegurarPlantillaPedidoListo().catch(err => console.error('[comandas] No se pudo asegurar la plantilla pedido listo:', err.message));
   completarNombresInstagram().catch(err => console.error('[ig] No se pudieron completar los nombres de IG:', err.message));
   iniciarJobEventosFijos();
+  // Registra cambios y borrados de eventos hechos por fuera del panel (admin viejo de la web).
+  iniciarVigiaEventos();
 });
 
 export default app;
