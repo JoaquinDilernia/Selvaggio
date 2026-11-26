@@ -178,7 +178,7 @@ export const RESERVAS_TOOLS = [
   },
   {
     name: 'ver_menu_takeaway',
-    description: 'Menú de Take Away: picadas (con sus secciones y opciones para elegir), adicionales, precios, días/horario de retiro, zonas de envío gratis y medios de pago. Usala antes de ofrecer o armar un pedido.',
+    description: 'Menú de Take Away: picadas armadas (con sus secciones y opciones para elegir), el AUTOSERVICIO (productos sueltos con precio: platitos, quesos, fiambres y conservas envasados, postres, vinos, cócteles y bebidas; se piden con adicionalId), días/horario de retiro, zonas de envío gratis y medios de pago. Usala antes de ofrecer o armar un pedido.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {
@@ -399,8 +399,10 @@ LA CAVA (eventos privados, desde ${cfg.cavaMinimo}${cfg.cavaMaximo ? ` hasta ${c
 - Queda TOMADA con la seña pendiente: decile que para asegurarla tiene que transferir la seña de $${cfg.cavaSena.toLocaleString('es-AR')} (datos de transferencia en la info del local) y mandar el comprobante por este chat. Cuando lo mande, aplicá la regla COMPROBANTE.
 - Si prefiere hacerlo solo, también puede reservar en https://selvaggio.com.ar/#/reserva-cava (sube el comprobante ahí).
 
-TAKE AWAY (picadas para llevar o con envío):
-- Usá ver_menu_takeaway para conocer picadas, opciones y precios: nunca inventes productos ni precios. Si una picada tiene secciones obligatorias, preguntá qué elige en cada una (respetando "elegirHasta").
+TAKE AWAY (para llevar o con envío):
+- Hay dos formas: las PICADAS armadas y el AUTOSERVICIO, productos sueltos como en la heladera del local (platitos, quesos, fiambres y conservas envasados, postres, vinos, cócteles, bebidas) para armar la mesa a gusto.
+- Usá ver_menu_takeaway para conocer picadas, productos y precios: nunca inventes productos ni precios. Si una picada tiene secciones obligatorias, preguntá qué elige en cada una (respetando "elegirHasta").
+- TE PUEDEN PEDIR QUE LES ARMES EL TAKE AWAY ("somos 4, ¿qué llevamos?"). Preguntá lo justo si no lo dijeron: cuántos son, presupuesto aproximado y gustos o alergias. Proponé una selección concreta del autoservicio (y/o una picada) con cantidades y precios: variedad entre quesos, fiambres, conservas y algún platito, y un vino que marida (usá el campo maridaje). Como referencia, 1 a 2 productos salados por persona y una botella cada 2 o 3 personas; ajustá al presupuesto. Mostrala como lista corta con el total aproximado y ofrecé cambiar lo que quieran. Respetá alergias con el campo alergenos y si no hay dato, decilo.
 - Para el retiro usá horarios_retiro_takeaway. Envío gratis solo a las localidades de envioGratisA (pedí dirección).
 - Antes de confirmar, usá cotizar_pedido_takeaway y mostrá el resumen con el total (efectivo tiene 10% de descuento). Recién con el "sí" llamá a crear_pedido_takeaway. ${telefonoTexto}
 - Al crear, pasale al cliente el número de pedido (TW-XXXXXX). El pago es al retirar/recibir.

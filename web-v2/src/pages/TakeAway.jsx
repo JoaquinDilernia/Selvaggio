@@ -93,9 +93,9 @@ export default function TakeAway() {
           <p className="tw2-kicker tw2-kicker--terra">Take away</p>
           <h1 className="tw2-h1">
             <span>El plan de hoy:</span>
-            <span className="tw2-script tw2-script--big">picada en casa</span>
+            <span className="tw2-script tw2-script--big">Selvaggio en casa</span>
           </h1>
-          <p className="tw2-hero__p">Armás tu picada a medida, te recomendamos el vino que la acompaña y te la dejamos lista para retirar o te la mandamos.</p>
+          <p className="tw2-hero__p">Elegís como en el local: quesos, fiambres, conservas, platitos y el vino. Lo dejamos listo para retirar o te lo mandamos. Y si no sabés qué llevar, Uvita te lo arma.</p>
           {catalogo && <Reglas catalogo={catalogo} />}
         </div>
       </header>
@@ -121,8 +121,18 @@ export default function TakeAway() {
 
           {catalogo?.activo && paso === 'menu' && (
             <>
-              <section aria-labelledby="tw2-picadas">
-                <h2 id="tw2-picadas" className="tw2-h2">Elegí tu <span className="tw2-script">picada</span></h2>
+              {catalogo.adicionales.length > 0 && (
+                <Autoservicio
+                  productos={catalogo.adicionales}
+                  categorias={catalogo.categoriasSueltos || []}
+                  cantidad={cantidadAdicional}
+                  onSumar={sumarAdicional}
+                  onSacar={(p) => cambiarCantidad(`a-${p.id}`, -1)}
+                />
+              )}
+
+              <section aria-labelledby="tw2-picadas" className={catalogo.adicionales.length ? 'tw2-adic' : undefined}>
+                <h2 id="tw2-picadas" className="tw2-h2">{catalogo.adicionales.length ? <>O llevate una <span className="tw2-script">picada armada</span></> : <>Elegí tu <span className="tw2-script">picada</span></>}</h2>
                 <div className="tw2-grid">
                   {catalogo.picadas.map((p, idx) => (
                     <article key={p.id} className="tw2-card">
@@ -148,34 +158,8 @@ export default function TakeAway() {
                 </div>
               </section>
 
-              {catalogo.adicionales.length > 0 && (
-                <section aria-labelledby="tw2-adic" className="tw2-adic">
-                  <h2 id="tw2-adic" className="tw2-h2">Sumale <span className="tw2-script">algo más</span></h2>
-                  <ul className="tw2-adic__list">
-                    {catalogo.adicionales.map((a) => (
-                      <li key={a.id} className="tw2-adic__item">
-                        <div>
-                          <p className="tw2-adic__name">{a.nombre}</p>
-                          {a.descripcion && <p className="tw2-adic__desc">{a.descripcion}</p>}
-                        </div>
-                        <span className="tw2-adic__price">{pesos(a.precio)}</span>
-                        {cantidadAdicional(a.id) > 0 ? (
-                          <div className="tw2-stepper tw2-stepper--light">
-                            <button type="button" aria-label={`Sacar ${a.nombre}`} onClick={() => cambiarCantidad(`a-${a.id}`, -1)}>−</button>
-                            <output>{cantidadAdicional(a.id)}</output>
-                            <button type="button" aria-label={`Sumar ${a.nombre}`} onClick={() => sumarAdicional(a)}>+</button>
-                          </div>
-                        ) : (
-                          <button type="button" className="tw2-btn tw2-btn--line" onClick={() => sumarAdicional(a)}>Sumar</button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
               <p className="tw2-uvita">
-                ¿Preferís que te la arme alguien? <a href={waLink('¡Hola Uvita! Quiero armar una picada para llevar')} target="_blank" rel="noopener noreferrer">Escribile a Uvita por WhatsApp</a>
+                ¿No sabés qué llevar? <a href={waLink('¡Hola Uvita! ¿Me armás un take away?')} target="_blank" rel="noopener noreferrer">Uvita te arma el take away por WhatsApp</a>
               </p>
             </>
           )}
@@ -216,6 +200,60 @@ export default function TakeAway() {
   );
 }
 
+// Autoservicio: la heladera del local en la web. Categorías como pestañas y
+// cada producto con foto, precio y para sumar/sacar.
+function Autoservicio({ productos, categorias, cantidad, onSumar, onSacar }) {
+  const presentes = [...new Set(productos.map((p) => p.categoria))]
+    .sort((x, y) => (categorias.indexOf(x) + 1 || 99) - (categorias.indexOf(y) + 1 || 99));
+  const [cat, setCat] = useState('Todo');
+  const visibles = cat === 'Todo' ? productos : productos.filter((p) => p.categoria === cat);
+  return (
+    <section aria-labelledby="tw2-auto" className="tw2-auto">
+      <h2 id="tw2-auto" className="tw2-h2">Armá tu <span className="tw2-script">mesa</span></h2>
+      <p className="tw2-auto__intro">Como en la heladera del local: elegí quesos, fiambres y conservas envasados, platitos, postres y el vino. Sumá lo que quieras y lo dejamos listo.</p>
+      <div className="tw2-auto__cats" role="tablist" aria-label="Categorías">
+        {['Todo', ...presentes].map((c) => (
+          <button key={c} type="button" role="tab" aria-selected={cat === c} className="tw2-auto__cat" onClick={() => setCat(c)}>{c}</button>
+        ))}
+      </div>
+      <ul className="tw2-auto__grid">
+        {visibles.map((p) => {
+          const n = cantidad(p.id);
+          return (
+            <li key={p.id} className={`tw2-prod${n ? ' tw2-prod--on' : ''}${p.imagen ? '' : ' tw2-prod--sinfoto'}`}>
+              {p.imagen ? (
+                <div className="tw2-prod__img">
+                  <img src={p.imagen} alt={p.nombre} loading="lazy" />
+                  {n > 0 && <b className="tw2-prod__badge">{n}</b>}
+                </div>
+              ) : n > 0 && <b className="tw2-prod__badge">{n}</b>}
+              <div className="tw2-prod__body">
+                <p className="tw2-prod__cat">{p.categoria}</p>
+                <h3 className="tw2-prod__name">{p.nombre}</h3>
+                {p.descripcion && <p className="tw2-prod__desc">{p.descripcion}</p>}
+                {p.maridaje && <p className="tw2-prod__mar">Va con: {p.maridaje}</p>}
+                {p.alergenos && p.alergenos !== 'Ninguno conocido' && <p className="tw2-prod__mar">Alérgenos: {p.alergenos}</p>}
+                <div className="tw2-prod__foot">
+                  <span className="tw2-prod__price">{pesos(p.precio)}</span>
+                  {n > 0 ? (
+                    <div className="tw2-stepper tw2-stepper--light">
+                      <button type="button" aria-label={`Sacar ${p.nombre}`} onClick={() => onSacar(p)}>−</button>
+                      <output>{n}</output>
+                      <button type="button" aria-label={`Sumar ${p.nombre}`} onClick={() => onSumar(p)}>+</button>
+                    </div>
+                  ) : (
+                    <button type="button" className="tw2-btn tw2-btn--line" onClick={() => onSumar(p)}>Sumar</button>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function Reglas({ catalogo }) {
   const dias = catalogo.diasAbiertos.length === 7 || !catalogo.diasAbiertos.length
     ? 'Todos los días'
@@ -250,7 +288,7 @@ function Ticket({ lineas, subtotal, onCantidad, onEditar, onSeguir }) {
           <span className="tw2-script tw2-script--wine">Tu pedido</span>
           <span className="tw2-kicker tw2-kicker--mute">Take away</span>
         </div>
-        {!lineas.length && <p className="tw2-ticket__vacio">Todavía no elegiste nada. Armá una picada y aparece acá.</p>}
+        {!lineas.length && <p className="tw2-ticket__vacio">Todavía no elegiste nada. Sumá productos o armá una picada y aparece acá.</p>}
         {lineas.map((l) => (
           <div key={l.key} className="tw2-ticket__row">
             <div className="tw2-ticket__info">

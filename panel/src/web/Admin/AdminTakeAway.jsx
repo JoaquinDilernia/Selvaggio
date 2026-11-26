@@ -977,6 +977,263 @@ function AdicionalestTW() {
   );
 }
 
+const COL_AUTO = 'selvaggio_tw_autoservicio';
+// Autoservicio: productos sueltos que el cliente suma a su gusto (como en la
+// heladera del local). Usan la colección de "adicionales" que ya entienden el
+// checkout, la cocina y el bot. Sin precio no se muestran en la web ni el bot.
+const CATEGORIAS_SUELTOS = ['Platitos', 'Quesos', 'Fiambres', 'Conservas', 'Postres', 'Vinos tintos', 'Vinos blancos', 'Vinos rosados', 'Cócteles', 'Cervezas y gaseosas', 'Otros'];
+const AUTO_EMPTY = {
+  nombre: '', categoria: 'Platitos', descripcion: '', ingredientes: '', alergenos: '', maridaje: '',
+  precio: '', imagen: '', disponible: true,
+};
+const tienePrecio = (a) => Number(a.precio) > 0;
+
+function AutoservicioTW() {
+  const [adicionales, setAdicionales] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [form, setForm] = useState(AUTO_EMPTY);
+  const [guardando, setGuardando] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [filtro, setFiltro] = useState('todas');
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [precios, setPrecios] = useState({}); // edición rápida de precio en la lista
+
+  useEffect(() => { fetchAdicionales(); }, []);
+
+  const fetchAdicionales = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, COL_AUTO));
+      setAdicionales(snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0) || (a.nombre || '').localeCompare(b.nombre || '')));
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  const handleImagen = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    let imagen;
+    try {
+      imagen = await prepararImagen(file);
+    } catch (err) {
+      setToast({ message: err.message, type: 'error' });
+      return;
+    }
+    const storageRef = ref(storage, `selvaggio/tw_picadas/${Date.now()}_${imagen.name}`);
+    const task = uploadBytesResumable(storageRef, imagen, METADATA_CACHE);
+    setUploadProgress(0);
+    task.on('state_changed',
+      snap => setUploadProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
+      () => { setToast({ message: 'Error al subir la foto', type: 'error' }); setUploadProgress(null); },
+      async () => { const url = await getDownloadURL(task.snapshot.ref); setForm(p => ({ ...p, imagen: url })); setUploadProgress(null); }
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.nombre.trim()) { setToast({ message: 'El nombre es obligatorio', type: 'error' }); return; }
+    if (form.precio !== '' && (isNaN(Number(form.precio)) || Number(form.precio) < 0)) { setToast({ message: 'Ingresá un precio válido', type: 'error' }); return; }
+    setGuardando(true);
+    try {
+      const data = {
+        nombre: form.nombre.trim(), categoria: form.categoria, descripcion: form.descripcion.trim(),
+        ingredientes: form.ingredientes.trim(), alergenos: form.alergenos.trim(), maridaje: form.maridaje.trim(),
+        precio: form.precio === '' ? null : Number(form.precio), imagen: form.imagen || '', disponible: form.disponible,
+      };
+      if (editandoId) {
+        await updateDoc(doc(db, COL_AUTO, editandoId), { ...data, updatedAt: serverTimestamp() });
+        setToast({ message: 'Producto actualizado', type: 'success' });
+      } else {
+        await addDoc(collection(db, COL_AUTO), { ...data, orden: adicionales.length, createdAt: serverTimestamp() });
+        setToast({ message: 'Producto creado', type: 'success' });
+      }
+      setForm(AUTO_EMPTY); setEditandoId(null); setMostrarForm(false);
+      fetchAdicionales();
+    } catch { setToast({ message: 'Error al guardar', type: 'error' }); }
+    finally { setGuardando(false); }
+  };
+
+  const startEdit = (adic) => {
+    setForm({
+      ...AUTO_EMPTY,
+      nombre: adic.nombre || '', categoria: adic.categoria || 'Otros', descripcion: adic.descripcion || '',
+      ingredientes: adic.ingredientes || '', alergenos: adic.alergenos || '', maridaje: adic.maridaje || '',
+      precio: tienePrecio(adic) ? String(adic.precio) : '', imagen: adic.imagen || '', disponible: adic.disponible !== false,
+    });
+    setEditandoId(adic.id); setMostrarForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleDisponible = async (adic) => {
+    try {
+      await updateDoc(doc(db, COL_AUTO, adic.id), { disponible: adic.disponible === false, updatedAt: serverTimestamp() });
+      fetchAdicionales();
+    } catch {}
+  };
+
+  const guardarPrecio = async (adic) => {
+    const v = precios[adic.id];
+    if (v === undefined) return;
+    const n = v === '' ? null : Number(v);
+    if (n !== null && (isNaN(n) || n < 0)) { setToast({ message: 'Precio inválido', type: 'error' }); return; }
+    try {
+      await updateDoc(doc(db, COL_AUTO, adic.id), { precio: n, updatedAt: serverTimestamp() });
+      setAdicionales(l => l.map(x => x.id === adic.id ? { ...x, precio: n } : x));
+      setPrecios(p => { const c = { ...p }; delete c[adic.id]; return c; });
+      setToast({ message: `Precio de «${adic.nombre}» guardado`, type: 'success' });
+    } catch { setToast({ message: 'Error al guardar el precio', type: 'error' }); }
+  };
+
+  const eliminar = async (id, nombre) => {
+    if (!confirm(`¿Eliminar «${nombre}»?`)) return;
+    try {
+      await deleteDoc(doc(db, COL_AUTO, id));
+      setToast({ message: 'Producto eliminado', type: 'success' });
+      fetchAdicionales();
+    } catch { setToast({ message: 'Error al eliminar', type: 'error' }); }
+  };
+
+  const sinPrecio = adicionales.filter(a => !tienePrecio(a)).length;
+  const visibles = adicionales.filter(a => filtro === 'todas' || (filtro === 'sinprecio' ? !tienePrecio(a) : (a.categoria || 'Otros') === filtro));
+  const grupos = CATEGORIAS_SUELTOS
+    .concat([...new Set(visibles.map(a => a.categoria || 'Otros'))].filter(c => !CATEGORIAS_SUELTOS.includes(c)))
+    .map(c => [c, visibles.filter(a => (a.categoria || 'Otros') === c)])
+    .filter(([, l]) => l.length);
+  const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+
+  return (
+    <div>
+      <div className="atw__prod-header">
+        <h3 className="atw__prod-title">Autoservicio ({adicionales.length})</h3>
+        {!mostrarForm && <button className="atw__add-btn" onClick={() => { setForm(AUTO_EMPTY); setEditandoId(null); setMostrarForm(true); }}>+ Nuevo producto</button>}
+      </div>
+      <p style={{ fontSize: 13, color: '#8a7e76', marginBottom: 12, marginTop: -4 }}>
+        Productos sueltos para armar el take away a gusto, como en la heladera del local: platitos, quesos, fiambres y conservas envasados, postres y bebidas.
+        Se muestran en la web y el bot los ofrece. <strong>Sin precio no se muestran.</strong>
+      </p>
+      {sinPrecio > 0 && (
+        <p style={{ fontSize: 13, background: '#fff7e6', border: '1px solid #f0d9a8', color: '#7a5a12', padding: '8px 12px', borderRadius: 6, marginBottom: 12 }}>
+          {sinPrecio} producto{sinPrecio === 1 ? '' : 's'} sin precio: no aparecen hasta que les cargues uno.{' '}
+          <button type="button" className="atw__ing-edit" onClick={() => setFiltro('sinprecio')}>Ver cuáles</button>
+        </p>
+      )}
+
+      {mostrarForm && (
+        <div className="atw__form" style={{ marginBottom: 20 }}>
+          <p className="atw__form-title">{editandoId ? 'Editar producto' : 'Nuevo producto'}</p>
+          <form onSubmit={handleSubmit}>
+            <div className="atw__form-row atw__form-row--3">
+              <div className="atw__form-group">
+                <label>Nombre *</label>
+                <input type="text" value={form.nombre} onChange={set('nombre')} required placeholder="Ej: Queso Azul, Honey, Malbec…" />
+              </div>
+              <div className="atw__form-group">
+                <label>Categoría</label>
+                <select value={form.categoria} onChange={set('categoria')}>
+                  {CATEGORIAS_SUELTOS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="atw__form-group">
+                <label>Precio</label>
+                <input type="number" min={0} value={form.precio} onChange={set('precio')} placeholder="Sin precio = no se muestra" />
+              </div>
+            </div>
+            <div className="atw__form-row">
+              <div className="atw__form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Descripción</label>
+                <textarea rows={2} value={form.descripcion} onChange={set('descripcion')} placeholder="Lo que ve el cliente…" />
+              </div>
+            </div>
+            <div className="atw__form-row atw__form-row--3">
+              <div className="atw__form-group">
+                <label>Ingredientes</label>
+                <input type="text" value={form.ingredientes} onChange={set('ingredientes')} />
+              </div>
+              <div className="atw__form-group">
+                <label>Alérgenos</label>
+                <input type="text" value={form.alergenos} onChange={set('alergenos')} placeholder="Ej: Lácteos, Gluten" />
+              </div>
+              <div className="atw__form-group">
+                <label>Maridaje</label>
+                <input type="text" value={form.maridaje} onChange={set('maridaje')} placeholder="Ej: Malbec o espumante brut" />
+              </div>
+            </div>
+            <div className="atw__form-row">
+              <div className="atw__form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Foto</label>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {form.imagen && <img src={form.imagen} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 6, border: '1px solid #e8e2d9' }} />}
+                  <input type="file" accept="image/*" onChange={handleImagen} />
+                  {uploadProgress !== null && <span style={{ fontSize: 12 }}>Subiendo… {uploadProgress}%</span>}
+                  {form.imagen && <button type="button" className="atw__ing-del" onClick={() => setForm(p => ({ ...p, imagen: '' }))}>Quitar foto</button>}
+                </div>
+              </div>
+            </div>
+            <div className="atw__toggle-wrap" style={{ marginBottom: 12 }}>
+              <input type="checkbox" id="auto-disp" checked={form.disponible} onChange={set('disponible')} />
+              <label htmlFor="auto-disp">Disponible (hay stock)</label>
+            </div>
+            <div className="atw__form-actions">
+              <button type="submit" className="atw__form-submit" disabled={guardando || uploadProgress !== null}>
+                {guardando ? 'Guardando…' : editandoId ? 'Actualizar' : 'Crear'}
+              </button>
+              <button type="button" className="atw__form-cancel" onClick={() => { setForm(AUTO_EMPTY); setEditandoId(null); setMostrarForm(false); }}>Cancelar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+        {[['todas', 'Todas'], ...CATEGORIAS_SUELTOS.filter(c => adicionales.some(a => (a.categoria || 'Otros') === c)).map(c => [c, c]), ...(sinPrecio ? [['sinprecio', `Sin precio (${sinPrecio})`]] : [])].map(([id, label]) => (
+          <button key={id} type="button" className={`atw__filter-btn${filtro === id ? ' atw__filter-btn--on' : ''}`} onClick={() => setFiltro(id)}>{label}</button>
+        ))}
+      </div>
+
+      {loading ? <p className="atw__loading">Cargando…</p>
+        : adicionales.length === 0 ? (
+          <p className="atw__empty">No hay productos. Creá el primero para que los clientes puedan sumarlo al pedido.</p>
+        ) : grupos.map(([cat, lista]) => (
+          <div key={cat} style={{ marginBottom: 18 }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: 14, textTransform: 'uppercase', letterSpacing: '.06em', color: '#7c3f2f' }}>{cat} ({lista.length})</h4>
+            <div className="atw__ings-list">
+              {lista.map(adic => (
+                <div key={adic.id} className={`atw__ing-row${adic.disponible === false ? ' atw__ing-row--off' : ''}`} style={{ alignItems: 'center', gap: 10 }}>
+                  {adic.imagen
+                    ? <img src={adic.imagen} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, flex: 'none' }} />
+                    : <span style={{ width: 40, height: 40, borderRadius: 4, background: '#f1ece5', flex: 'none', display: 'grid', placeItems: 'center', fontSize: 10, color: '#a39a90' }}>sin foto</span>}
+                  <span className="atw__ing-nombre">{adic.nombre}</span>
+                  {adic.disponible === false && <span style={{ fontSize: 11, color: '#c62828' }}>Sin stock</span>}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                    $<input
+                      type="number" min={0} aria-label={`Precio de ${adic.nombre}`}
+                      value={precios[adic.id] ?? (tienePrecio(adic) ? adic.precio : '')}
+                      placeholder="sin precio"
+                      onChange={e => setPrecios(p => ({ ...p, [adic.id]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') guardarPrecio(adic); }}
+                      style={{ width: 96, padding: '4px 6px', border: `1px solid ${tienePrecio(adic) ? '#ddd5cb' : '#e0b25c'}`, borderRadius: 4 }}
+                    />
+                    {precios[adic.id] !== undefined && <button type="button" className="atw__ing-edit" onClick={() => guardarPrecio(adic)}>Guardar</button>}
+                  </span>
+                  <div className="atw__ing-actions">
+                    <button className="atw__ing-disp" onClick={() => toggleDisponible(adic)}>
+                      {adic.disponible !== false ? 'Sin stock' : 'Hay stock'}
+                    </button>
+                    <button className="atw__ing-edit" onClick={() => startEdit(adic)}>Editar</button>
+                    <button className="atw__ing-del" onClick={() => eliminar(adic.id, adic.nombre)}>×</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
 /* ══════════════════════════════════
    MAIN
 ══════════════════════════════════ */
@@ -1156,7 +1413,7 @@ function AdminTakeAway() {
       </div>
 
       <div className="atw__subtabs">
-        {[['pedidos','Pedidos'],['picadas','Picadas'],['ingredientes','Ingredientes'],['adicionales','Adicionales']].map(([id, label]) => (
+        {[['pedidos','Pedidos'],['picadas','Picadas'],['ingredientes','Ingredientes'],['autoservicio','Autoservicio'],['adicionales','Adicionales']].map(([id, label]) => (
           <button key={id} className={`atw__stab${subTab === id ? ' atw__stab--on' : ''}`}
             onClick={() => setSubTab(id)}>{label}</button>
         ))}
@@ -1166,6 +1423,7 @@ function AdminTakeAway() {
       {subTab === 'picadas'      && <PicadasTW />}
       {subTab === 'ingredientes' && <IngredientesTW />}
       {subTab === 'adicionales' && <AdicionalestTW />}
+      {subTab === 'autoservicio' && <AutoservicioTW />}
     </div>
   );
 }

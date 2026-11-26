@@ -18,6 +18,8 @@ const COL = {
   picadas: 'selvaggio_tw_picadas',
   ingredientes: 'selvaggio_tw_ingredientes',
   adicionales: 'selvaggio_tw_adicionales',
+  // Autoservicio: aparte para que la web actual (que lee adicionales directo) no los muestre.
+  autoservicio: 'selvaggio_tw_autoservicio',
   cupones: 'selvaggio_cupones',
   config: 'selvaggio_configuracion',
   sandboxPedidos: 'bot-selvaggio_takeaway_sandbox',
@@ -27,6 +29,15 @@ const COL = {
 export const COL_PRUEBA_V2 = COL.pruebaV2Pedidos;
 
 export const METODOS_PAGO = ['efectivo', 'transferencia', 'tarjeta'];
+
+// Autoservicio: productos sueltos (blísters, platitos, postres, bebidas) que el
+// cliente suma a su gusto, como en la heladera del local. Viven en
+// selvaggio_tw_autoservicio y se suman al mapa de "adicionales" (que ya
+// entendían el checkout, la cocina y el bot). Sin precio cargado no se ofrecen.
+export const CATEGORIAS_SUELTOS = ['Platitos', 'Quesos', 'Fiambres', 'Conservas', 'Postres', 'Vinos tintos', 'Vinos blancos', 'Vinos rosados', 'Cócteles', 'Cervezas y gaseosas', 'Otros'];
+export const seVende = (a) => !!a && a.disponible !== false && Number(a.precio) > 0;
+const ordenCategoria = (c) => { const i = CATEGORIAS_SUELTOS.indexOf(c); return i === -1 ? CATEGORIAS_SUELTOS.length : i; };
+export const ordenSueltos = (a, b) => (ordenCategoria(a.categoria) - ordenCategoria(b.categoria)) || ((a.orden || 0) - (b.orden || 0)) || String(a.nombre).localeCompare(String(b.nombre));
 export const DESCUENTO_EFECTIVO = 0.10;
 const MAX_UNIDADES = 50;
 
@@ -130,10 +141,11 @@ export function armarItems(itemsCliente, { picadas, adicionales, ingredientes })
 
     if (it.adicionalId) {
       const a = adicionales.get(it.adicionalId);
-      if (!a || a.disponible === false) throw err(409, 'Un adicional del carrito ya no está disponible');
+      if (!seVende(a)) throw err(409, `${a?.nombre ? `"${a.nombre}"` : 'Un producto del carrito'} ya no está disponible`);
+      const precio = Number(a.precio);
       return {
         cartId: `adic-${it.adicionalId}`, adicionalId: it.adicionalId, tipo: 'adicional',
-        nombre: a.nombre, precio: a.precio, cantidad, subtotal: a.precio * cantidad,
+        nombre: a.nombre, categoria: a.categoria || '', precio, cantidad, subtotal: precio * cantidad,
       };
     }
 
@@ -162,14 +174,15 @@ export function armarItems(itemsCliente, { picadas, adicionales, ingredientes })
 // ── Lecturas ─────────────────────────────────────────────────────────────
 
 async function cargarCatalogo(db) {
-  const [pic, ing, adi, cfg] = await Promise.all([
+  const [pic, ing, adi, auto, cfg] = await Promise.all([
     db.collection(COL.picadas).get(),
     db.collection(COL.ingredientes).get(),
     db.collection(COL.adicionales).get(),
+    db.collection(COL.autoservicio).get(),
     db.collection(COL.config).doc('takeaway_config').get(),
   ]);
   const toMap = (snap) => new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
-  return { picadas: toMap(pic), ingredientes: toMap(ing), adicionales: toMap(adi), config: cfg.exists ? cfg.data() : { activo: false } };
+  return { picadas: toMap(pic), ingredientes: toMap(ing), adicionales: new Map([...toMap(adi), ...toMap(auto)]), config: cfg.exists ? cfg.data() : { activo: false } };
 }
 
 async function usosCliente(db, cuponId, email, tx = null) {
@@ -330,8 +343,12 @@ export async function catalogoPublico() {
           .map(id => ({ id, nombre: ingredientes.get(id).nombre })),
       })),
     })),
-    adicionales: [...adicionales.values()].filter(a => a.disponible !== false).sort(orden)
-      .map(a => ({ id: a.id, nombre: a.nombre, precio: a.precio, descripcion: a.descripcion || '', imagen: a.imagen || null })),
+    adicionales: [...adicionales.values()].filter(seVende).sort(ordenSueltos).map(a => ({
+      id: a.id, nombre: a.nombre, precio: Number(a.precio), categoria: a.categoria || 'Otros',
+      descripcion: a.descripcion || '', ingredientes: a.ingredientes || '', alergenos: a.alergenos || '',
+      maridaje: a.maridaje || '', imagen: a.imagen || null,
+    })),
+    categoriasSueltos: CATEGORIAS_SUELTOS,
   };
 }
 
@@ -356,8 +373,13 @@ export async function menuTakeaway() {
         opciones: (s.ingredienteIds || []).filter(id => ingredientes.has(id)).map(id => ({ id, nombre: ingredientes.get(id).nombre })),
       })),
     })),
-    adicionales: [...adicionales.values()].filter(a => a.disponible !== false).sort(orden)
-      .map(a => ({ id: a.id, nombre: a.nombre, precio: a.precio })),
+    // Autoservicio: se piden con { adicionalId, cantidad }.
+    autoservicio: [...adicionales.values()].filter(seVende).sort(ordenSueltos).map(a => ({
+      adicionalId: a.id, categoria: a.categoria || 'Otros', nombre: a.nombre, precio: Number(a.precio),
+      ...(a.descripcion && { descripcion: a.descripcion }),
+      ...(a.alergenos && a.alergenos !== 'Ninguno conocido' && { alergenos: a.alergenos }),
+      ...(a.maridaje && { maridaje: a.maridaje }),
+    })),
   };
 }
 

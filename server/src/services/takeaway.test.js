@@ -62,3 +62,31 @@ test('retiro: slots de 30 minutos con 60 de margen si es hoy (hora AR)', () => {
   assert.throws(() => validarRetiro(config, '2026-10-03', '19:30', { now }), /ya no está disponible/);
   assert.doesNotThrow(() => validarRetiro({ diasAbiertos: [] }, '', '', { now })); // sin agenda
 });
+
+test('autoservicio: un producto suelto sin precio u oculto no se vende', async () => {
+  const { seVende } = await import('./takeaway.service.js');
+  const cat = {
+    picadas: new Map(), ingredientes: new Map(),
+    adicionales: new Map([
+      ['q', { id: 'q', nombre: 'Queso Azul', categoria: 'Quesos', precio: 9000 }],
+      ['s', { id: 's', nombre: 'Mortadela', categoria: 'Fiambres', precio: '' }],
+      ['o', { id: 'o', nombre: 'Brie', categoria: 'Quesos', precio: 8000, disponible: false }],
+    ]),
+  };
+  const [it] = armarItems([{ adicionalId: 'q', cantidad: 2 }], cat);
+  assert.equal(it.subtotal, 18000);
+  assert.equal(it.categoria, 'Quesos');
+  assert.throws(() => armarItems([{ adicionalId: 's', cantidad: 1 }], cat), /"Mortadela" ya no está disponible/);
+  assert.throws(() => armarItems([{ adicionalId: 'o', cantidad: 1 }], cat), /"Brie" ya no está disponible/);
+  assert.equal(seVende({ precio: '0' }), false);
+  assert.equal(seVende({ precio: 5000 }), true);
+});
+
+test('autoservicio: orden de la góndola por categoría y después por orden', async () => {
+  const { ordenSueltos } = await import('./takeaway.service.js');
+  const l = [
+    { nombre: 'Malbec', categoria: 'Vinos tintos' }, { nombre: 'Honey', categoria: 'Platitos', orden: 2 },
+    { nombre: 'Floré', categoria: 'Platitos', orden: 1 }, { nombre: 'Raro', categoria: 'Nueva' }, { nombre: 'Azul', categoria: 'Quesos' },
+  ].sort(ordenSueltos).map(x => x.nombre);
+  assert.deepEqual(l, ['Floré', 'Honey', 'Azul', 'Malbec', 'Raro']);
+});
