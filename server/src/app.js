@@ -28,6 +28,7 @@ import comandasRoutes from './routes/comandas.routes.js';
 import { asegurarPlantillaPedidoListo } from './services/comandas.service.js';
 import { iniciarSyncClientes } from './services/clientesSync.service.js';
 import { iniciarArchivoReservas } from './services/archivoReservas.service.js';
+import { iniciarHistorialEventos } from './services/eventosHistorial.service.js';
 import { iniciarAutoArchivo } from './services/autoArchivo.service.js';
 import { iniciarConfirmacionReservas } from './services/confirmacionReservas.service.js';
 import { ensureBaseLabels } from './services/label.service.js';
@@ -49,6 +50,7 @@ seedAreasIfNeeded().catch(err => console.error('[seed] Error seeding areas:', er
 // Lista única de clientes: copia los clientes de la web a los contactos (cada 15 min).
 iniciarSyncClientes();
 iniciarArchivoReservas();
+iniciarHistorialEventos();
 // Charlas del bot quietas 12 h → archivadas (cuentan como resueltas por el bot).
 iniciarAutoArchivo();
 iniciarConfirmacionReservas();

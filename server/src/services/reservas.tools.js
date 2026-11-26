@@ -7,6 +7,7 @@ import { guardarCumple } from './cumpleanos.service.js';
 import { reservasDelContacto, modificarReservaMesa, cancelarReservaMesa } from './reservasCambios.service.js';
 import { menuTakeaway, horariosRetiro, cotizarPedido, crearPedidoTakeaway, pedidosDelContacto } from './takeaway.service.js';
 import { toWaContactId } from './phone.js';
+import { eventosAnteriores } from './eventosHistorial.service.js';
 import { guardarTelefonoContacto } from './customer.service.js';
 
 // Tools que Claude puede llamar durante una conversación. Por WhatsApp el
@@ -33,7 +34,8 @@ export const RESERVAS_TOOLS = [
     name: 'consultar_agenda',
     description:
       'Horario habitual de apertura, días especiales del calendario (cerrado o con horario especial, feriados, etc.) y eventos publicados. ' +
-      'Usala SIEMPRE que pregunten a qué hora abren, si abren tal día, por feriados o por eventos/actividades. No supongas horarios.',
+      'Usala SIEMPRE que pregunten a qué hora abren, si abren tal día, por feriados o por eventos/actividades. No supongas horarios. ' +
+      'También trae eventosAnteriores: eventos que ya hicimos y hoy no tienen nueva fecha.',
     input_schema: {
       type: 'object',
       properties: {
@@ -364,6 +366,8 @@ Hoy es ${dia} ${hoy.fecha} y son las ${hoy.hora} (hora de Argentina). Convertí 
 
 HORARIOS Y EVENTOS: para cualquier pregunta de horario de apertura, días especiales (feriados, cierres) o eventos usá consultar_agenda. Un día especial del calendario manda sobre el horario habitual. No inventes eventos ni horarios.
 - Si el cliente nombra algo que puede ser un evento (una cata, "menú de pasos", una noche temática, el nombre de una actividad), consultá la agenda ANTES de responder. Nunca digas que algo no existe sin haberlo chequeado.
+- Compará los nombres con flexibilidad: espacios, mayúsculas, errores de tipeo y apodos cuentan como el mismo evento ("astro night", "astro y vino", "astrovinito" = "Astronight").
+- EVENTOS QUE YA HICIMOS: si lo que pregunta no está en "eventos" pero sí en "eventosAnteriores", NO digas que no existe ni que no lo tenemos. Contá que es un evento que hacemos cada tanto (usá "frecuencia" si viene), que la última fue el <dia> <ultimaFecha en DD/MM> y que todavía no hay nueva fecha; sugerí seguirnos en Instagram, donde anunciamos las fechas nuevas. Podés contar de qué se trata con "descripcion", pero no des precios ni horarios de la próxima como si estuvieran confirmados. No ofrezcas reservar para una fecha que no está en la agenda. Si sigue interesado, ofrecé que el equipo le avise y derivá con [MOTIVO:sin_info|quiere la próxima fecha de <evento>].
 - Si el evento trae "infoInterna", es info que cargó el equipo para vos (precio, qué incluye, menú, políticas): usala para responder sobre ese evento. Contá lo que el cliente pregunte con tus palabras; no la pegues entera.
 - Si el evento trae "link", pasalo para reservar o sacar entradas.
 - PAGO: si el evento trae "gratis": true, decí que no tiene costo. Si trae "pago", contá el precio y, si tiene "sena", que para asegurar el lugar hay que transferir esa seña al alias "alias" y mandar el comprobante por este chat. Si no trae ni "pago" ni "gratis", no afirmes que es gratis ni inventes precio: usá infoInterna o derivá con [MOTIVO:sin_info|precio del evento].
@@ -423,8 +427,12 @@ export async function runReservaTool(name, input, ctx) {
         return res;
       }
 
-      case 'consultar_agenda':
-        return await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
+      case 'consultar_agenda': {
+        const res = await agenda({ ...input, horarioHabitual: describirHorario(ctx.botConfig || {}) });
+        const anteriores = await eventosAnteriores({ excluirTitulos: res.eventos.map(e => e.titulo) })
+          .catch(e => { console.error('[reservas-tool] eventos anteriores:', e.message); return []; });
+        return anteriores.length ? { ...res, eventosAnteriores: anteriores } : res;
+      }
 
       case 'consultar_disponibilidad_mesas':
         return await disponibilidadMesas(input.fecha, { incluirSandbox: true, personas: input.personas });
